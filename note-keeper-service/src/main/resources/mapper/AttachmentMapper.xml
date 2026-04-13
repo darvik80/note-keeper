@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xyz.crearts.note.keeper.mapper.AttachmentMapper">
+
+    <resultMap id="attachmentResultMap" type="xyz.crearts.note.keeper.model.Attachment">
+        <id property="id" column="id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="parentType" column="parent_type"/>
+        <result property="name" column="name"/>
+        <result property="size" column="size"/>
+        <result property="type" column="type"/>
+        <result property="url" column="url"/>
+        <result property="uploadedAt" column="uploaded_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="xyz.crearts.note.keeper.model.Attachment">
+        INSERT INTO attachment (id, parent_id, parent_type, name, size, type, url, uploaded_at)
+        VALUES (#{id}, #{parentId}, #{parentType}, #{name}, #{size}, #{type}, #{url}, #{uploadedAt})
+    </insert>
+
+    <select id="findByParent" resultMap="attachmentResultMap">
+        SELECT * FROM attachment
+        WHERE parent_id = #{parentId} AND parent_type = #{parentType}
+    </select>
+
+    <select id="findByNoteId" resultMap="attachmentResultMap" parameterType="String">
+        SELECT * FROM attachment
+        WHERE parent_id = #{id} AND parent_type = 'note'
+    </select>
+
+    <select id="findByTodoId" resultMap="attachmentResultMap" parameterType="String">
+        SELECT * FROM attachment
+        WHERE parent_id = #{id} AND parent_type = 'todo'
+    </select>
+
+    <delete id="deleteByParent">
+        DELETE FROM attachment
+        WHERE parent_id = #{parentId} AND parent_type = #{parentType}
+    </delete>
+
+</mapper>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xyz.crearts.note.keeper.mapper.TodoMapper">
+
+    <resultMap id="todoResultMap" type="xyz.crearts.note.keeper.model.Todo">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="completed" column="completed"/>
+        <result property="tags" column="tags"
+                typeHandler="xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler"/>
+        <result property="priority" column="priority"/>
+        <result property="favorite" column="is_favorite"/>
+        <result property="archived" column="is_archived"/>
+        <result property="deleted" column="is_deleted"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="dueDate" column="due_date"/>
+        <result property="reminder" column="reminder"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="location" javaType="xyz.crearts.note.keeper.model.Todo$Location">
+            <result property="lat" column="location_lat"/>
+            <result property="lng" column="location_lng"/>
+            <result property="address" column="location_address"/>
+        </association>
+        <association property="schedule" javaType="xyz.crearts.note.keeper.model.Todo$Schedule">
+            <result property="repeat" column="schedule_repeat"/>
+            <result property="endDate" column="schedule_end_date"/>
+        </association>
+    </resultMap>
+
+    <select id="findAll" resultMap="todoResultMap">
+        SELECT * FROM todo
+        <where>
+            <if test="completed != null">AND completed = #{completed}</if>
+            <if test="tag != null">AND tags LIKE '%' || #{tag} || '%'</if>
+            <if test="priority != null">AND priority = #{priority}</if>
+            <if test="isFavorite != null">AND is_favorite = #{isFavorite}</if>
+            <if test="isArchived != null">AND is_archived = #{isArchived}</if>
+            <if test="isDeleted != null">AND is_deleted = #{isDeleted}</if>
+        </where>
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="findById" resultMap="todoResultMap" parameterType="String">
+        SELECT * FROM todo WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="xyz.crearts.note.keeper.model.Todo">
+        INSERT INTO todo (id, title, description, completed, tags, priority,
+            is_favorite, is_archived, is_deleted, deleted_at, due_date, reminder,
+            location_lat, location_lng, location_address,
+            schedule_repeat, schedule_end_date,
+            created_at, updated_at)
+        VALUES (#{id}, #{title}, #{description}, #{completed},
+            #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
+            #{priority}, #{favorite}, #{archived}, #{deleted}, #{deletedAt},
+            #{dueDate}, #{reminder},
+            #{location.lat, jdbcType=REAL}, #{location.lng, jdbcType=REAL},
+            #{location.address, jdbcType=VARCHAR},
+            #{schedule.repeat, jdbcType=VARCHAR}, #{schedule.endDate, jdbcType=VARCHAR},
+            #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="update" parameterType="xyz.crearts.note.keeper.model.Todo">
+        UPDATE todo SET
+            title = #{title},
+            description = #{description},
+            completed = #{completed},
+            tags = #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
+            priority = #{priority},
+            is_favorite = #{favorite},
+            due_date = #{dueDate},
+            reminder = #{reminder},
+            location_lat = #{location.lat, jdbcType=REAL},
+            location_lng = #{location.lng, jdbcType=REAL},
+            location_address = #{location.address, jdbcType=VARCHAR},
+            schedule_repeat = #{schedule.repeat, jdbcType=VARCHAR},
+            schedule_end_date = #{schedule.endDate, jdbcType=VARCHAR},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <update id="softDelete">
+        UPDATE todo SET is_deleted = 1, deleted_at = #{deletedAt}, updated_at = #{deletedAt}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="permanentDelete" parameterType="String">
+        DELETE FROM todo WHERE id = #{id}
+    </delete>
+
+    <update id="archive" parameterType="String">
+        UPDATE todo SET is_archived = 1, updated_at = datetime('now','localtime')
+        WHERE id = #{id}
+    </update>
+
+    <update id="restore" parameterType="String">
+        UPDATE todo SET is_archived = 0, is_deleted = 0, deleted_at = NULL,
+            updated_at = datetime('now','localtime')
+        WHERE id = #{id}
+    </update>
+
+    <select id="countByDateRange" resultType="int">
+        SELECT COUNT(*) FROM todo
+        WHERE created_at >= #{start} AND created_at &lt;= #{end}
+    </select>
+
+    <select id="countCompletedByDateRange" resultType="int">
+        SELECT COUNT(*) FROM todo
+        WHERE completed = 1
+          AND updated_at >= #{start} AND updated_at &lt;= #{end}
+    </select>
+
+    <select id="search" resultMap="todoResultMap">
+        SELECT * FROM todo
+        WHERE is_deleted = 0
+          AND (title LIKE '%' || #{query} || '%' OR description LIKE '%' || #{query} || '%')
+        <if test="tags != null">AND tags LIKE '%' || #{tags} || '%'</if>
+        <if test="priority != null">AND priority = #{priority}</if>
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="countByPriority" resultType="int">
+        SELECT COUNT(*) FROM todo
+        WHERE priority = #{priority}
+          AND created_at >= #{start} AND created_at &lt;= #{end}
+    </select>
+
+</mapper>

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xyz.crearts.note.keeper.mapper.NoteMapper">
+
+    <resultMap id="noteResultMap" type="xyz.crearts.note.keeper.model.Note">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="tags" column="tags"
+                typeHandler="xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler"/>
+        <result property="folder" column="folder"/>
+        <result property="subfolder" column="subfolder"/>
+        <result property="priority" column="priority"/>
+        <result property="favorite" column="is_favorite"/>
+        <result property="encrypted" column="is_encrypted"/>
+        <result property="archived" column="is_archived"/>
+        <result property="deleted" column="is_deleted"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="reminder" column="reminder"/>
+        <result property="templateId" column="template_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="noteWithCollectionsMap" type="xyz.crearts.note.keeper.model.Note" extends="noteResultMap">
+        <collection property="attachments" column="id" select="xyz.crearts.note.keeper.mapper.AttachmentMapper.findByNoteId"/>
+        <collection property="history" column="id" select="xyz.crearts.note.keeper.mapper.NoteHistoryMapper.findByNoteId"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="noteResultMap">
+        SELECT * FROM note
+        <where>
+            <if test="folder != null">AND folder = #{folder}</if>
+            <if test="tag != null">AND tags LIKE CONCAT('%', #{tag}, '%')</if>
+            <if test="priority != null">AND priority = #{priority}</if>
+            <if test="isFavorite != null">AND is_favorite = #{isFavorite}</if>
+            <if test="isEncrypted != null">AND is_encrypted = #{isEncrypted}</if>
+            <if test="isArchived != null">AND is_archived = #{isArchived}</if>
+            <if test="isDeleted != null">AND is_deleted = #{isDeleted}</if>
+        </where>
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="findById" resultMap="noteResultMap" parameterType="String">
+        SELECT * FROM note WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="xyz.crearts.note.keeper.model.Note">
+        INSERT INTO note (id, title, content, tags, folder, subfolder, priority,
+            is_favorite, is_encrypted, is_archived, is_deleted, deleted_at, reminder,
+            template_id, created_at, updated_at)
+        VALUES (#{id}, #{title}, #{content},
+            #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
+            #{folder}, #{subfolder}, #{priority},
+            #{favorite}, #{encrypted}, #{archived}, #{deleted}, #{deletedAt},
+            #{reminder}, #{templateId}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="update" parameterType="xyz.crearts.note.keeper.model.Note">
+        UPDATE note SET
+            title = #{title},
+            content = #{content},
+            tags = #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
+            folder = #{folder},
+            subfolder = #{subfolder},
+            priority = #{priority},
+            is_favorite = #{favorite},
+            is_encrypted = #{encrypted},
+            reminder = #{reminder},
+            template_id = #{templateId},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <update id="softDelete">
+        UPDATE note SET is_deleted = 1, deleted_at = #{deletedAt}, updated_at = #{deletedAt}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="permanentDelete" parameterType="String">
+        DELETE FROM note WHERE id = #{id}
+    </delete>
+
+    <update id="archive" parameterType="String">
+        UPDATE note SET is_archived = 1, updated_at = datetime('now','localtime')
+        WHERE id = #{id}
+    </update>
+
+    <update id="restore" parameterType="String">
+        UPDATE note SET is_archived = 0, is_deleted = 0, deleted_at = NULL,
+            updated_at = datetime('now','localtime')
+        WHERE id = #{id}
+    </update>
+
+    <select id="countByDateRange" resultType="int">
+        SELECT COUNT(*) FROM note
+        WHERE created_at >= #{start} AND created_at &lt;= #{end}
+    </select>
+
+    <select id="search" resultMap="noteResultMap">
+        SELECT * FROM note
+        WHERE is_deleted = 0
+          AND (title LIKE '%' || #{query} || '%' OR content LIKE '%' || #{query} || '%')
+        <if test="tags != null">AND tags LIKE '%' || #{tags} || '%'</if>
+        <if test="priority != null">AND priority = #{priority}</if>
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="countByPriority" resultType="int">
+        SELECT COUNT(*) FROM note
+        WHERE priority = #{priority}
+          AND created_at >= #{start} AND created_at &lt;= #{end}
+    </select>
+
+</mapper>
