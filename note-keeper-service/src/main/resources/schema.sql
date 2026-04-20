@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS note (
     deleted_at TEXT,
     reminder TEXT,
     template_id TEXT,
+    owner_id TEXT REFERENCES users(id),
+    shared_with TEXT DEFAULT '[]',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -47,11 +49,15 @@ CREATE TABLE IF NOT EXISTS todo (
     deleted_at TEXT,
     due_date TEXT,
     reminder TEXT,
+    notified_at TEXT,
+    notification_channels TEXT,
     location_lat REAL,
     location_lng REAL,
     location_address TEXT,
     schedule_repeat TEXT DEFAULT 'none' CHECK(schedule_repeat IN ('none','daily','weekly','monthly')),
     schedule_end_date TEXT,
+    owner_id TEXT REFERENCES users(id),
+    shared_with TEXT DEFAULT '[]',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -94,3 +100,41 @@ CREATE TABLE IF NOT EXISTS saved_query (
     filter_folder TEXT,
     created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS user_settings (
+    id TEXT PRIMARY KEY DEFAULT 'default',
+    telegram_bot_token TEXT,
+    telegram_chat_id TEXT,
+    dingtalk_webhook TEXT,
+    dingtalk_secret TEXT,
+    updated_at TEXT NOT NULL
+);
+
+-- Users table
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    avatar_url TEXT,
+    provider TEXT NOT NULL DEFAULT 'local' CHECK(provider IN ('local', 'google')),
+    google_id TEXT UNIQUE,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- User credentials for password authentication
+CREATE TABLE IF NOT EXISTS user_credentials (
+    user_id TEXT PRIMARY KEY,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_note_owner ON note(owner_id);
+CREATE INDEX IF NOT EXISTS idx_todo_owner ON todo(owner_id);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);

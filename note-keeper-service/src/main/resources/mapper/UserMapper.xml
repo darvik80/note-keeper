@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xyz.crearts.note.keeper.mapper.UserMapper">
+
+    <resultMap id="userResultMap" type="xyz.crearts.note.keeper.model.User">
+        <id property="id" column="id"/>
+        <result property="email" column="email"/>
+        <result property="name" column="name"/>
+        <result property="avatarUrl" column="avatar_url"/>
+        <result property="provider" column="provider"/>
+        <result property="googleId" column="google_id"/>
+        <result property="active" column="is_active"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="userCredentialsResultMap" type="xyz.crearts.note.keeper.model.UserCredentials">
+        <id property="userId" column="user_id"/>
+        <result property="passwordHash" column="password_hash"/>
+        <result property="salt" column="salt"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findById" resultMap="userResultMap">
+        SELECT * FROM users WHERE id = #{id}
+    </select>
+
+    <select id="findByEmail" resultMap="userResultMap">
+        SELECT * FROM users WHERE email = #{email}
+    </select>
+
+    <select id="findByGoogleId" resultMap="userResultMap">
+        SELECT * FROM users WHERE google_id = #{googleId}
+    </select>
+
+    <insert id="insert" parameterType="xyz.crearts.note.keeper.model.User">
+        INSERT INTO users (id, email, name, avatar_url, provider, google_id, is_active, created_at, updated_at)
+        VALUES (#{id}, #{email}, #{name}, #{avatarUrl}, #{provider}, #{googleId}, #{active}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="update" parameterType="xyz.crearts.note.keeper.model.User">
+        UPDATE users SET
+            email = #{email},
+            name = #{name},
+            avatar_url = #{avatarUrl},
+            provider = #{provider},
+            google_id = #{googleId},
+            is_active = #{active},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <select id="findCredentialsByUserId" resultMap="userCredentialsResultMap">
+        SELECT * FROM user_credentials WHERE user_id = #{userId}
+    </select>
+
+    <insert id="insertCredentials" parameterType="xyz.crearts.note.keeper.model.UserCredentials">
+        INSERT INTO user_credentials (user_id, password_hash, salt, created_at, updated_at)
+        VALUES (#{userId}, #{passwordHash}, #{salt}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateCredentials" parameterType="xyz.crearts.note.keeper.model.UserCredentials">
+        UPDATE user_credentials SET
+            password_hash = #{passwordHash},
+            salt = #{salt},
+            updated_at = #{updatedAt}
+        WHERE user_id = #{userId}
+    </update>
+
+    <select id="findByIds" resultMap="userResultMap">
+        SELECT * FROM users WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+</mapper>

@@ -196,3 +196,28 @@ export interface IntegrationResponse {
   success: boolean;
   message: string;
 }
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl?: string;
+  provider: 'local' | 'google';
+  googleId?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AuthRequest {
+  email?: string;
+  password?: string;
+  name?: string;
+  googleId?: string;
+  googleToken?: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
+}

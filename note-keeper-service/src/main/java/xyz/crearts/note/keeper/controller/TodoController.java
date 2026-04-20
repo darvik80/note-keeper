@@ -1,8 +1,10 @@
 package xyz.crearts.note.keeper.controller;
 
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import xyz.crearts.note.keeper.dto.TodoInput;
 import xyz.crearts.note.keeper.model.Todo;
@@ -10,6 +12,12 @@ import xyz.crearts.note.keeper.service.TodoService;
 
 import java.util.List;
 
+/**
+ * Todo controller with owner support.
+ * Extracts owner ID from JWT token for all operations.
+ */
+
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/todos")
 public class TodoController {
@@ -27,13 +35,17 @@ public class TodoController {
             @RequestParam(required = false) String priority,
             @RequestParam(required = false) Boolean isFavorite,
             @RequestParam(required = false) Boolean isArchived,
-            @RequestParam(required = false) Boolean isDeleted) {
-        return todoService.findAll(completed, tag, priority, isFavorite, isArchived, isDeleted);
+            @RequestParam(required = false) Boolean isDeleted,
+            @AuthenticationPrincipal String ownerId) {
+        log.info("GET /api/v1/todos - ownerId: {}", ownerId);
+        return todoService.findAll(completed, tag, priority, isFavorite, isArchived, isDeleted, ownerId);
     }
 
     @PostMapping
-    public ResponseEntity<Todo> createTodo(@Valid @RequestBody TodoInput input) {
-        Todo todo = todoService.create(input);
+    public ResponseEntity<Todo> createTodo(@Valid @RequestBody TodoInput input,
+                                           @AuthenticationPrincipal String ownerId) {
+        log.info("POST /api/v1/todos - ownerId: {}, title: {}", ownerId, input.getTitle());
+        Todo todo = todoService.create(input, ownerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(todo);
     }
 

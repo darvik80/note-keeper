@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: notekeeper
+    name: note-keeper
   datasource:
     url: jdbc:sqlite:${user.dir}/data/notekeeper.db
     driver-class-name: org.sqlite.JDBC

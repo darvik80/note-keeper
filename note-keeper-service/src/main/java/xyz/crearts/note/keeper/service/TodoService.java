@@ -14,6 +14,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Service for managing todos with owner support.
+ * All todos are associated with an owner (user).
+ */
+
 @Service
 public class TodoService {
 
@@ -26,8 +31,16 @@ public class TodoService {
     }
 
     public List<Todo> findAll(Boolean completed, String tag, String priority,
-                              Boolean isFavorite, Boolean isArchived, Boolean isDeleted) {
-        List<Todo> todos = todoMapper.findAll(completed, tag, priority, isFavorite, isArchived, isDeleted);
+                              Boolean isFavorite, Boolean isArchived, Boolean isDeleted, String ownerId) {
+        List<Todo> todos = todoMapper.findAll(completed, tag, priority, isFavorite, isArchived, isDeleted, ownerId);
+        for (Todo todo : todos) {
+            todo.setAttachments(attachmentMapper.findByParent(todo.getId(), "todo"));
+        }
+        return todos;
+    }
+
+    public List<Todo> findSharedWithMe(String userId) {
+        List<Todo> todos = todoMapper.findSharedWithMe(userId);
         for (Todo todo : todos) {
             todo.setAttachments(attachmentMapper.findByParent(todo.getId(), "todo"));
         }
@@ -44,7 +57,7 @@ public class TodoService {
     }
 
     @Transactional
-    public Todo create(TodoInput input) {
+    public Todo create(TodoInput input, String ownerId) {
         Todo todo = new Todo();
         todo.setId(UUID.randomUUID().toString());
         todo.setTitle(input.getTitle());
@@ -55,6 +68,8 @@ public class TodoService {
         todo.setFavorite(input.getIsFavorite() != null && input.getIsFavorite());
         todo.setArchived(false);
         todo.setDeleted(false);
+        todo.setOwnerId(ownerId);
+        todo.setSharedWith("[]");
         todo.setDueDate(input.getDueDate());
         todo.setReminder(input.getReminder());
 

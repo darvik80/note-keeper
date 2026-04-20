@@ -24,6 +24,10 @@ public class Todo {
     private LocalDateTime deletedAt;
     private LocalDateTime dueDate;
     private LocalDateTime reminder;
+    private LocalDateTime notifiedAt;
+    private String notificationChannels; // Comma-separated: telegram,dingtalk
+    private String ownerId;
+    private String sharedWith; // JSON array of user IDs
     private Location location;
     private Schedule schedule;
     private List<Attachment> attachments = new ArrayList<>();

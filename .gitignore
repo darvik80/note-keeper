@@ -34,3 +34,5 @@ build/
 
 ### Data ###
 data/
+
+application-local.yml

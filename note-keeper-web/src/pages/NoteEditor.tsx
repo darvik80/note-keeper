@@ -16,6 +16,10 @@ export const NoteEditor: React.FC = () => {
       const load = async () => {
         try {
           const n = await api.notes.getById(id);
+          // Start in edit mode for new notes (empty content)
+          if (!n.content || n.content.trim() === '') {
+            setIsPreview(false);
+          }
           setNote(n);
         } catch (err) {
           console.error('Failed to load note', err);

@@ -14,10 +14,13 @@ export const ShortcutProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     const settings = storage.getSettings();
-    const shortcuts = settings.shortcuts;
+    const shortcuts = settings?.shortcuts;
 
     const handleKeyDown = async (e: KeyboardEvent) => {
+      if (!e.key) return;
       const key = `${e.ctrlKey ? 'ctrl+' : ''}${e.shiftKey ? 'shift+' : ''}${e.altKey ? 'alt+' : ''}${e.key.toLowerCase()}`;
+
+      if (!shortcuts) return;
 
       if (key === shortcuts.newNote) {
         e.preventDefault();

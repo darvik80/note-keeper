@@ -31,8 +31,8 @@ public class NoteService {
 
     public List<Note> findAll(String folder, String tag, String priority,
                               Boolean isFavorite, Boolean isEncrypted,
-                              Boolean isArchived, Boolean isDeleted) {
-        List<Note> notes = noteMapper.findAll(folder, tag, priority, isFavorite, isEncrypted, isArchived, isDeleted);
+                              Boolean isArchived, Boolean isDeleted, String ownerId) {
+        List<Note> notes = noteMapper.findAll(folder, tag, priority, isFavorite, isEncrypted, isArchived, isDeleted, ownerId);
         for (Note note : notes) {
             note.setAttachments(attachmentMapper.findByParent(note.getId(), "note"));
             note.setHistory(historyMapper.findByNoteId(note.getId()));
@@ -51,7 +51,7 @@ public class NoteService {
     }
 
     @Transactional
-    public Note create(NoteInput input) {
+    public Note create(NoteInput input, String ownerId) {
         Note note = new Note();
         note.setId(UUID.randomUUID().toString());
         note.setTitle(input.getTitle());
@@ -64,6 +64,8 @@ public class NoteService {
         note.setEncrypted(input.getIsEncrypted() != null && input.getIsEncrypted());
         note.setArchived(false);
         note.setDeleted(false);
+        note.setOwnerId(ownerId);
+        note.setSharedWith("[]");
         note.setReminder(input.getReminder());
         note.setTemplateId(input.getTemplateId());
         LocalDateTime now = LocalDateTime.now();
@@ -165,13 +167,13 @@ public class NoteService {
     }
 
     @Transactional
-    public Note importNote(String title, String content, String folder, String subfolder) {
+    public Note importNote(String title, String content, String folder, String subfolder, String ownerId) {
         NoteInput input = new NoteInput();
         input.setTitle(title);
         input.setContent(content);
         input.setFolder(folder != null ? folder : "default");
         input.setSubfolder(subfolder);
         input.setPriority("medium");
-        return create(input);
+        return create(input, ownerId);
     }
 }

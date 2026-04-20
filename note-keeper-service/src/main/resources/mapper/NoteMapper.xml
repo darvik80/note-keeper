@@ -38,6 +38,7 @@
             <if test="isEncrypted != null">AND is_encrypted = #{isEncrypted}</if>
             <if test="isArchived != null">AND is_archived = #{isArchived}</if>
             <if test="isDeleted != null">AND is_deleted = #{isDeleted}</if>
+            <if test="ownerId != null">AND (owner_id = #{ownerId} OR shared_with LIKE '%' || #{ownerId} || '%')</if>
         </where>
         ORDER BY updated_at DESC
     </select>
@@ -49,12 +50,12 @@
     <insert id="insert" parameterType="xyz.crearts.note.keeper.model.Note">
         INSERT INTO note (id, title, content, tags, folder, subfolder, priority,
             is_favorite, is_encrypted, is_archived, is_deleted, deleted_at, reminder,
-            template_id, created_at, updated_at)
+            template_id, owner_id, shared_with, created_at, updated_at)
         VALUES (#{id}, #{title}, #{content},
             #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
             #{folder}, #{subfolder}, #{priority},
             #{favorite}, #{encrypted}, #{archived}, #{deleted}, #{deletedAt},
-            #{reminder}, #{templateId}, #{createdAt}, #{updatedAt})
+            #{reminder}, #{templateId}, #{ownerId}, #{sharedWith}, #{createdAt}, #{updatedAt})
     </insert>
 
     <update id="update" parameterType="xyz.crearts.note.keeper.model.Note">

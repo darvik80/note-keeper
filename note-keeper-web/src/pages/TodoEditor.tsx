@@ -3,12 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { Todo, Attachment, TodoInput } from '../types';
+import { storage } from '../utils/storage';
+import { IntegrationRequest, IntegrationResponse } from '../types';
 
 export const TodoEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [todo, setTodo] = useState<Todo | null>(null);
   const [isPreview, setIsPreview] = useState(false);
+  const [telegramStatus, setTelegramStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [dingtalkStatus, setDingtalkStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const settings = storage.getSettings();
 
   useEffect(() => {
     if (id) {
@@ -21,6 +26,24 @@ export const TodoEditor: React.FC = () => {
         }
       };
       load();
+    } else {
+      // Create new empty todo
+      const newTodo: Todo = {
+        id: 'new',
+        title: '',
+        description: '',
+        tags: [],
+        priority: 'medium',
+        isFavorite: false,
+        completed: false,
+        isArchived: false,
+        isDeleted: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        attachments: [],
+        schedule: { repeat: 'none', endDate: undefined }
+      };
+      setTodo(newTodo);
     }
   }, [id]);
 
@@ -36,14 +59,68 @@ export const TodoEditor: React.FC = () => {
       dueDate: todo.dueDate ? String(todo.dueDate) : undefined,
       reminder: todo.reminder ? String(todo.reminder) : undefined,
       location: todo.location,
-      schedule: todo.schedule,
+      schedule: todo.schedule && todo.schedule.repeat !== 'none' ? {
+        repeat: todo.schedule.repeat,
+        endDate: todo.schedule.endDate ? String(todo.schedule.endDate) : undefined
+      } : undefined,
     };
     try {
-      await api.todos.update(todo.id, input);
+      if (todo.id === 'new') {
+        await api.todos.create(input);
+      } else {
+        await api.todos.update(todo.id, input);
+      }
       navigate('/todos');
     } catch (err) {
       console.error('Failed to save todo', err);
     }
+  };
+
+  const sendToTelegram = async () => {
+    setTelegramStatus('sending');
+    try {
+      const request: IntegrationRequest = {
+        message: `📋 Todo: ${todo?.title}\n${todo?.description?.substring(0, 100) || ''}`,
+        subject: 'Todo',
+        botToken: settings.telegram.botToken,
+        chatId: settings.telegram.chatId
+      };
+      const response: IntegrationResponse = await api.integrations.sendToTelegram(request);
+      setTelegramStatus(response.success ? 'success' : 'error');
+    } catch (err) {
+      setTelegramStatus('error');
+      console.error('Telegram send failed', err);
+    }
+    setTimeout(() => setTelegramStatus('idle'), 3000);
+  };
+
+  const sendToDingtalk = async () => {
+    setDingtalkStatus('sending');
+    try {
+      const request: IntegrationRequest = {
+        message: `📋 Todo: ${todo?.title}\n${todo?.description?.substring(0, 100) || ''}`,
+        subject: 'Todo',
+        webhook: settings.dingtalk.webhook,
+        secret: settings.dingtalk.secret
+      };
+      const response: IntegrationResponse = await api.integrations.sendToDingtalk(request);
+      setDingtalkStatus(response.success ? 'success' : 'error');
+    } catch (err) {
+      setDingtalkStatus('error');
+      console.error('DingTalk send failed', err);
+    }
+    setTimeout(() => setDingtalkStatus('idle'), 3000);
+  };
+
+  // Format date to local datetime-local string (without UTC conversion)
+  const formatDateTimeLocal = (date: Date): string => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   const addTag = (tag: string) => {
@@ -105,6 +182,40 @@ export const TodoEditor: React.FC = () => {
             <i className={`fas ${isPreview ? 'fa-edit' : 'fa-eye'} mr-2`}></i>
             {isPreview ? 'Edit' : 'Preview'}
           </button>
+          <div className="flex items-center gap-2 border-r border-gray-300 pr-3">
+            <button
+              onClick={sendToTelegram}
+              disabled={telegramStatus === 'sending'}
+              className={`p-2 rounded-lg transition-colors ${
+                telegramStatus === 'success'
+                  ? 'bg-green-500 text-white'
+                  : telegramStatus === 'error'
+                  ? 'bg-red-500 text-white'
+                  : 'hover:bg-gray-100 text-blue-500'
+              } disabled:opacity-50`}
+              title="Send to Telegram"
+            >
+              <i className={`fab fa-telegram ${
+                telegramStatus === 'sending' ? 'fa-spin' : ''
+              }`}></i>
+            </button>
+            <button
+              onClick={sendToDingtalk}
+              disabled={dingtalkStatus === 'sending'}
+              className={`p-2 rounded-lg transition-colors ${
+                dingtalkStatus === 'success'
+                  ? 'bg-green-500 text-white'
+                  : dingtalkStatus === 'error'
+                  ? 'bg-red-500 text-white'
+                  : 'hover:bg-gray-100 text-blue-600'
+              } disabled:opacity-50`}
+              title="Send to DingTalk"
+            >
+              <i className={`fas fa-comment ${
+                dingtalkStatus === 'sending' ? 'fa-spin' : ''
+              }`}></i>
+            </button>
+          </div>
           <button
             onClick={() => setTodo({ ...todo, isFavorite: !todo.isFavorite })}
             className="p-2 hover:bg-gray-100 rounded-lg"
@@ -191,7 +302,7 @@ export const TodoEditor: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
               <input
                 type="datetime-local"
-                value={todo.dueDate ? new Date(todo.dueDate).toISOString().slice(0, 16) : ''}
+                value={todo.dueDate ? formatDateTimeLocal(todo.dueDate) : ''}
                 onChange={(e) => setTodo({ ...todo, dueDate: e.target.value ? new Date(e.target.value) : undefined })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               />
@@ -201,10 +312,61 @@ export const TodoEditor: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">Reminder</label>
               <input
                 type="datetime-local"
-                value={todo.reminder ? new Date(todo.reminder).toISOString().slice(0, 16) : ''}
+                value={todo.reminder ? formatDateTimeLocal(todo.reminder) : ''}
                 onChange={(e) => setTodo({ ...todo, reminder: e.target.value ? new Date(e.target.value) : undefined })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <i className="fas fa-bell mr-2"></i>
+              Notification Channels
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  checked={todo.notificationChannels?.includes('telegram') || false}
+                  onChange={(e) => {
+                    const channels = todo.notificationChannels?.split(',').filter(c => c) || [];
+                    if (e.target.checked) {
+                      if (!channels.includes('telegram')) {
+                        channels.push('telegram');
+                      }
+                    } else {
+                      const idx = channels.indexOf('telegram');
+                      if (idx > -1) channels.splice(idx, 1);
+                    }
+                    setTodo({ ...todo, notificationChannels: channels.join(',') });
+                  }}
+                  className="text-primary focus:ring-primary"
+                />
+                <i className="fab fa-telegram text-blue-500"></i>
+                <span>Telegram</span>
+              </label>
+              <label className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  checked={todo.notificationChannels?.includes('dingtalk') || false}
+                  onChange={(e) => {
+                    const channels = todo.notificationChannels?.split(',').filter(c => c) || [];
+                    if (e.target.checked) {
+                      if (!channels.includes('dingtalk')) {
+                        channels.push('dingtalk');
+                      }
+                    } else {
+                      const idx = channels.indexOf('dingtalk');
+                      if (idx > -1) channels.splice(idx, 1);
+                    }
+                    setTodo({ ...todo, notificationChannels: channels.join(',') });
+                  }}
+                  className="text-primary focus:ring-primary"
+                />
+                <i className="fas fa-comment text-blue-600"></i>
+                <span>DingTalk</span>
+              </label>
             </div>
           </div>
 

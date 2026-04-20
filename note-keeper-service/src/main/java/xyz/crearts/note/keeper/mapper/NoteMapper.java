@@ -15,7 +15,8 @@ public interface NoteMapper {
                        @Param("isFavorite") Boolean isFavorite,
                        @Param("isEncrypted") Boolean isEncrypted,
                        @Param("isArchived") Boolean isArchived,
-                       @Param("isDeleted") Boolean isDeleted);
+                       @Param("isDeleted") Boolean isDeleted,
+                       @Param("ownerId") String ownerId);
 
     Note findById(@Param("id") String id);
 

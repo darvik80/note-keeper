@@ -1,8 +1,10 @@
 package xyz.crearts.note.keeper.controller;
 
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import xyz.crearts.note.keeper.dto.NoteInput;
@@ -14,6 +16,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+/**
+ * Note controller with owner support.
+ * Extracts owner ID from JWT token for all operations.
+ */
+
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/notes")
 public class NoteController {
@@ -32,13 +40,17 @@ public class NoteController {
             @RequestParam(required = false) Boolean isFavorite,
             @RequestParam(required = false) Boolean isEncrypted,
             @RequestParam(required = false) Boolean isArchived,
-            @RequestParam(required = false) Boolean isDeleted) {
-        return noteService.findAll(folder, tag, priority, isFavorite, isEncrypted, isArchived, isDeleted);
+            @RequestParam(required = false) Boolean isDeleted,
+            @AuthenticationPrincipal String ownerId) {
+        log.info("GET /api/v1/notes - ownerId: {}", ownerId);
+        return noteService.findAll(folder, tag, priority, isFavorite, isEncrypted, isArchived, isDeleted, ownerId);
     }
 
     @PostMapping
-    public ResponseEntity<Note> createNote(@Valid @RequestBody NoteInput input) {
-        Note note = noteService.create(input);
+    public ResponseEntity<Note> createNote(@Valid @RequestBody NoteInput input,
+                                           @AuthenticationPrincipal String ownerId) {
+        log.info("POST /api/v1/notes - ownerId: {}, title: {}", ownerId, input.getTitle());
+        Note note = noteService.create(input, ownerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(note);
     }
 
@@ -79,11 +91,12 @@ public class NoteController {
     public ResponseEntity<Note> importNote(
             @RequestParam("file") MultipartFile file,
             @RequestParam(required = false) String folder,
-            @RequestParam(required = false) String subfolder) throws IOException {
+            @RequestParam(required = false) String subfolder,
+            @AuthenticationPrincipal String ownerId) throws IOException {
         String filename = file.getOriginalFilename();
         String title = filename != null ? filename.replaceFirst("\\.[^.]+$", "") : "Imported Note";
         String content = new String(file.getBytes(), StandardCharsets.UTF_8);
-        Note note = noteService.importNote(title, content, folder, subfolder);
+        Note note = noteService.importNote(title, content, folder, subfolder, ownerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(note);
     }
 }

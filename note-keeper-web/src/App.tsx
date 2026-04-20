@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ShortcutProvider } from './contexts/ShortcutContext';
 import { Sidebar } from './components/Sidebar';
@@ -16,6 +16,17 @@ import { Templates } from './pages/Templates';
 import { Archive } from './pages/Archive';
 import { Trash } from './pages/Trash';
 import { Settings } from './pages/Settings';
+import Login from './pages/Login';
+
+// Check if user is authenticated
+const isAuthenticated = (): boolean => {
+  return localStorage.getItem('token') !== null;
+};
+
+// Protected route wrapper
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return isAuthenticated() ? <>{children}</> : <Navigate to="/login" replace />;
+};
 
 const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -43,19 +54,20 @@ const App: React.FC = () => {
               </div>
 
               <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/notes" element={<Notes />} />
-                <Route path="/notes/:id" element={<NoteEditor />} />
-                <Route path="/todos" element={<Todos />} />
-                <Route path="/todos/:id" element={<TodoEditor />} />
-                <Route path="/search" element={<Search />} />
-                <Route path="/calendar" element={<Calendar />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/favorites" element={<Favorites />} />
-                <Route path="/templates" element={<Templates />} />
-                <Route path="/archive" element={<Archive />} />
-                <Route path="/trash" element={<Trash />} />
-                <Route path="/settings" element={<Settings />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
+                <Route path="/notes/:id" element={<ProtectedRoute><NoteEditor /></ProtectedRoute>} />
+                <Route path="/todos" element={<ProtectedRoute><Todos /></ProtectedRoute>} />
+                <Route path="/todos/:id" element={<ProtectedRoute><TodoEditor /></ProtectedRoute>} />
+                <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+                <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+                <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+                <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+                <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+                <Route path="/archive" element={<ProtectedRoute><Archive /></ProtectedRoute>} />
+                <Route path="/trash" element={<ProtectedRoute><Trash /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               </Routes>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { api } from '../utils/api';
 
 interface SidebarProps {
   isMobileMenuOpen: boolean;
@@ -86,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileM
         </nav>
 
         <div className="p-4 border-t border-border">
-          <div className="bg-gradient-to-r from-primary to-secondary text-white p-4 rounded-lg">
+          <div className="bg-gradient-to-r from-primary to-secondary text-white p-4 rounded-lg mb-3">
             <p className="text-sm font-medium mb-1">Storage Used</p>
             <div className="flex items-center gap-2">
               <div className="flex-1 bg-white/30 rounded-full h-2">
@@ -95,6 +96,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileM
               <span className="text-xs">45%</span>
             </div>
           </div>
+          
+          <button
+            onClick={async () => {
+              await api.auth.logout();
+              navigate('/login');
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-text hover:bg-hover transition-all active:scale-95"
+          >
+            <i className="fas fa-sign-out-alt w-5"></i>
+            <span className="font-medium">Logout</span>
+          </button>
         </div>
       </div>
     </>

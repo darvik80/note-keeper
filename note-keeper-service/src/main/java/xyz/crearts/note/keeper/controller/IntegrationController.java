@@ -28,8 +28,4 @@ public class IntegrationController {
         return integrationService.sendToDingTalk(request);
     }
 
-    @PostMapping("/email")
-    public IntegrationResponse sendEmail(@RequestBody IntegrationRequest request) {
-        return integrationService.sendEmail(request);
-    }
 }

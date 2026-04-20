@@ -27,6 +27,8 @@ public class Note {
     private LocalDateTime deletedAt;
     private LocalDateTime reminder;
     private String templateId;
+    private String ownerId;
+    private String sharedWith; // JSON array of user IDs
     private List<Attachment> attachments = new ArrayList<>();
     private List<NoteHistory> history = new ArrayList<>();
     private LocalDateTime createdAt;

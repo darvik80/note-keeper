@@ -39,7 +39,15 @@
             <if test="isFavorite != null">AND is_favorite = #{isFavorite}</if>
             <if test="isArchived != null">AND is_archived = #{isArchived}</if>
             <if test="isDeleted != null">AND is_deleted = #{isDeleted}</if>
+            <if test="ownerId != null">AND (owner_id = #{ownerId} OR shared_with LIKE '%' || #{ownerId} || '%')</if>
         </where>
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="findSharedWithMe" resultMap="todoResultMap">
+        SELECT * FROM todo
+        WHERE shared_with LIKE '%' || #{userId} || '%'
+          AND is_deleted = 0
         ORDER BY updated_at DESC
     </select>
 
@@ -52,6 +60,7 @@
             is_favorite, is_archived, is_deleted, deleted_at, due_date, reminder,
             location_lat, location_lng, location_address,
             schedule_repeat, schedule_end_date,
+            owner_id, shared_with,
             created_at, updated_at)
         VALUES (#{id}, #{title}, #{description}, #{completed},
             #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
@@ -60,6 +69,7 @@
             #{location.lat, jdbcType=REAL}, #{location.lng, jdbcType=REAL},
             #{location.address, jdbcType=VARCHAR},
             #{schedule.repeat, jdbcType=VARCHAR}, #{schedule.endDate, jdbcType=VARCHAR},
+            #{ownerId}, #{sharedWith},
             #{createdAt}, #{updatedAt})
     </insert>
 
@@ -127,5 +137,22 @@
         WHERE priority = #{priority}
           AND created_at >= #{start} AND created_at &lt;= #{end}
     </select>
+
+    <!-- Find todos with reminder time due (reminder <= now) that haven't been notified yet -->
+    <select id="findWithDueReminders" resultMap="todoResultMap">
+        SELECT * FROM todo
+        WHERE reminder IS NOT NULL
+          AND reminder &lt;= #{now}
+          AND (notified_at IS NULL OR notified_at &lt; reminder)
+          AND is_deleted = 0
+          AND is_archived = 0
+        ORDER BY reminder ASC
+    </select>
+
+    <!-- Mark todo reminder as notified -->
+    <update id="markReminderNotified">
+        UPDATE todo SET notified_at = #{notifiedAt}, updated_at = #{notifiedAt}
+        WHERE id = #{id}
+    </update>
 
 </mapper>

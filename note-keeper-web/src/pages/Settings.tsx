@@ -2,16 +2,56 @@ import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { storage } from '../utils/storage';
 import { Settings as SettingsType } from '../types';
+import { api } from '../utils/api';
+import { IntegrationRequest, IntegrationResponse } from '../types';
 
 export const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SettingsType>(storage.getSettings());
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState<'integrations' | 'shortcuts' | 'api'>('integrations');
+  const [telegramTestStatus, setTelegramTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [dingtalkTestStatus, setDingtalkTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
 
   const saveSettings = () => {
     storage.saveSettings(settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const sendTelegramTest = async () => {
+    setTelegramTestStatus('sending');
+    try {
+      const request: IntegrationRequest = {
+        message: '🧪 Test message from NoteKeeper',
+        subject: 'Test',
+        botToken: settings.telegram.botToken,
+        chatId: settings.telegram.chatId
+      };
+      const response: IntegrationResponse = await api.integrations.sendToTelegram(request);
+      setTelegramTestStatus(response.success ? 'success' : 'error');
+    } catch (err) {
+      setTelegramTestStatus('error');
+      console.error('Telegram test failed', err);
+    }
+    setTimeout(() => setTelegramTestStatus('idle'), 3000);
+  };
+
+  const sendDingtalkTest = async () => {
+    setDingtalkTestStatus('sending');
+    try {
+      const request: IntegrationRequest = {
+        message: '🧪 Test message from NoteKeeper',
+        subject: 'Test',
+        webhook: settings.dingtalk.webhook,
+        secret: settings.dingtalk.secret
+      };
+      const response: IntegrationResponse = await api.integrations.sendToDingtalk(request);
+      setDingtalkTestStatus(response.success ? 'success' : 'error');
+    } catch (err) {
+      setDingtalkTestStatus('error');
+      console.error('DingTalk test failed', err);
+    }
+    setTimeout(() => setDingtalkTestStatus('idle'), 3000);
   };
 
   return (
@@ -128,6 +168,28 @@ export const Settings: React.FC = () => {
                         placeholder="Enter your chat ID"
                       />
                     </div>
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        onClick={sendTelegramTest}
+                        disabled={telegramTestStatus === 'sending'}
+                        className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                          telegramTestStatus === 'success'
+                            ? 'bg-green-500 text-white'
+                            : telegramTestStatus === 'error'
+                            ? 'bg-red-500 text-white'
+                            : 'bg-primary text-white hover:bg-primary/90'
+                        } disabled:opacity-50`}
+                      >
+                        <i className={`fas ${
+                          telegramTestStatus === 'sending' ? 'fa-spinner fa-spin' :
+                          telegramTestStatus === 'success' ? 'fa-check' :
+                          telegramTestStatus === 'error' ? 'fa-times' : 'fa-paper-plane'
+                        }`}></i>
+                        {telegramTestStatus === 'sending' ? 'Sending...' :
+                         telegramTestStatus === 'success' ? 'Sent!' :
+                         telegramTestStatus === 'error' ? 'Failed' : 'Send Test Message'}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -189,130 +251,27 @@ export const Settings: React.FC = () => {
                         placeholder="Enter your DingTalk secret"
                       />
                     </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-text flex items-center gap-2">
-                      <i className="fas fa-envelope text-red-500"></i>
-                      Email Integration
-                    </h3>
-                    <p className="text-sm text-text-secondary mt-1">
-                      Configure SMTP settings to receive email notifications
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={settings.email.enabled}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        email: { ...settings.email, enabled: e.target.checked }
-                      })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                  </label>
-                </div>
-
-                {settings.email.enabled && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-text mb-2">
-                          SMTP Server
-                        </label>
-                        <input
-                          type="text"
-                          value={settings.email.smtp}
-                          onChange={(e) => setSettings({
-                            ...settings,
-                            email: { ...settings.email, smtp: e.target.value }
-                          })}
-                          className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
-                          placeholder="smtp.gmail.com"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-text mb-2">
-                          Port
-                        </label>
-                        <input
-                          type="number"
-                          value={settings.email.port}
-                          onChange={(e) => setSettings({
-                            ...settings,
-                            email: { ...settings.email, port: parseInt(e.target.value) || 587 }
-                          })}
-                          className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
-                          placeholder="587"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-text mb-2">
-                        Username
-                      </label>
-                      <input
-                        type="text"
-                        value={settings.email.username}
-                        onChange={(e) => setSettings({
-                          ...settings,
-                          email: { ...settings.email, username: e.target.value }
-                        })}
-                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
-                        placeholder="your-email@example.com"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-text mb-2">
-                        Password
-                      </label>
-                      <input
-                        type="password"
-                        value={settings.email.password}
-                        onChange={(e) => setSettings({
-                          ...settings,
-                          email: { ...settings.email, password: e.target.value }
-                        })}
-                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
-                        placeholder="Enter password"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-text mb-2">
-                          From Email
-                        </label>
-                        <input
-                          type="email"
-                          value={settings.email.from}
-                          onChange={(e) => setSettings({
-                            ...settings,
-                            email: { ...settings.email, from: e.target.value }
-                          })}
-                          className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
-                          placeholder="sender@example.com"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-text mb-2">
-                          To Email
-                        </label>
-                        <input
-                          type="email"
-                          value={settings.email.to}
-                          onChange={(e) => setSettings({
-                            ...settings,
-                            email: { ...settings.email, to: e.target.value }
-                          })}
-                          className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
-                          placeholder="recipient@example.com"
-                        />
-                      </div>
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        onClick={sendDingtalkTest}
+                        disabled={dingtalkTestStatus === 'sending'}
+                        className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                          dingtalkTestStatus === 'success'
+                            ? 'bg-green-500 text-white'
+                            : dingtalkTestStatus === 'error'
+                            ? 'bg-red-500 text-white'
+                            : 'bg-primary text-white hover:bg-primary/90'
+                        } disabled:opacity-50`}
+                      >
+                        <i className={`fas ${
+                          dingtalkTestStatus === 'sending' ? 'fa-spinner fa-spin' :
+                          dingtalkTestStatus === 'success' ? 'fa-check' :
+                          dingtalkTestStatus === 'error' ? 'fa-times' : 'fa-paper-plane'
+                        }`}></i>
+                        {dingtalkTestStatus === 'sending' ? 'Sending...' :
+                         dingtalkTestStatus === 'success' ? 'Sent!' :
+                         dingtalkTestStatus === 'error' ? 'Failed' : 'Send Test Message'}
+                      </button>
                     </div>
                   </div>
                 )}
