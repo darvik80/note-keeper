@@ -27,4 +27,6 @@ public interface UserMapper {
     void updateCredentials(UserCredentials credentials);
 
     List<User> findByIds(@Param("ids") List<String> ids);
+
+    List<User> searchByEmailOrName(@Param("query") String query, @Param("excludeUserId") String excludeUserId);
 }

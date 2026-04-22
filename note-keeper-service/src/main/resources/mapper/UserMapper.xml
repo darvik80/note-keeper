@@ -76,4 +76,13 @@
         </foreach>
     </select>
 
+    <select id="searchByEmailOrName" resultMap="userResultMap">
+        SELECT * FROM users
+        WHERE is_active = 1
+          AND id != #{excludeUserId}
+          AND (email LIKE '%' || #{query} || '%' OR name LIKE '%' || #{query} || '%')
+        ORDER BY name ASC
+        LIMIT 10
+    </select>
+
 </mapper>

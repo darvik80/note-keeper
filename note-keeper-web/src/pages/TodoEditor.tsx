@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
+import { ShareModal } from '../components/ShareModal';
 import { Todo, Attachment, TodoInput } from '../types';
 import { storage } from '../utils/storage';
 import { IntegrationRequest, IntegrationResponse } from '../types';
@@ -13,16 +14,57 @@ export const TodoEditor: React.FC = () => {
   const [isPreview, setIsPreview] = useState(false);
   const [telegramStatus, setTelegramStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [dingtalkStatus, setDingtalkStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [showShareModal, setShowShareModal] = useState(false);
   const settings = storage.getSettings();
 
   useEffect(() => {
     if (id) {
       const load = async () => {
         try {
+          console.log('[TodoEditor] Loading todo with id:', id);
           const t = await api.todos.getById(id);
-          setTodo(t);
+          console.log('[TodoEditor] Loaded todo:', t);
+          if (t && t.id) {
+            setTodo(t);
+          } else {
+            console.error('[TodoEditor] API returned invalid todo:', t);
+            // Fallback to creating new todo
+            const newTodo: Todo = {
+              id: 'new',
+              title: '',
+              description: '',
+              tags: [],
+              priority: 'medium',
+              isFavorite: false,
+              completed: false,
+              isArchived: false,
+              isDeleted: false,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              attachments: [],
+              schedule: { repeat: 'none', endDate: undefined }
+            };
+            setTodo(newTodo);
+          }
         } catch (err) {
-          console.error('Failed to load todo', err);
+          console.error('[TodoEditor] Failed to load todo', err);
+          // Fallback to creating new todo on error
+          const newTodo: Todo = {
+            id: 'new',
+            title: '',
+            description: '',
+            tags: [],
+            priority: 'medium',
+            isFavorite: false,
+            completed: false,
+            isArchived: false,
+            isDeleted: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            attachments: [],
+            schedule: { repeat: 'none', endDate: undefined }
+          };
+          setTodo(newTodo);
         }
       };
       load();
@@ -49,22 +91,55 @@ export const TodoEditor: React.FC = () => {
 
   const saveTodo = async () => {
     if (!todo) return;
-    const input: TodoInput = {
-      title: todo.title,
-      description: todo.description,
-      tags: todo.tags,
-      priority: todo.priority,
-      isFavorite: todo.isFavorite,
-      completed: todo.completed,
-      dueDate: todo.dueDate ? String(todo.dueDate) : undefined,
-      reminder: todo.reminder ? String(todo.reminder) : undefined,
-      location: todo.location,
-      schedule: todo.schedule && todo.schedule.repeat !== 'none' ? {
-        repeat: todo.schedule.repeat,
-        endDate: todo.schedule.endDate ? String(todo.schedule.endDate) : undefined
-      } : undefined,
-    };
+
     try {
+      // Upload new attachments (those with blob: URLs) to server
+      const uploadedAttachments: any[] = [];
+      if (todo.attachments && todo.attachments.length > 0) {
+        for (const att of todo.attachments) {
+          if (att.url.startsWith('blob:')) {
+            // This is a local file, need to upload
+            console.log('[TodoEditor] Uploading attachment:', att.name);
+            // Fetch the blob from the blob URL
+            const response = await fetch(att.url);
+            const blob = await response.blob();
+            const file = new File([blob], att.name, { type: att.type });
+            // Upload to server
+            const uploaded = await api.attachments.upload(file, todo.id, 'todo');
+            uploadedAttachments.push(uploaded);
+          } else {
+            // Already uploaded to server
+            uploadedAttachments.push(att);
+          }
+        }
+      }
+
+      const input: TodoInput = {
+        title: todo.title,
+        description: todo.description,
+        tags: todo.tags,
+        priority: todo.priority,
+        isFavorite: todo.isFavorite,
+        completed: todo.completed,
+        // Convert local date to ISO UTC format for backend
+        dueDate: todo.dueDate ? todo.dueDate.toISOString() : undefined,
+        reminder: todo.reminder ? (typeof todo.reminder === 'string' ? todo.reminder : todo.reminder.toISOString()) : undefined,
+        location: todo.location,
+        schedule: todo.schedule && todo.schedule.repeat !== 'none' ? {
+          repeat: todo.schedule.repeat,
+          endDate: todo.schedule.endDate ? todo.schedule.endDate.toISOString() : undefined
+        } : undefined,
+        // Include uploaded attachments
+        attachments: uploadedAttachments.map(att => ({
+          id: att.id,
+          name: att.name,
+          size: att.size,
+          type: att.type,
+          url: att.url,
+          uploadedAt: att.uploadedAt instanceof Date ? att.uploadedAt.toISOString() : att.uploadedAt
+        })),
+      };
+      console.log('[TodoEditor] Saving todo with attachments:', input.attachments?.length || 0);
       if (todo.id === 'new') {
         await api.todos.create(input);
       } else {
@@ -112,9 +187,9 @@ export const TodoEditor: React.FC = () => {
     setTimeout(() => setDingtalkStatus('idle'), 3000);
   };
 
-  // Format date to local datetime-local string (without UTC conversion)
-  const formatDateTimeLocal = (date: Date): string => {
-    const d = new Date(date);
+  // Format ISO UTC date to local datetime-local string
+  const formatDateTimeLocal = (date: Date | string): string => {
+    const d = typeof date === 'string' ? new Date(date) : new Date(date);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -221,6 +296,13 @@ export const TodoEditor: React.FC = () => {
             className="p-2 hover:bg-gray-100 rounded-lg"
           >
             <i className={`fas fa-star ${todo.isFavorite ? 'text-yellow-500' : 'text-gray-400'}`}></i>
+          </button>
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+            title="Share"
+          >
+            <i className="fas fa-share-alt text-gray-400"></i>
           </button>
           <select
             value={todo.priority}
@@ -461,6 +543,21 @@ export const TodoEditor: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        resourceId={todo.id}
+        resourceType="todo"
+        ownerId={todo.ownerId}
+        sharedWith={todo.sharedWith}
+        onShareSuccess={() => {
+          // Reload todo to get updated sharedWith
+          if (id) {
+            api.todos.getById(id).then(setTodo);
+          }
+        }}
+      />
     </div>
   );
 };

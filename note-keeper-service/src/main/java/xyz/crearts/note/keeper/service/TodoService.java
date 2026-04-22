@@ -6,13 +6,12 @@ import xyz.crearts.note.keeper.dto.TodoInput;
 import xyz.crearts.note.keeper.exception.ResourceNotFoundException;
 import xyz.crearts.note.keeper.mapper.AttachmentMapper;
 import xyz.crearts.note.keeper.mapper.TodoMapper;
-import xyz.crearts.note.keeper.model.Attachment;
 import xyz.crearts.note.keeper.model.Todo;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Service for managing todos with owner support.
@@ -32,19 +31,13 @@ public class TodoService {
 
     public List<Todo> findAll(Boolean completed, String tag, String priority,
                               Boolean isFavorite, Boolean isArchived, Boolean isDeleted, String ownerId) {
-        List<Todo> todos = todoMapper.findAll(completed, tag, priority, isFavorite, isArchived, isDeleted, ownerId);
-        for (Todo todo : todos) {
-            todo.setAttachments(attachmentMapper.findByParent(todo.getId(), "todo"));
-        }
-        return todos;
+        // MyBatis автоматически загружает attachments через collection в resultMap
+        return todoMapper.findAll(completed, tag, priority, isFavorite, isArchived, isDeleted, ownerId);
     }
 
     public List<Todo> findSharedWithMe(String userId) {
-        List<Todo> todos = todoMapper.findSharedWithMe(userId);
-        for (Todo todo : todos) {
-            todo.setAttachments(attachmentMapper.findByParent(todo.getId(), "todo"));
-        }
-        return todos;
+        // MyBatis автоматически загружает attachments через collection в resultMap
+        return todoMapper.findSharedWithMe(userId);
     }
 
     public Todo findById(String id) {
@@ -52,7 +45,7 @@ public class TodoService {
         if (todo == null) {
             throw new ResourceNotFoundException("Todo not found: " + id);
         }
-        todo.setAttachments(attachmentMapper.findByParent(todo.getId(), "todo"));
+        // MyBatis автоматически загружает attachments через collection в resultMap
         return todo;
     }
 
@@ -70,17 +63,17 @@ public class TodoService {
         todo.setDeleted(false);
         todo.setOwnerId(ownerId);
         todo.setSharedWith("[]");
-        todo.setDueDate(input.getDueDate());
-        todo.setReminder(input.getReminder());
+        todo.setDueDate(parseDate(input.getDueDate()));
+        todo.setReminder(parseDate(input.getReminder()));
 
         if (input.getLocation() != null) {
-            todo.setLocation(input.getLocation());
+            todo.setLocation(convertToLocation(input.getLocation()));
         } else {
             todo.setLocation(new Todo.Location());
         }
 
         if (input.getSchedule() != null) {
-            todo.setSchedule(input.getSchedule());
+            todo.setSchedule(convertToSchedule(input.getSchedule()));
         } else {
             Todo.Schedule schedule = new Todo.Schedule();
             schedule.setRepeat("none");
@@ -93,14 +86,9 @@ public class TodoService {
 
         todoMapper.insert(todo);
 
-        if (input.getAttachments() != null) {
-            for (Attachment att : input.getAttachments()) {
-                att.setId(UUID.randomUUID().toString());
-                att.setParentId(todo.getId());
-                att.setParentType("todo");
-                if (att.getUploadedAt() == null) att.setUploadedAt(now);
-                attachmentMapper.insert(att);
-            }
+        // Save attachments if provided
+        if (input.getAttachments() != null && !input.getAttachments().isEmpty()) {
+            saveAttachments(todo.getId(), "todo", input.getAttachments());
         }
 
         return findById(todo.getId());
@@ -116,28 +104,25 @@ public class TodoService {
         if (input.getTags() != null) existing.setTags(input.getTags());
         if (input.getPriority() != null) existing.setPriority(input.getPriority());
         if (input.getIsFavorite() != null) existing.setFavorite(input.getIsFavorite());
-        existing.setDueDate(input.getDueDate());
-        existing.setReminder(input.getReminder());
+        existing.setDueDate(parseDate(input.getDueDate()));
+        existing.setReminder(parseDate(input.getReminder()));
 
         if (input.getLocation() != null) {
-            existing.setLocation(input.getLocation());
+            existing.setLocation(convertToLocation(input.getLocation()));
         }
         if (input.getSchedule() != null) {
-            existing.setSchedule(input.getSchedule());
+            existing.setSchedule(convertToSchedule(input.getSchedule()));
         }
 
         existing.setUpdatedAt(LocalDateTime.now());
         todoMapper.update(existing);
 
+        // Update attachments if provided
         if (input.getAttachments() != null) {
+            // Delete existing attachments
             attachmentMapper.deleteByParent(id, "todo");
-            for (Attachment att : input.getAttachments()) {
-                att.setId(att.getId() != null ? att.getId() : UUID.randomUUID().toString());
-                att.setParentId(id);
-                att.setParentType("todo");
-                if (att.getUploadedAt() == null) att.setUploadedAt(LocalDateTime.now());
-                attachmentMapper.insert(att);
-            }
+            // Save new attachments
+            saveAttachments(id, "todo", input.getAttachments());
         }
 
         return findById(id);
@@ -167,5 +152,152 @@ public class TodoService {
         findById(id);
         todoMapper.restore(id);
         return findById(id);
+    }
+
+    @Transactional
+    public Todo shareWithUser(String todoId, String userIdToAdd, String currentOwnerId) {
+        Todo todo = findById(todoId);
+        System.out.println("[DEBUG] shareWithUser - todoId: " + todoId);
+        System.out.println("[DEBUG] shareWithUser - todo.getOwnerId(): " + todo.getOwnerId());
+        System.out.println("[DEBUG] shareWithUser - currentOwnerId (from JWT): " + currentOwnerId);
+        if (todo.getOwnerId() == null) {
+            throw new RuntimeException("Todo ownerId is null - data corruption");
+        }
+        if (currentOwnerId == null) {
+            throw new RuntimeException("Current ownerId is null - authentication issue");
+        }
+        if (!todo.getOwnerId().equals(currentOwnerId)) {
+            throw new RuntimeException("Only owner can share this todo (todo owner: " + todo.getOwnerId() + ", current user: " + currentOwnerId + ")");
+        }
+
+        List<String> sharedUsers = parseSharedWith(todo.getSharedWith());
+        if (!sharedUsers.contains(userIdToAdd)) {
+            sharedUsers.add(userIdToAdd);
+            String newSharedWith = toJsonArray(sharedUsers);
+            todo.setSharedWith(newSharedWith);
+            todoMapper.shareWithUser(todoId, newSharedWith);
+        }
+
+        return findById(todoId);
+    }
+
+    @Transactional
+    public Todo unshareWithUser(String todoId, String userIdToRemove, String currentOwnerId) {
+        Todo todo = findById(todoId);
+        if (!todo.getOwnerId().equals(currentOwnerId)) {
+            throw new RuntimeException("Only owner can unshare this todo");
+        }
+
+        List<String> sharedUsers = parseSharedWith(todo.getSharedWith());
+        sharedUsers.remove(userIdToRemove);
+        String newSharedWith = toJsonArray(sharedUsers);
+        todo.setSharedWith(newSharedWith);
+        todoMapper.shareWithUser(todoId, newSharedWith);
+
+        return findById(todoId);
+    }
+
+    private List<String> parseSharedWith(String sharedWith) {
+        if (sharedWith == null || sharedWith.equals("[]")) {
+            return new ArrayList<>();
+        }
+        try {
+            String json = sharedWith.replace("[", "").replace("]", "").replace("\"", "");
+            if (json.trim().isEmpty()) {
+                return new ArrayList<>();
+            }
+            return Arrays.stream(json.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private String toJsonArray(List<String> list) {
+        if (list.isEmpty()) {
+            return "[]";
+        }
+        return "[" + list.stream()
+                .map(s -> "\"" + s + "\"")
+                .collect(Collectors.joining(",")) + "]";
+    }
+
+    private Todo.Location convertToLocation(Map<String, Object> map) {
+        if (map == null) return new Todo.Location();
+        Todo.Location location = new Todo.Location();
+        Object lat = map.get("lat");
+        Object lng = map.get("lng");
+        Object address = map.get("address");
+        if (lat instanceof Number) location.setLat(((Number) lat).doubleValue());
+        if (lng instanceof Number) location.setLng(((Number) lng).doubleValue());
+        if (address instanceof String) location.setAddress((String) address);
+        return location;
+    }
+
+    private Todo.Schedule convertToSchedule(Map<String, Object> map) {
+        if (map == null) return new Todo.Schedule();
+        Todo.Schedule schedule = new Todo.Schedule();
+        Object repeat = map.get("repeat");
+        Object endDate = map.get("endDate");
+        if (repeat instanceof String) schedule.setRepeat((String) repeat);
+        if (endDate instanceof String) {
+            try {
+                schedule.setEndDate(LocalDateTime.parse((String) endDate, DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            } catch (Exception e) {
+                // Ignore invalid date
+            }
+        }
+        return schedule;
+    }
+
+    private LocalDateTime parseDate(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) return null;
+        try {
+            // Parse ISO UTC format (with 'Z') from frontend
+            java.time.Instant instant = java.time.Instant.parse(dateStr);
+            return LocalDateTime.ofInstant(instant, java.time.ZoneId.systemDefault());
+        } catch (Exception e1) {
+            try {
+                // Try ISO local date-time format
+                return LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            } catch (Exception e2) {
+                try {
+                    // Try "yyyy-MM-dd" format
+                    return LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+                } catch (Exception e3) {
+                    // Ignore invalid date
+                    return null;
+                }
+            }
+        }
+    }
+
+    private void saveAttachments(String parentId, String parentType, List<Map<String, Object>> attachments) {
+        if (attachments == null || attachments.isEmpty()) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        for (Map<String, Object> attachmentData : attachments) {
+            xyz.crearts.note.keeper.model.Attachment attachment = new xyz.crearts.note.keeper.model.Attachment();
+            attachment.setId(UUID.randomUUID().toString());
+            attachment.setParentId(parentId);
+            attachment.setParentType(parentType);
+            
+            Object name = attachmentData.get("name");
+            Object size = attachmentData.get("size");
+            Object type = attachmentData.get("type");
+            Object url = attachmentData.get("url");
+            
+            if (name instanceof String) attachment.setName((String) name);
+            if (size instanceof Number) attachment.setSize(((Number) size).longValue());
+            if (type instanceof String) attachment.setType((String) type);
+            if (url instanceof String) attachment.setUrl((String) url);
+            
+            attachment.setUploadedAt(now);
+            attachmentMapper.insert(attachment);
+        }
     }
 }

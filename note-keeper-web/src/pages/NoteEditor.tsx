@@ -2,48 +2,94 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
+import { ShareModal } from '../components/ShareModal';
 import { Note, Attachment, NoteInput } from '../types';
 
 export const NoteEditor: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [note, setNote] = useState<Note | null>(null);
   const [isPreview, setIsPreview] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  // Debug: log params object
+  useEffect(() => {
+    console.log('[NoteEditor] useParams result:', params);
+    console.log('[NoteEditor] id from params:', params.id);
+  }, [params]);
 
   useEffect(() => {
-    if (id) {
+    console.log('[NoteEditor] useEffect triggered, id:', params.id);
+    if (params.id) {
       const load = async () => {
+        console.log('[NoteEditor] Loading note:', params.id);
+        const token = localStorage.getItem('token');
+        console.log('[NoteEditor] Token:', token ? 'exists' : 'missing');
         try {
-          const n = await api.notes.getById(id);
+          const n = await api.notes.getById(params.id);
+          console.log('[NoteEditor] Note loaded:', n);
           // Start in edit mode for new notes (empty content)
           if (!n.content || n.content.trim() === '') {
             setIsPreview(false);
           }
           setNote(n);
         } catch (err) {
-          console.error('Failed to load note', err);
+          console.error('[NoteEditor] Failed to load note', err);
         }
       };
       load();
     }
-  }, [id]);
+  }, [params.id]);
 
   const saveNote = async () => {
     if (!note) return;
-    const input: NoteInput = {
-      title: note.title,
-      content: note.content,
-      tags: note.tags,
-      folder: note.folder,
-      subfolder: note.subfolder,
-      priority: note.priority,
-      isFavorite: note.isFavorite,
-      isEncrypted: note.isEncrypted,
-      reminder: note.reminder ? String(note.reminder) : undefined,
-      templateId: note.templateId,
-    };
+
     try {
+      // Upload new attachments (those with blob: URLs) to server
+      const uploadedAttachments: any[] = [];
+      if (note.attachments && note.attachments.length > 0) {
+        for (const att of note.attachments) {
+          if (att.url.startsWith('blob:')) {
+            // This is a local file, need to upload
+            console.log('[NoteEditor] Uploading attachment:', att.name);
+            // Fetch the blob from the blob URL
+            const response = await fetch(att.url);
+            const blob = await response.blob();
+            const file = new File([blob], att.name, { type: att.type });
+            // Upload to server
+            const uploaded = await api.attachments.upload(file, note.id, 'note');
+            uploadedAttachments.push(uploaded);
+          } else {
+            // Already uploaded to server
+            uploadedAttachments.push(att);
+          }
+        }
+      }
+
+      const input: NoteInput = {
+        title: note.title,
+        content: note.content,
+        tags: note.tags,
+        folder: note.folder,
+        subfolder: note.subfolder,
+        priority: note.priority,
+        isFavorite: note.isFavorite,
+        isEncrypted: note.isEncrypted,
+        // Convert local date to ISO UTC format for backend
+        reminder: note.reminder ? (typeof note.reminder === 'string' ? note.reminder : note.reminder.toISOString()) : undefined,
+        templateId: note.templateId,
+        // Include uploaded attachments
+        attachments: uploadedAttachments.map(att => ({
+          id: att.id,
+          name: att.name,
+          size: att.size,
+          type: att.type,
+          url: att.url,
+          uploadedAt: att.uploadedAt instanceof Date ? att.uploadedAt.toISOString() : att.uploadedAt
+        })),
+      };
+      console.log('[NoteEditor] Saving note with attachments:', input.attachments?.length || 0);
       await api.notes.update(note.id, input);
       navigate('/notes');
     } catch (err) {
@@ -128,6 +174,13 @@ export const NoteEditor: React.FC = () => {
             className="p-2 hover:bg-gray-100 rounded-lg"
           >
             <i className={`fas fa-lock ${note.isEncrypted ? 'text-purple-500' : 'text-gray-400'}`}></i>
+          </button>
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+            title="Share"
+          >
+            <i className="fas fa-share-alt text-gray-400"></i>
           </button>
           <select
             value={note.priority}
@@ -310,6 +363,21 @@ export const NoteEditor: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        resourceId={note.id}
+        resourceType="note"
+        ownerId={note.ownerId}
+        sharedWith={note.sharedWith}
+        onShareSuccess={() => {
+          // Reload note to get updated sharedWith
+          if (params.id) {
+            api.notes.getById(params.id).then(setNote);
+          }
+        }}
+      />
     </div>
   );
 };

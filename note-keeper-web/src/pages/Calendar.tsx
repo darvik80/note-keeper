@@ -13,10 +13,15 @@ export const Calendar: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
+        console.log('[Calendar] Loading todos...');
         const t = await api.todos.getAll({ isArchived: false, isDeleted: false });
-        setTodos(t.filter(todo => todo.dueDate));
+        console.log('[Calendar] Loaded todos:', t.length);
+        // Show todos with dueDate OR reminder
+        const withDate = t.filter(todo => todo.dueDate || todo.reminder);
+        console.log('[Calendar] Todos with date:', withDate.length);
+        setTodos(withDate);
       } catch (err) {
-        console.error('Failed to load calendar data', err);
+        console.error('[Calendar] Failed to load calendar data:', err);
       }
     };
     load();
@@ -35,11 +40,25 @@ export const Calendar: React.FC = () => {
 
   const getTodosForDate = (date: Date) => {
     return todos.filter(todo => {
-      if (!todo.dueDate) return false;
-      const dueDate = new Date(todo.dueDate);
-      return dueDate.getDate() === date.getDate() &&
-             dueDate.getMonth() === date.getMonth() &&
-             dueDate.getFullYear() === date.getFullYear();
+      // Check dueDate
+      if (todo.dueDate) {
+        const dueDate = new Date(todo.dueDate);
+        if (dueDate.getDate() === date.getDate() &&
+            dueDate.getMonth() === date.getMonth() &&
+            dueDate.getFullYear() === date.getFullYear()) {
+          return true;
+        }
+      }
+      // Check reminder
+      if (todo.reminder) {
+        const reminderDate = new Date(todo.reminder);
+        if (reminderDate.getDate() === date.getDate() &&
+            reminderDate.getMonth() === date.getMonth() &&
+            reminderDate.getFullYear() === date.getFullYear()) {
+          return true;
+        }
+      }
+      return false;
     });
   };
 

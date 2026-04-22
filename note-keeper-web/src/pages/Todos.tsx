@@ -7,10 +7,13 @@ import { Todo, TodoInput } from '../types';
 export const Todos: React.FC = () => {
   const navigate = useNavigate();
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [sharedTodos, setSharedTodos] = useState<Todo[]>([]);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showSharedOnly, setShowSharedOnly] = useState(false);
 
   useEffect(() => {
     loadTodos();
+    loadSharedTodos();
   }, []);
 
   const loadTodos = async () => {
@@ -19,6 +22,23 @@ export const Todos: React.FC = () => {
       setTodos(t);
     } catch (err) {
       console.error('Failed to load todos', err);
+    }
+  };
+
+  const loadSharedTodos = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/v1/todos/shared-with-me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSharedTodos(data);
+      }
+    } catch (err) {
+      console.error('Failed to load shared todos', err);
     }
   };
 
@@ -52,8 +72,9 @@ export const Todos: React.FC = () => {
         priority: todo.priority,
         isFavorite: todo.isFavorite,
         completed: newVal,
-        dueDate: todo.dueDate ? String(todo.dueDate) : undefined,
-        reminder: todo.reminder ? String(todo.reminder) : undefined,
+        // Convert local date to ISO UTC format for backend
+        dueDate: todo.dueDate ? todo.dueDate.toISOString() : undefined,
+        reminder: todo.reminder ? todo.reminder.toISOString() : undefined,
         location: todo.location,
         schedule: todo.schedule,
       });
@@ -94,8 +115,9 @@ export const Todos: React.FC = () => {
         priority: todo.priority,
         isFavorite: newVal,
         completed: todo.completed,
-        dueDate: todo.dueDate ? String(todo.dueDate) : undefined,
-        reminder: todo.reminder ? String(todo.reminder) : undefined,
+        // Convert local date to ISO UTC format for backend
+        dueDate: todo.dueDate ? todo.dueDate.toISOString() : undefined,
+        reminder: todo.reminder ? todo.reminder.toISOString() : undefined,
         location: todo.location,
         schedule: todo.schedule,
       });
@@ -105,7 +127,11 @@ export const Todos: React.FC = () => {
     }
   };
 
-  const filteredTodos = showCompleted ? todos : todos.filter(t => !t.completed);
+  const displayTodos = showSharedOnly ? sharedTodos : todos;
+
+  const filteredTodos = showSharedOnly 
+    ? (showCompleted ? displayTodos : displayTodos.filter(t => !t.completed))
+    : (showCompleted ? todos : todos.filter(t => !t.completed));
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
@@ -122,6 +148,16 @@ export const Todos: React.FC = () => {
               />
               <span className="text-sm font-medium">Show Completed</span>
             </label>
+            <button
+              onClick={() => setShowSharedOnly(!showSharedOnly)}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                showSharedOnly ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+              title="Show only todos shared with me"
+            >
+              <i className="fas fa-share-alt mr-2"></i>
+              Shared with Me
+            </button>
             <button
               onClick={createTodo}
               className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
@@ -167,6 +203,9 @@ export const Todos: React.FC = () => {
                       }`}>
                         {todo.priority}
                       </span>
+                      {todo.sharedWith && todo.sharedWith !== '[]' && (
+                        <i className="fas fa-share-alt text-green-500" title="Shared"></i>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

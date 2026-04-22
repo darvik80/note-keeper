@@ -24,6 +24,8 @@ export interface Note {
   deletedAt?: Date;
   history: NoteHistory[];
   templateId?: string;
+  ownerId: string;
+  sharedWith: string; // JSON array of user IDs
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,6 +60,8 @@ export interface Todo {
   isArchived: boolean;
   isDeleted: boolean;
   deletedAt?: Date;
+  ownerId: string;
+  sharedWith: string; // JSON array of user IDs
   createdAt: Date;
   updatedAt: Date;
 }

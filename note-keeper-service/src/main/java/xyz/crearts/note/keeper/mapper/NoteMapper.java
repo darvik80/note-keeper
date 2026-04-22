@@ -41,4 +41,8 @@ public interface NoteMapper {
     int countByPriority(@Param("priority") String priority,
                         @Param("start") String start,
                         @Param("end") String end);
+
+    List<Note> findSharedWithMe(@Param("userId") String userId);
+
+    void shareWithUser(@Param("id") String id, @Param("sharedWith") String sharedWith);
 }

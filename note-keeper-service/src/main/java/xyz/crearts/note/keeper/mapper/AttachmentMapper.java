@@ -14,4 +14,8 @@ public interface AttachmentMapper {
     List<Attachment> findByParent(@Param("parentId") String parentId, @Param("parentType") String parentType);
 
     void deleteByParent(@Param("parentId") String parentId, @Param("parentType") String parentType);
+
+    Attachment findById(@Param("id") String id);
+
+    void deleteById(@Param("id") String id);
 }

@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import xyz.crearts.note.keeper.dto.NoteInput;
@@ -12,10 +13,14 @@ import xyz.crearts.note.keeper.model.Note;
 import xyz.crearts.note.keeper.model.NoteHistory;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class NoteService {
 
@@ -32,12 +37,8 @@ public class NoteService {
     public List<Note> findAll(String folder, String tag, String priority,
                               Boolean isFavorite, Boolean isEncrypted,
                               Boolean isArchived, Boolean isDeleted, String ownerId) {
-        List<Note> notes = noteMapper.findAll(folder, tag, priority, isFavorite, isEncrypted, isArchived, isDeleted, ownerId);
-        for (Note note : notes) {
-            note.setAttachments(attachmentMapper.findByParent(note.getId(), "note"));
-            note.setHistory(historyMapper.findByNoteId(note.getId()));
-        }
-        return notes;
+        // MyBatis автоматически загружает attachments и history через noteWithCollectionsMap
+        return noteMapper.findAll(folder, tag, priority, isFavorite, isEncrypted, isArchived, isDeleted, ownerId);
     }
 
     public Note findById(String id) {
@@ -45,8 +46,8 @@ public class NoteService {
         if (note == null) {
             throw new ResourceNotFoundException("Note not found: " + id);
         }
-        note.setAttachments(attachmentMapper.findByParent(note.getId(), "note"));
-        note.setHistory(historyMapper.findByNoteId(note.getId()));
+        // MyBatis автоматически загружает attachments и history через noteWithCollectionsMap
+        log.info("Loaded note {} with {} attachments", id, note.getAttachments() != null ? note.getAttachments().size() : 0);
         return note;
     }
 
@@ -66,7 +67,7 @@ public class NoteService {
         note.setDeleted(false);
         note.setOwnerId(ownerId);
         note.setSharedWith("[]");
-        note.setReminder(input.getReminder());
+        note.setReminder(parseDate(input.getReminder()));
         note.setTemplateId(input.getTemplateId());
         LocalDateTime now = LocalDateTime.now();
         note.setCreatedAt(now);
@@ -82,14 +83,18 @@ public class NoteService {
         history.setAction("created");
         historyMapper.insert(history);
 
-        if (input.getAttachments() != null) {
+        if (input.getAttachments() != null && !input.getAttachments().isEmpty()) {
+            log.info("Creating {} attachments for note {}", input.getAttachments().size(), note.getId());
             for (Attachment att : input.getAttachments()) {
                 att.setId(UUID.randomUUID().toString());
                 att.setParentId(note.getId());
                 att.setParentType("note");
                 if (att.getUploadedAt() == null) att.setUploadedAt(now);
+                log.info("Saving attachment: {}", att.getName());
                 attachmentMapper.insert(att);
             }
+        } else {
+            log.info("No attachments provided for note {}", note.getId());
         }
 
         return findById(note.getId());
@@ -107,7 +112,7 @@ public class NoteService {
         if (input.getPriority() != null) existing.setPriority(input.getPriority());
         if (input.getIsFavorite() != null) existing.setFavorite(input.getIsFavorite());
         if (input.getIsEncrypted() != null) existing.setEncrypted(input.getIsEncrypted());
-        existing.setReminder(input.getReminder());
+        existing.setReminder(parseDate(input.getReminder()));
         existing.setTemplateId(input.getTemplateId());
         existing.setUpdatedAt(LocalDateTime.now());
 
@@ -122,12 +127,14 @@ public class NoteService {
         historyMapper.insert(history);
 
         if (input.getAttachments() != null) {
+            log.info("Updating attachments for note {}: {}", id, input.getAttachments().size());
             attachmentMapper.deleteByParent(id, "note");
             for (Attachment att : input.getAttachments()) {
                 att.setId(att.getId() != null ? att.getId() : UUID.randomUUID().toString());
                 att.setParentId(id);
                 att.setParentType("note");
                 if (att.getUploadedAt() == null) att.setUploadedAt(LocalDateTime.now());
+                log.info("Saving attachment: {}", att.getName());
                 attachmentMapper.insert(att);
             }
         }
@@ -175,5 +182,102 @@ public class NoteService {
         input.setSubfolder(subfolder);
         input.setPriority("medium");
         return create(input, ownerId);
+    }
+
+    public List<Note> findSharedWithMe(String userId) {
+        // MyBatis автоматически загружает attachments и history через noteWithCollectionsMap
+        return noteMapper.findSharedWithMe(userId);
+    }
+
+    @Transactional
+    public Note shareWithUser(String noteId, String userIdToAdd, String currentOwnerId) {
+        Note note = findById(noteId);
+        System.out.println("[DEBUG] shareWithUser - noteId: " + noteId);
+        System.out.println("[DEBUG] shareWithUser - note.getOwnerId(): " + note.getOwnerId());
+        System.out.println("[DEBUG] shareWithUser - currentOwnerId (from JWT): " + currentOwnerId);
+        if (note.getOwnerId() == null) {
+            throw new RuntimeException("Note ownerId is null - data corruption");
+        }
+        if (currentOwnerId == null) {
+            throw new RuntimeException("Current ownerId is null - authentication issue");
+        }
+        if (!note.getOwnerId().equals(currentOwnerId)) {
+            throw new RuntimeException("Only owner can share this note (note owner: " + note.getOwnerId() + ", current user: " + currentOwnerId + ")");
+        }
+
+        List<String> sharedUsers = parseSharedWith(note.getSharedWith());
+        if (!sharedUsers.contains(userIdToAdd)) {
+            sharedUsers.add(userIdToAdd);
+            String newSharedWith = toJsonArray(sharedUsers);
+            note.setSharedWith(newSharedWith);
+            noteMapper.shareWithUser(noteId, newSharedWith);
+        }
+
+        return findById(noteId);
+    }
+
+    @Transactional
+    public Note unshareWithUser(String noteId, String userIdToRemove, String currentOwnerId) {
+        Note note = findById(noteId);
+        if (!note.getOwnerId().equals(currentOwnerId)) {
+            throw new RuntimeException("Only owner can unshare this note");
+        }
+
+        List<String> sharedUsers = parseSharedWith(note.getSharedWith());
+        sharedUsers.remove(userIdToRemove);
+        String newSharedWith = toJsonArray(sharedUsers);
+        note.setSharedWith(newSharedWith);
+        noteMapper.shareWithUser(noteId, newSharedWith);
+
+        return findById(noteId);
+    }
+
+    private List<String> parseSharedWith(String sharedWith) {
+        if (sharedWith == null || sharedWith.equals("[]")) {
+            return new ArrayList<>();
+        }
+        try {
+            String json = sharedWith.replace("[", "").replace("]", "").replace("\"", "");
+            if (json.trim().isEmpty()) {
+                return new ArrayList<>();
+            }
+            return Arrays.stream(json.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private String toJsonArray(List<String> list) {
+        if (list.isEmpty()) {
+            return "[]";
+        }
+        return "[" + list.stream()
+                .map(s -> "\"" + s + "\"")
+                .collect(Collectors.joining(",")) + "]";
+    }
+
+    private LocalDateTime parseDate(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) return null;
+        try {
+            // Parse ISO UTC format (with 'Z') from frontend
+            java.time.Instant instant = java.time.Instant.parse(dateStr);
+            return LocalDateTime.ofInstant(instant, java.time.ZoneId.systemDefault());
+        } catch (Exception e1) {
+            try {
+                // Try ISO local date-time format
+                return LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            } catch (Exception e2) {
+                try {
+                    // Try "yyyy-MM-dd" format
+                    return LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+                } catch (Exception e3) {
+                    // Ignore invalid date
+                    return null;
+                }
+            }
+        }
     }
 }

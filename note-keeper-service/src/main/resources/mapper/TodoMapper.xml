@@ -14,9 +14,11 @@
         <result property="favorite" column="is_favorite"/>
         <result property="archived" column="is_archived"/>
         <result property="deleted" column="is_deleted"/>
-        <result property="deletedAt" column="deleted_at"/>
-        <result property="dueDate" column="due_date"/>
-        <result property="reminder" column="reminder"/>
+        <result property="deletedAt" column="deleted_at" jdbcType="TIMESTAMP"/>
+        <result property="dueDate" column="due_date" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
+        <result property="reminder" column="reminder" jdbcType="TIMESTAMP"/>
+        <result property="ownerId" column="owner_id"/>
+        <result property="sharedWith" column="shared_with"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
         <association property="location" javaType="xyz.crearts.note.keeper.model.Todo$Location">
@@ -28,6 +30,7 @@
             <result property="repeat" column="schedule_repeat"/>
             <result property="endDate" column="schedule_end_date"/>
         </association>
+        <collection property="attachments" column="id" select="xyz.crearts.note.keeper.mapper.AttachmentMapper.findByTodoId"/>
     </resultMap>
 
     <select id="findAll" resultMap="todoResultMap">
@@ -152,6 +155,14 @@
     <!-- Mark todo reminder as notified -->
     <update id="markReminderNotified">
         UPDATE todo SET notified_at = #{notifiedAt}, updated_at = #{notifiedAt}
+        WHERE id = #{id}
+    </update>
+
+    <!-- Update shared_with field -->
+    <update id="shareWithUser">
+        UPDATE todo SET
+            shared_with = #{sharedWith},
+            updated_at = datetime('now','localtime')
         WHERE id = #{id}
     </update>
 

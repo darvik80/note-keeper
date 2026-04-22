@@ -1,14 +1,15 @@
 package xyz.crearts.note.keeper.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
-import xyz.crearts.note.keeper.model.Attachment;
-import xyz.crearts.note.keeper.model.Todo;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TodoInput {
     @NotBlank(message = "Title is required")
     private String title;
@@ -17,9 +18,11 @@ public class TodoInput {
     private List<String> tags;
     private String priority;
     private Boolean isFavorite;
-    private LocalDateTime dueDate;
-    private LocalDateTime reminder;
-    private Todo.Location location;
-    private Todo.Schedule schedule;
-    private List<Attachment> attachments;
+    
+    private String dueDate;
+    private String reminder;
+    
+    private Map<String, Object> location;
+    private Map<String, Object> schedule;
+    private List<Map<String, Object>> attachments;
 }

@@ -1,30 +1,31 @@
 package xyz.crearts.note.keeper.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 
-/**
- * Configuration for Jackson ObjectMapper to handle date/time deserialization.
- * Supports both ISO-8601 and JavaScript Date formats.
- */
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 @Configuration
 public class JacksonConfig {
 
+    private static final DateTimeFormatter ISO_UTC_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
     @Bean
-    @Primary
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
-        JavaTimeModule javaTimeModule = new JavaTimeModule();
-        javaTimeModule.addDeserializer(
-            java.time.LocalDateTime.class,
-            new LocalDateTimeDeserializer()
-        );
-        mapper.registerModule(javaTimeModule);
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        JavaTimeModule module = new JavaTimeModule();
+        
+        // Serialize LocalDateTime in ISO format
+        module.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(ISO_UTC_FORMATTER));
+        module.addSerializer(LocalDate.class, new LocalDateSerializer(DateTimeFormatter.ISO_DATE));
+        
+        mapper.registerModule(module);
         return mapper;
     }
 }

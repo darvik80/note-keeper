@@ -19,6 +19,8 @@
         <result property="deletedAt" column="deleted_at"/>
         <result property="reminder" column="reminder"/>
         <result property="templateId" column="template_id"/>
+        <result property="ownerId" column="owner_id"/>
+        <result property="sharedWith" column="shared_with"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
@@ -28,7 +30,7 @@
         <collection property="history" column="id" select="xyz.crearts.note.keeper.mapper.NoteHistoryMapper.findByNoteId"/>
     </resultMap>
 
-    <select id="findAll" resultMap="noteResultMap">
+    <select id="findAll" resultMap="noteWithCollectionsMap">
         SELECT * FROM note
         <where>
             <if test="folder != null">AND folder = #{folder}</if>
@@ -43,7 +45,7 @@
         ORDER BY updated_at DESC
     </select>
 
-    <select id="findById" resultMap="noteResultMap" parameterType="String">
+    <select id="findById" resultMap="noteWithCollectionsMap" parameterType="String">
         SELECT * FROM note WHERE id = #{id}
     </select>
 
@@ -99,7 +101,7 @@
         WHERE created_at >= #{start} AND created_at &lt;= #{end}
     </select>
 
-    <select id="search" resultMap="noteResultMap">
+    <select id="search" resultMap="noteWithCollectionsMap">
         SELECT * FROM note
         WHERE is_deleted = 0
           AND (title LIKE '%' || #{query} || '%' OR content LIKE '%' || #{query} || '%')
@@ -113,5 +115,20 @@
         WHERE priority = #{priority}
           AND created_at >= #{start} AND created_at &lt;= #{end}
     </select>
+
+    <select id="findSharedWithMe" resultMap="noteWithCollectionsMap" parameterType="String">
+        SELECT * FROM note
+        WHERE is_deleted = 0
+          AND is_archived = 0
+          AND shared_with LIKE '%' || #{userId} || '%'
+        ORDER BY updated_at DESC
+    </select>
+
+    <update id="shareWithUser">
+        UPDATE note SET
+            shared_with = #{sharedWith},
+            updated_at = datetime('now','localtime')
+        WHERE id = #{id}
+    </update>
 
 </mapper>

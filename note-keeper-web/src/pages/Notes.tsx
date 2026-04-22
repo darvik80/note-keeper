@@ -9,13 +9,16 @@ import { Note, NoteInput } from '../types';
 export const Notes: React.FC = () => {
   const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);
+  const [sharedNotes, setSharedNotes] = useState<Note[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string>('root');
   const [showImport, setShowImport] = useState(false);
   const [showFolderPanel, setShowFolderPanel] = useState(true);
+  const [showSharedOnly, setShowSharedOnly] = useState(false);
 
   useEffect(() => {
     loadNotes();
+    loadSharedNotes();
   }, []);
 
   const loadNotes = async () => {
@@ -24,6 +27,23 @@ export const Notes: React.FC = () => {
       setNotes(n);
     } catch (err) {
       console.error('Failed to load notes', err);
+    }
+  };
+
+  const loadSharedNotes = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/v1/notes/shared-with-me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSharedNotes(data);
+      }
+    } catch (err) {
+      console.error('Failed to load shared notes', err);
     }
   };
 
@@ -94,9 +114,13 @@ export const Notes: React.FC = () => {
 
   const folderTree = buildFolderTree(notes);
 
-  const filteredNotes = notes.filter(note => {
+  const displayNotes = showSharedOnly ? sharedNotes : notes;
+
+  const filteredNotes = displayNotes.filter(note => {
     const matchesSearch = note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          note.content.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (showSharedOnly) return matchesSearch;
     
     if (selectedFolder === 'root') return matchesSearch;
     
@@ -151,6 +175,16 @@ export const Notes: React.FC = () => {
             >
               <i className="fas fa-file-import mr-2"></i>
               Import
+            </button>
+            <button
+              onClick={() => setShowSharedOnly(!showSharedOnly)}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                showSharedOnly ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+              title="Show only notes shared with me"
+            >
+              <i className="fas fa-share-alt mr-2"></i>
+              Shared with Me
             </button>
             <button
               onClick={createNote}
@@ -213,6 +247,9 @@ export const Notes: React.FC = () => {
                   <h3 className="font-bold text-text text-base lg:text-lg flex-1 pr-2">{note.title}</h3>
                   <div className="flex items-center gap-2 lg:gap-2 flex-shrink-0">
                     {note.isEncrypted && <i className="fas fa-lock text-purple-500 text-sm lg:text-base"></i>}
+                    {note.sharedWith && note.sharedWith !== '[]' && (
+                      <i className="fas fa-share-alt text-green-500 text-sm lg:text-base" title="Shared"></i>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

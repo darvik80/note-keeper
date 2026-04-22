@@ -76,4 +76,30 @@ public class TodoController {
     public Todo restoreTodo(@PathVariable String id) {
         return todoService.restore(id);
     }
+
+    @GetMapping("/shared-with-me")
+    public List<Todo> getSharedWithMe(@AuthenticationPrincipal String ownerId) {
+        log.info("GET /api/v1/todos/shared-with-me - ownerId: {}", ownerId);
+        return todoService.findSharedWithMe(ownerId);
+    }
+
+    @PostMapping("/{id}/share")
+    public ResponseEntity<Todo> shareTodo(
+            @PathVariable String id,
+            @RequestParam String userId,
+            @AuthenticationPrincipal String ownerId) {
+        log.info("POST /api/v1/todos/{}/share - ownerId: {}, userId: {}", id, ownerId, userId);
+        Todo todo = todoService.shareWithUser(id, userId, ownerId);
+        return ResponseEntity.ok(todo);
+    }
+
+    @DeleteMapping("/{id}/share")
+    public ResponseEntity<Todo> unshareTodo(
+            @PathVariable String id,
+            @RequestParam String userId,
+            @AuthenticationPrincipal String ownerId) {
+        log.info("DELETE /api/v1/todos/{}/share - ownerId: {}, userId: {}", id, ownerId, userId);
+        Todo todo = todoService.unshareWithUser(id, userId, ownerId);
+        return ResponseEntity.ok(todo);
+    }
 }

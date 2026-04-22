@@ -99,4 +99,30 @@ public class NoteController {
         Note note = noteService.importNote(title, content, folder, subfolder, ownerId);
         return ResponseEntity.status(HttpStatus.CREATED).body(note);
     }
+
+    @GetMapping("/shared-with-me")
+    public List<Note> getSharedWithMe(@AuthenticationPrincipal String ownerId) {
+        log.info("GET /api/v1/notes/shared-with-me - ownerId: {}", ownerId);
+        return noteService.findSharedWithMe(ownerId);
+    }
+
+    @PostMapping("/{id}/share")
+    public ResponseEntity<Note> shareNote(
+            @PathVariable String id,
+            @RequestParam String userId,
+            @AuthenticationPrincipal String ownerId) {
+        log.info("POST /api/v1/notes/{}/share - ownerId: {}, userId: {}", id, ownerId, userId);
+        Note note = noteService.shareWithUser(id, userId, ownerId);
+        return ResponseEntity.ok(note);
+    }
+
+    @DeleteMapping("/{id}/share")
+    public ResponseEntity<Note> unshareNote(
+            @PathVariable String id,
+            @RequestParam String userId,
+            @AuthenticationPrincipal String ownerId) {
+        log.info("DELETE /api/v1/notes/{}/share - ownerId: {}, userId: {}", id, ownerId, userId);
+        Note note = noteService.unshareWithUser(id, userId, ownerId);
+        return ResponseEntity.ok(note);
+    }
 }

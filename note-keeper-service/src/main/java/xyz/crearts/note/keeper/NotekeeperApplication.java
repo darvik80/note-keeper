@@ -14,7 +14,8 @@ import java.nio.file.Path;
 public class NotekeeperApplication {
 
 	public static void main(String[] args) throws Exception {
-		Files.createDirectories(Path.of(System.getProperty("user.dir"), "data"));
+		// Create var directory for application data
+		Files.createDirectories(Path.of(System.getProperty("user.dir"), "var"));
 		SpringApplication.run(NotekeeperApplication.class, args);
 	}
 

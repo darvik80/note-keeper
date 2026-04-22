@@ -39,4 +39,12 @@
         WHERE parent_id = #{parentId} AND parent_type = #{parentType}
     </delete>
 
+    <select id="findById" resultMap="attachmentResultMap" parameterType="String">
+        SELECT * FROM attachment WHERE id = #{id}
+    </select>
+
+    <delete id="deleteById" parameterType="String">
+        DELETE FROM attachment WHERE id = #{id}
+    </delete>
+
 </mapper>

@@ -59,4 +59,6 @@ public interface TodoMapper {
      * @param notifiedAt notification timestamp
      */
     void markReminderNotified(@Param("id") String id, @Param("notifiedAt") LocalDateTime notifiedAt);
+
+    void shareWithUser(@Param("id") String id, @Param("sharedWith") String sharedWith);
 }

@@ -288,6 +288,52 @@ export const api = {
     }
   },
 
+  attachments: {
+    upload: async (file: File, parentId: string, parentType: string): Promise<any> => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('parentId', parentId);
+      formData.append('parentType', parentType);
+      const res = await fetch(`${API_BASE}/attachments/upload`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: formData
+      });
+      return handleResponse(res);
+    },
+
+    uploadBatch: async (files: File[], parentId: string, parentType: string): Promise<any[]> => {
+      const formData = new FormData();
+      files.forEach(file => formData.append('files', file));
+      formData.append('parentId', parentId);
+      formData.append('parentType', parentType);
+      const res = await fetch(`${API_BASE}/attachments/upload-batch`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: formData
+      });
+      return handleResponse(res);
+    },
+
+    delete: async (attachmentId: string): Promise<void> => {
+      const res = await fetch(`${API_BASE}/attachments/${attachmentId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      return handleResponse(res);
+    },
+
+    download: async (attachmentId: string): Promise<Blob> => {
+      const res = await fetch(`${API_BASE}/attachments/${attachmentId}/download`, {
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return res.blob();
+    }
+  },
+
   integrations: {
     sendToTelegram: async (request: IntegrationRequest): Promise<IntegrationResponse> => {
       const res = await fetch(`${API_BASE}/integrations/telegram`, {

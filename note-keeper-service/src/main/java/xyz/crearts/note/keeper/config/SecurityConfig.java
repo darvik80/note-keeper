@@ -40,7 +40,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 // Static resources
-                .requestMatchers("/", "/index.html", "/static/**", "/assets/**").permitAll()
+                .requestMatchers("/", "/index.html", "/favicon.svg", "/favicon.ico", "/static/**", "/assets/**", "/*.js", "/*.css", "/*.png", "/*.jpg", "/*.svg").permitAll()
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
@@ -55,11 +55,16 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
             "http://localhost:3000",
             "http://localhost:3001",
-            "http://localhost:8080"
+            "http://localhost:5173",
+            "http://localhost:8080",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:8080"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList("*", "Authorization", "Content-Type"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

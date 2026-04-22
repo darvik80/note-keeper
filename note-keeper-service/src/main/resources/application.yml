@@ -4,18 +4,18 @@ server:
 spring:
   application:
     name: note-keeper
-  datasource:
-    url: jdbc:sqlite:${user.dir}/data/notekeeper.db
-    driver-class-name: org.sqlite.JDBC
-    hikari:
-      maximum-pool-size: 1
-      connection-init-sql: "PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;"
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:schema.sql
-      data-locations: classpath:data.sql
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:sqlite}
 
+# Application configuration
+app:
+  storage:
+    base-dir: ${user.dir}/../var
+    attachments-dir: ${app.storage.base-dir}/attachments
+    backups-dir: ${app.storage.base-dir}/backups
+    data-dir: ${app.storage.base-dir}/data
+
+# Common configuration (applies to all profiles)
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: xyz.crearts.note.keeper.model
@@ -26,3 +26,38 @@ mybatis:
 logging:
   level:
     xyz.crearts.note.keeper: DEBUG
+
+# SQLite profile (default)
+---
+spring:
+  config:
+    activate:
+      on-profile: sqlite
+  datasource:
+    url: jdbc:sqlite:${app.storage.data-dir}/notekeeper.db
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+      connection-init-sql: "PRAGMA foreign_keys=OFF; PRAGMA journal_mode=WAL;"
+  sql:
+    init:
+      mode: never
+
+# PostgreSQL profile
+---
+spring:
+  config:
+    activate:
+      on-profile: postgresql
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:notekeeper}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  sql:
+    init:
+      mode: always
+      platform: postgresql

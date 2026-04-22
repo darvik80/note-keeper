@@ -36,3 +36,4 @@ build/
 data/
 
 application-local.yml
+.env

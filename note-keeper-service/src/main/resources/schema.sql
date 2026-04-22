@@ -107,6 +107,9 @@ CREATE TABLE IF NOT EXISTS user_settings (
     telegram_chat_id TEXT,
     dingtalk_webhook TEXT,
     dingtalk_secret TEXT,
+    backup_auto_enabled INTEGER NOT NULL DEFAULT 0,
+    backup_cron TEXT DEFAULT '0 0 2 * * *',
+    backup_retention_days INTEGER NOT NULL DEFAULT 30,
     updated_at TEXT NOT NULL
 );
 
