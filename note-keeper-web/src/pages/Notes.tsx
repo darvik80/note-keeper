@@ -235,7 +235,7 @@ export const Notes: React.FC = () => {
           </div>
         )}
 
-        <div className="flex-1 overflow-auto p-4 lg:p-8">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
             {filteredNotes.map(note => (
               <div
@@ -258,6 +258,16 @@ export const Notes: React.FC = () => {
                       className="hover:scale-110 transition-transform p-1"
                     >
                       <i className={`fas fa-star text-sm lg:text-base ${note.isFavorite ? 'text-yellow-500' : 'text-text-secondary'}`}></i>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        archiveNote(note.id);
+                      }}
+                      className="text-gray-500 hover:text-gray-700 p-1"
+                      title="Archive"
+                    >
+                      <i className="fas fa-box-archive text-sm lg:text-base"></i>
                     </button>
                     <button
                       onClick={(e) => {

@@ -1,4 +1,4 @@
-package xyz.crearts.note.keeper.config;
+package xyz.crearts.note.keeper.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;

@@ -41,6 +41,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileM
     };
   }, [isMobileMenuOpen]);
 
+  // Listen for toggle-sidebar event from shortcuts
+  useEffect(() => {
+    const handleToggleSidebar = () => {
+      setIsMobileMenuOpen(!isMobileMenuOpen);
+    };
+    window.addEventListener('toggle-sidebar', handleToggleSidebar);
+    return () => window.removeEventListener('toggle-sidebar', handleToggleSidebar);
+  }, [isMobileMenuOpen, setIsMobileMenuOpen]);
+
   return (
     <>
       {isMobileMenuOpen && (

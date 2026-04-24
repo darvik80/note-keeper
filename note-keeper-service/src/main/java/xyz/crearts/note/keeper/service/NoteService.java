@@ -27,24 +27,47 @@ public class NoteService {
     private final NoteMapper noteMapper;
     private final NoteHistoryMapper historyMapper;
     private final AttachmentMapper attachmentMapper;
+    private final EncryptionService encryptionService;
 
-    public NoteService(NoteMapper noteMapper, NoteHistoryMapper historyMapper, AttachmentMapper attachmentMapper) {
+    public NoteService(NoteMapper noteMapper, NoteHistoryMapper historyMapper, 
+                      AttachmentMapper attachmentMapper, EncryptionService encryptionService) {
         this.noteMapper = noteMapper;
         this.historyMapper = historyMapper;
         this.attachmentMapper = attachmentMapper;
+        this.encryptionService = encryptionService;
     }
 
     public List<Note> findAll(String folder, String tag, String priority,
                               Boolean isFavorite, Boolean isEncrypted,
                               Boolean isArchived, Boolean isDeleted, String ownerId) {
-        // MyBatis автоматически загружает attachments и history через noteWithCollectionsMap
-        return noteMapper.findAll(folder, tag, priority, isFavorite, isEncrypted, isArchived, isDeleted, ownerId);
+        List<Note> notes = noteMapper.findAll(folder, tag, priority, isFavorite, isEncrypted, isArchived, isDeleted, ownerId);
+        // Decrypt content for encrypted notes
+        for (Note note : notes) {
+            if (note.isEncrypted() && note.getContent() != null && !note.getContent().isEmpty()) {
+                try {
+                    note.setContent(encryptionService.decrypt(note.getContent()));
+                } catch (Exception e) {
+                    log.error("Failed to decrypt note {}: {}", note.getId(), e.getMessage());
+                    note.setContent("[Decryption failed]");
+                }
+            }
+        }
+        return notes;
     }
 
     public Note findById(String id) {
         Note note = noteMapper.findById(id);
         if (note == null) {
             throw new ResourceNotFoundException("Note not found: " + id);
+        }
+        // Decrypt content if encrypted
+        if (note.isEncrypted() && note.getContent() != null && !note.getContent().isEmpty()) {
+            try {
+                note.setContent(encryptionService.decrypt(note.getContent()));
+            } catch (Exception e) {
+                log.error("Failed to decrypt note {}: {}", id, e.getMessage());
+                note.setContent("[Decryption failed - content may be corrupted]");
+            }
         }
         // MyBatis автоматически загружает attachments и history через noteWithCollectionsMap
         log.info("Loaded note {} with {} attachments", id, note.getAttachments() != null ? note.getAttachments().size() : 0);
@@ -56,13 +79,21 @@ public class NoteService {
         Note note = new Note();
         note.setId(UUID.randomUUID().toString());
         note.setTitle(input.getTitle());
-        note.setContent(input.getContent());
+        
+        // Encrypt content if isEncrypted flag is set
+        String content = input.getContent();
+        boolean isEncrypted = input.getIsEncrypted() != null && input.getIsEncrypted();
+        if (isEncrypted && content != null && !content.isEmpty()) {
+            content = encryptionService.encrypt(content);
+        }
+        note.setContent(content);
+        
         note.setTags(input.getTags() != null ? input.getTags() : new ArrayList<>());
         note.setFolder(input.getFolder() != null ? input.getFolder() : "default");
         note.setSubfolder(input.getSubfolder());
         note.setPriority(input.getPriority() != null ? input.getPriority() : "medium");
         note.setFavorite(input.getIsFavorite() != null && input.getIsFavorite());
-        note.setEncrypted(input.getIsEncrypted() != null && input.getIsEncrypted());
+        note.setEncrypted(isEncrypted);
         note.setArchived(false);
         note.setDeleted(false);
         note.setOwnerId(ownerId);
@@ -78,7 +109,7 @@ public class NoteService {
         NoteHistory history = new NoteHistory();
         history.setId(UUID.randomUUID().toString());
         history.setNoteId(note.getId());
-        history.setContent(note.getContent());
+        history.setContent(content);
         history.setTimestamp(now);
         history.setAction("created");
         historyMapper.insert(history);
@@ -105,13 +136,34 @@ public class NoteService {
         Note existing = findById(id);
 
         existing.setTitle(input.getTitle());
-        existing.setContent(input.getContent());
+        
+        // Handle encryption for updated content
+        String content = input.getContent();
+        boolean wasEncrypted = existing.isEncrypted();
+        boolean shouldBeEncrypted = input.getIsEncrypted() != null && input.getIsEncrypted();
+        
+        if (shouldBeEncrypted && content != null && !content.isEmpty()) {
+            // If should be encrypted, encrypt the content
+            // If it was already encrypted, we need to decrypt first then re-encrypt
+            if (wasEncrypted) {
+                // Content is already decrypted in findById, so just encrypt
+                content = encryptionService.encrypt(content);
+            } else {
+                content = encryptionService.encrypt(content);
+            }
+        } else if (!shouldBeEncrypted && wasEncrypted) {
+            // Was encrypted but now should not be - content is already decrypted
+            // No action needed
+        }
+        
+        existing.setContent(content);
+        
         if (input.getTags() != null) existing.setTags(input.getTags());
         if (input.getFolder() != null) existing.setFolder(input.getFolder());
         existing.setSubfolder(input.getSubfolder());
         if (input.getPriority() != null) existing.setPriority(input.getPriority());
         if (input.getIsFavorite() != null) existing.setFavorite(input.getIsFavorite());
-        if (input.getIsEncrypted() != null) existing.setEncrypted(input.getIsEncrypted());
+        if (input.getIsEncrypted() != null) existing.setEncrypted(shouldBeEncrypted);
         existing.setReminder(parseDate(input.getReminder()));
         existing.setTemplateId(input.getTemplateId());
         existing.setUpdatedAt(LocalDateTime.now());
@@ -121,7 +173,7 @@ public class NoteService {
         NoteHistory history = new NoteHistory();
         history.setId(UUID.randomUUID().toString());
         history.setNoteId(id);
-        history.setContent(existing.getContent());
+        history.setContent(content);
         history.setTimestamp(existing.getUpdatedAt());
         history.setAction("edited");
         historyMapper.insert(history);
@@ -192,9 +244,6 @@ public class NoteService {
     @Transactional
     public Note shareWithUser(String noteId, String userIdToAdd, String currentOwnerId) {
         Note note = findById(noteId);
-        System.out.println("[DEBUG] shareWithUser - noteId: " + noteId);
-        System.out.println("[DEBUG] shareWithUser - note.getOwnerId(): " + note.getOwnerId());
-        System.out.println("[DEBUG] shareWithUser - currentOwnerId (from JWT): " + currentOwnerId);
         if (note.getOwnerId() == null) {
             throw new RuntimeException("Note ownerId is null - data corruption");
         }

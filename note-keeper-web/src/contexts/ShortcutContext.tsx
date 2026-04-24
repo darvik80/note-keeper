@@ -56,6 +56,10 @@ export const ShortcutProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } else if (key === shortcuts.search) {
         e.preventDefault();
         navigate('/search');
+      } else if (key === shortcuts.toggleSidebar) {
+        e.preventDefault();
+        // Dispatch custom event for sidebar toggle
+        window.dispatchEvent(new CustomEvent('toggle-sidebar'));
       }
     };
 

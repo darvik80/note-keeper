@@ -12,6 +12,7 @@ export const NoteEditor: React.FC = () => {
   const [isPreview, setIsPreview] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Debug: log params object
   useEffect(() => {
@@ -41,6 +42,17 @@ export const NoteEditor: React.FC = () => {
       load();
     }
   }, [params.id]);
+
+  // ESC to exit fullscreen
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isFullscreen]);
 
   const saveNote = async () => {
     if (!note) return;
@@ -244,35 +256,17 @@ export const NoteEditor: React.FC = () => {
           placeholder="Note Title"
         />
 
-        <div className="mb-6">
-          <div className="flex flex-wrap gap-2 mb-3">
-            {note.tags.map(tag => (
-              <span
-                key={tag}
-                className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm flex items-center gap-2"
-              >
-                #{tag}
-                <button onClick={() => removeTag(tag)} className="hover:text-primary/70">
-                  <i className="fas fa-times"></i>
-                </button>
-              </span>
-            ))}
-          </div>
-          <input
-            type="text"
-            placeholder="Add tag and press Enter"
-            className="px-4 py-2 border border-gray-300 rounded-lg w-64"
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                addTag((e.target as HTMLInputElement).value);
-                (e.target as HTMLInputElement).value = '';
-              }
-            }}
-          />
-        </div>
-
         {isPreview ? (
-          <div className="border border-gray-300 rounded-lg p-6 bg-white min-h-96">
+          <div className={`border border-gray-300 rounded-lg p-6 bg-white ${isFullscreen ? 'fixed inset-4 z-50 max-h-none' : 'min-h-96 max-h-[calc(100vh-400px)]'} overflow-y-auto`}>
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              >
+                <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`}></i>
+              </button>
+            </div>
             <MarkdownRenderer content={note.content} />
           </div>
         ) : (
@@ -284,27 +278,54 @@ export const NoteEditor: React.FC = () => {
           />
         )}
 
-        <div className="mt-6 flex items-center gap-4">
-          <input
-            type="text"
-            value={note.folder}
-            onChange={(e) => setNote({ ...note, folder: e.target.value })}
-            className="px-4 py-2 border border-gray-300 rounded-lg"
-            placeholder="Folder"
-          />
-          <input
-            type="text"
-            value={note.subfolder || ''}
-            onChange={(e) => setNote({ ...note, subfolder: e.target.value || undefined })}
-            className="px-4 py-2 border border-gray-300 rounded-lg"
-            placeholder="Subfolder (optional)"
-          />
-          <input
-            type="datetime-local"
-            value={note.reminder ? new Date(note.reminder).toISOString().slice(0, 16) : ''}
-            onChange={(e) => setNote({ ...note, reminder: e.target.value ? new Date(e.target.value) : undefined })}
-            className="px-4 py-2 border border-gray-300 rounded-lg"
-          />
+        <div className="mt-6 space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {note.tags.map(tag => (
+              <span
+                key={tag}
+                className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm flex items-center gap-2"
+              >
+                #{tag}
+                <button onClick={() => removeTag(tag)} className="hover:text-primary/70">
+                  <i className="fas fa-times"></i>
+                </button>
+              </span>
+            ))}
+            <input
+              type="text"
+              placeholder="Add tag + Enter"
+              className="px-3 py-1 border border-gray-300 rounded-lg text-sm w-40"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  addTag((e.target as HTMLInputElement).value);
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }}
+            />
+          </div>
+
+          <div className="flex items-center gap-4 flex-wrap">
+            <input
+              type="text"
+              value={note.folder}
+              onChange={(e) => setNote({ ...note, folder: e.target.value })}
+              className="px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="Folder"
+            />
+            <input
+              type="text"
+              value={note.subfolder || ''}
+              onChange={(e) => setNote({ ...note, subfolder: e.target.value || undefined })}
+              className="px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="Subfolder (optional)"
+            />
+            <input
+              type="datetime-local"
+              value={note.reminder ? new Date(note.reminder).toISOString().slice(0, 16) : ''}
+              onChange={(e) => setNote({ ...note, reminder: e.target.value ? new Date(e.target.value) : undefined })}
+              className="px-4 py-2 border border-gray-300 rounded-lg"
+            />
+          </div>
         </div>
 
         <div className="mt-6">

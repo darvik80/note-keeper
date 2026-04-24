@@ -14,18 +14,23 @@ app:
     attachments-dir: ${app.storage.base-dir}/attachments
     backups-dir: ${app.storage.base-dir}/backups
     data-dir: ${app.storage.base-dir}/data
+    db-path: ${app.storage.data-dir}/notekeeper.db
+  encryption:
+    # AES-256 key (Base64 encoded). Generate with: EncryptionService.generateKey()
+    # WARNING: If not set, a random key is generated on each startup (encrypted data will be lost)
+    key: yjySH54/8L2nhkSZEOvL8JcOV3ViYSIeKunaQnNlmZk=
 
 # Common configuration (applies to all profiles)
 mybatis:
-  mapper-locations: classpath:mapper/*.xml
+  mapper-locations: classpath*:mapper/*.xml
   type-aliases-package: xyz.crearts.note.keeper.model
   type-handlers-package: xyz.crearts.note.keeper.mapper.typehandler
   configuration:
     map-underscore-to-camel-case: true
 
-logging:
-  level:
-    xyz.crearts.note.keeper: DEBUG
+#logging:
+#  level:
+#    xyz.crearts.note.keeper: DEBUG
 
 # SQLite profile (default)
 ---
@@ -34,14 +39,15 @@ spring:
     activate:
       on-profile: sqlite
   datasource:
-    url: jdbc:sqlite:${app.storage.data-dir}/notekeeper.db
+    url: jdbc:sqlite:${app.storage.db-path}
     driver-class-name: org.sqlite.JDBC
     hikari:
       maximum-pool-size: 1
       connection-init-sql: "PRAGMA foreign_keys=OFF; PRAGMA journal_mode=WAL;"
   sql:
     init:
-      mode: never
+      mode: always
+      schema-locations: classpath:schema.sql
 
 # PostgreSQL profile
 ---
