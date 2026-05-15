@@ -124,6 +124,7 @@ export const TodoEditor: React.FC = () => {
         // Convert local date to ISO UTC format for backend
         dueDate: todo.dueDate ? todo.dueDate.toISOString() : undefined,
         reminder: todo.reminder ? (typeof todo.reminder === 'string' ? todo.reminder : todo.reminder.toISOString()) : undefined,
+        notificationChannels: todo.notificationChannels,
         location: todo.location,
         schedule: todo.schedule && todo.schedule.repeat !== 'none' ? {
           repeat: todo.schedule.repeat,

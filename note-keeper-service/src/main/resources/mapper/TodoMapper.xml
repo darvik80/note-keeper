@@ -17,6 +17,8 @@
         <result property="deletedAt" column="deleted_at" jdbcType="TIMESTAMP"/>
         <result property="dueDate" column="due_date" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
         <result property="reminder" column="reminder" jdbcType="TIMESTAMP"/>
+        <result property="notifiedAt" column="notified_at" jdbcType="TIMESTAMP"/>
+        <result property="notificationChannels" column="notification_channels"/>
         <result property="ownerId" column="owner_id"/>
         <result property="sharedWith" column="shared_with"/>
         <result property="createdAt" column="created_at"/>
@@ -61,6 +63,7 @@
     <insert id="insert" parameterType="xyz.crearts.note.keeper.model.Todo">
         INSERT INTO todo (id, title, description, completed, tags, priority,
             is_favorite, is_archived, is_deleted, deleted_at, due_date, reminder,
+            notification_channels,
             location_lat, location_lng, location_address,
             schedule_repeat, schedule_end_date,
             owner_id, shared_with,
@@ -69,6 +72,7 @@
             #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
             #{priority}, #{favorite}, #{archived}, #{deleted}, #{deletedAt},
             #{dueDate}, #{reminder},
+            #{notificationChannels, jdbcType=VARCHAR},
             #{location.lat, jdbcType=REAL}, #{location.lng, jdbcType=REAL},
             #{location.address, jdbcType=VARCHAR},
             #{schedule.repeat, jdbcType=VARCHAR}, #{schedule.endDate, jdbcType=VARCHAR},
@@ -86,6 +90,7 @@
             is_favorite = #{favorite},
             due_date = #{dueDate},
             reminder = #{reminder},
+            notification_channels = #{notificationChannels, jdbcType=VARCHAR},
             location_lat = #{location.lat, jdbcType=REAL},
             location_lng = #{location.lng, jdbcType=REAL},
             location_address = #{location.address, jdbcType=VARCHAR},
