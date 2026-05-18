@@ -1,0 +1,101 @@
+---
+- name: Deploy NoteKeeper
+  hosts: app_servers
+  become: true
+  vars_files:
+    - vars/main.yml
+    - vars/secrets.yml
+
+  tasks:
+    - name: Create service user
+      ansible.builtin.user:
+        name: "{{ service_user }}"
+        system: true
+        shell: /bin/false
+        create_home: false
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ service_user }}"
+        group: "{{ service_user }}"
+        mode: "0750"
+
+    - name: Create bin directory
+      ansible.builtin.file:
+        path: "{{ bin_dir }}"
+        state: directory
+        owner: "{{ service_user }}"
+        group: "{{ service_user }}"
+        mode: "0750"
+
+    - name: Create etc directory
+      ansible.builtin.file:
+        path: "{{ etc_dir }}"
+        state: directory
+        owner: "{{ service_user }}"
+        group: "{{ service_user }}"
+        mode: "0750"
+
+    - name: Create var directory
+      ansible.builtin.file:
+        path: "{{ var_dir }}"
+        state: directory
+        owner: "{{ service_user }}"
+        group: "{{ service_user }}"
+        mode: "0750"
+
+    - name: Create log directory
+      ansible.builtin.file:
+        path: /var/log/note-keeper
+        state: directory
+        owner: "{{ service_user }}"
+        group: "{{ service_user }}"
+        mode: "0755"
+
+    - name: Copy artifact to remote host
+      ansible.builtin.copy:
+        src: "{{ local_jar_path }}"
+        dest: "{{ bin_dir }}/{{ jar_name }}"
+        owner: "{{ service_user }}"
+        group: "{{ service_user }}"
+        mode: "0640"
+      notify: Restart service
+
+    - name: Deploy application configuration
+      ansible.builtin.template:
+        src: templates/application.yml.j2
+        dest: "{{ etc_dir }}/application.yml"
+        owner: "{{ service_user }}"
+        group: "{{ service_user }}"
+        mode: "0600"
+      notify: Restart service
+
+    - name: Install systemd service file
+      ansible.builtin.template:
+        src: templates/note-keeper.service.j2
+        dest: /etc/systemd/system/note-keeper.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload systemd
+        - Restart service
+
+    - name: Enable and start service
+      ansible.builtin.systemd:
+        name: note-keeper
+        enabled: true
+        state: started
+        daemon_reload: true
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Restart service
+      ansible.builtin.systemd:
+        name: note-keeper
+        state: restarted

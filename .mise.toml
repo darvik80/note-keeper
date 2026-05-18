@@ -1,0 +1,14 @@
+[settings]
+http_timeout = "2m"
+
+[tools]
+java = "graalvm-community-25"
+maven = "3.9.15"
+ansible = "latest"
+
+[env]
+_.file = ".env"
+
+[tasks]
+build = "./mvnw package -DskipTests"
+ansible = { run = "ansible-playbook -i ansible/inventory.ini ansible/deploy.yml", depends = ["build"] }

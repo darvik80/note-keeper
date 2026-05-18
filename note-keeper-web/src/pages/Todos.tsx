@@ -138,38 +138,40 @@ export const Todos: React.FC = () => {
       <Header
         title="Todos"
         actions={
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 cursor-pointer shrink-0">
               <input
                 type="checkbox"
                 checked={showCompleted}
                 onChange={(e) => setShowCompleted(e.target.checked)}
                 className="w-4 h-4"
               />
-              <span className="text-sm font-medium">Show Completed</span>
+              <span className="text-sm font-medium hidden sm:inline">Show Completed</span>
+              <span className="text-sm font-medium sm:hidden">Done</span>
             </label>
             <button
               onClick={() => setShowSharedOnly(!showSharedOnly)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
+              className={`p-2 sm:px-4 sm:py-2 rounded-lg transition-colors ${
                 showSharedOnly ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
-              title="Show only todos shared with me"
+              title="Shared with Me"
             >
-              <i className="fas fa-share-alt mr-2"></i>
-              Shared with Me
+              <i className="fas fa-share-alt sm:mr-2"></i>
+              <span className="hidden sm:inline">Shared</span>
             </button>
             <button
               onClick={createTodo}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              className="p-2 sm:px-4 sm:py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              title="New Todo"
             >
-              <i className="fas fa-plus mr-2"></i>
-              New Todo
+              <i className="fas fa-plus sm:mr-2"></i>
+              <span className="hidden sm:inline">New Todo</span>
             </button>
           </div>
         }
       />
 
-      <div className="flex-1 overflow-auto p-8">
+      <div className="flex-1 overflow-auto p-4 sm:p-8">
         <div className="max-w-4xl mx-auto space-y-4">
           {filteredTodos.map(todo => (
             <div
@@ -220,7 +222,7 @@ export const Todos: React.FC = () => {
                           e.stopPropagation();
                           archiveTodo(todo.id);
                         }}
-                        className="text-gray-500 hover:text-gray-700"
+                        className="p-1 text-gray-500 hover:text-gray-700"
                         title="Archive"
                       >
                         <i className="fas fa-box-archive"></i>
@@ -230,7 +232,7 @@ export const Todos: React.FC = () => {
                           e.stopPropagation();
                           deleteTodo(todo.id);
                         }}
-                        className="text-red-500 hover:text-red-700"
+                        className="p-1 text-red-500 hover:text-red-700"
                         title="Delete"
                       >
                         <i className="fas fa-trash"></i>

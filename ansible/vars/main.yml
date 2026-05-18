@@ -1,0 +1,8 @@
+---
+service_user: note-keeper
+app_dir: /opt/note-keeper
+bin_dir: "{{ app_dir }}/bin"
+etc_dir: "{{ app_dir }}/etc"
+var_dir: "{{ app_dir }}/var"
+jar_name: note-keeper-service.jar
+local_jar_path: "../note-keeper-service/target/note-keeper-service-0.0.1-SNAPSHOT.jar"

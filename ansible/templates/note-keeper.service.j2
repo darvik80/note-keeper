@@ -1,0 +1,20 @@
+[Unit]
+Description=NoteKeeper Service
+After=network.target
+
+[Service]
+Type=simple
+User={{ service_user }}
+Group={{ service_user }}
+WorkingDirectory={{ app_dir }}
+ExecStart=java -jar {{ bin_dir }}/{{ jar_name }} --spring.config.location=file:{{ etc_dir }}/application.yml
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=note-keeper
+
+Environment=SPRING_PROFILES_ACTIVE=sqlite
+
+[Install]
+WantedBy=multi-user.target

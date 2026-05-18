@@ -150,46 +150,49 @@ export const NoteEditor: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-white">
-      <div className="border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+      <div className="border-b border-gray-200 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
         <button
           onClick={() => navigate('/notes')}
-          className="text-gray-600 hover:text-gray-800"
+          className="text-gray-600 hover:text-gray-800 shrink-0 flex items-center gap-1"
         >
-          <i className="fas fa-arrow-left mr-2"></i>
-          Back to Notes
+          <i className="fas fa-arrow-left"></i>
+          <span className="hidden sm:inline ml-1">Back</span>
         </button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-3 overflow-x-auto">
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
             title="History"
           >
             <i className={`fas fa-clock-rotate-left ${showHistory ? 'text-primary' : 'text-gray-400'}`}></i>
           </button>
           <button
             onClick={() => setIsPreview(!isPreview)}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`p-2 sm:px-4 sm:py-2 rounded-lg transition-colors shrink-0 ${
               isPreview ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
+            title={isPreview ? 'Edit' : 'Preview'}
           >
-            <i className={`fas ${isPreview ? 'fa-edit' : 'fa-eye'} mr-2`}></i>
-            {isPreview ? 'Edit' : 'Preview'}
+            <i className={`fas ${isPreview ? 'fa-edit' : 'fa-eye'} sm:mr-2`}></i>
+            <span className="hidden sm:inline">{isPreview ? 'Edit' : 'Preview'}</span>
           </button>
           <button
             onClick={() => setNote({ ...note, isFavorite: !note.isFavorite })}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
+            title="Favorite"
           >
             <i className={`fas fa-star ${note.isFavorite ? 'text-yellow-500' : 'text-gray-400'}`}></i>
           </button>
           <button
             onClick={() => setNote({ ...note, isEncrypted: !note.isEncrypted })}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
+            title="Encrypt"
           >
             <i className={`fas fa-lock ${note.isEncrypted ? 'text-purple-500' : 'text-gray-400'}`}></i>
           </button>
           <button
             onClick={() => setShowShareModal(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
             title="Share"
           >
             <i className="fas fa-share-alt text-gray-400"></i>
@@ -197,23 +200,24 @@ export const NoteEditor: React.FC = () => {
           <select
             value={note.priority}
             onChange={(e) => setNote({ ...note, priority: e.target.value as any })}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
+            className="px-2 py-2 border border-gray-300 rounded-lg text-sm shrink-0"
           >
-            <option value="low">Low Priority</option>
-            <option value="medium">Medium Priority</option>
-            <option value="high">High Priority</option>
+            <option value="low">Low</option>
+            <option value="medium">Med</option>
+            <option value="high">High</option>
           </select>
           <button
             onClick={saveNote}
-            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+            className="p-2 sm:px-6 sm:py-2 bg-primary text-white rounded-lg hover:bg-primary/90 shrink-0"
+            title="Save"
           >
-            <i className="fas fa-save mr-2"></i>
-            Save
+            <i className="fas fa-save sm:mr-2"></i>
+            <span className="hidden sm:inline">Save</span>
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-8">
+      <div className="flex-1 overflow-auto p-4 sm:p-8">
         {showHistory && note.history && note.history.length > 0 && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
@@ -252,7 +256,7 @@ export const NoteEditor: React.FC = () => {
           type="text"
           value={note.title}
           onChange={(e) => setNote({ ...note, title: e.target.value })}
-          className="text-4xl font-bold mb-6 w-full border-none outline-none"
+          className="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6 w-full border-none outline-none"
           placeholder="Note Title"
         />
 
@@ -304,26 +308,26 @@ export const NoteEditor: React.FC = () => {
             />
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input
               type="text"
               value={note.folder}
               onChange={(e) => setNote({ ...note, folder: e.target.value })}
-              className="px-4 py-2 border border-gray-300 rounded-lg"
+              className="px-4 py-2 border border-gray-300 rounded-lg w-full"
               placeholder="Folder"
             />
             <input
               type="text"
               value={note.subfolder || ''}
               onChange={(e) => setNote({ ...note, subfolder: e.target.value || undefined })}
-              className="px-4 py-2 border border-gray-300 rounded-lg"
+              className="px-4 py-2 border border-gray-300 rounded-lg w-full"
               placeholder="Subfolder (optional)"
             />
             <input
               type="datetime-local"
               value={note.reminder ? new Date(note.reminder).toISOString().slice(0, 16) : ''}
               onChange={(e) => setNote({ ...note, reminder: e.target.value ? new Date(e.target.value) : undefined })}
-              className="px-4 py-2 border border-gray-300 rounded-lg"
+              className="px-4 py-2 border border-gray-300 rounded-lg w-full"
             />
           </div>
         </div>
