@@ -22,6 +22,8 @@ const emptyTodo = (): Todo => ({
   completed: false,
   isArchived: false,
   isDeleted: false,
+  ownerId: '',
+  sharedWith: '[]',
   createdAt: new Date(),
   updatedAt: new Date(),
   attachments: [],
@@ -39,6 +41,7 @@ export const TodoEditor: React.FC = () => {
   const [dingtalkStatus, setDingtalkStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [showShareModal, setShowShareModal] = useState(false);
   const [tagInput, setTagInput] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const settings = storage.getSettings();
 
   // Keep ref in sync with state so saveTodo/addTag always see latest todo
@@ -56,11 +59,8 @@ export const TodoEditor: React.FC = () => {
           } else {
             setTodo(emptyTodo());
           }
-        } catch (err) {
-          if (!cancelled) {
-            console.error('[TodoEditor] Failed to load todo', err);
-            setTodo(emptyTodo());
-          }
+        } catch (err: any) {
+          if (!cancelled) setError(err?.message || 'Failed to load todo');
         }
       };
       load();
@@ -122,8 +122,8 @@ export const TodoEditor: React.FC = () => {
         await api.todos.update(current.id, input);
       }
       navigate('/todos');
-    } catch (err) {
-      console.error('Failed to save todo', err);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to save todo');
     }
   };
 
@@ -138,9 +138,9 @@ export const TodoEditor: React.FC = () => {
       };
       const response: IntegrationResponse = await api.integrations.sendToTelegram(request);
       setTelegramStatus(response.success ? 'success' : 'error');
-    } catch (err) {
+    } catch (err: any) {
       setTelegramStatus('error');
-      console.error('Telegram send failed', err);
+      setError(err?.message || 'Failed to send to Telegram');
     }
     setTimeout(() => setTelegramStatus('idle'), 3000);
   };
@@ -156,9 +156,9 @@ export const TodoEditor: React.FC = () => {
       };
       const response: IntegrationResponse = await api.integrations.sendToDingtalk(request);
       setDingtalkStatus(response.success ? 'success' : 'error');
-    } catch (err) {
+    } catch (err: any) {
       setDingtalkStatus('error');
-      console.error('DingTalk send failed', err);
+      setError(err?.message || 'Failed to send to DingTalk');
     }
     setTimeout(() => setDingtalkStatus('idle'), 3000);
   };
@@ -218,10 +218,39 @@ export const TodoEditor: React.FC = () => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  if (!todo) return <div>Loading...</div>;
+  if (!todo) return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+      {error ? (
+        <div className="flex flex-col items-center gap-3 text-center">
+          <i className="fas fa-circle-exclamation text-red-400 text-4xl"></i>
+          <p className="text-red-600 font-medium">{error}</p>
+          <button
+            onClick={() => navigate('/todos')}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+          >
+            Back to Todos
+          </button>
+        </div>
+      ) : (
+        <div className="text-gray-400 flex items-center gap-2">
+          <i className="fas fa-spinner fa-spin"></i>
+          Loading...
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex-1 flex flex-col bg-white">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
       <div className="border-b border-gray-200 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
         <button
           onClick={() => navigate('/todos')}

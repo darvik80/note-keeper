@@ -21,24 +21,25 @@ export const NoteEditor: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [tagInput, setTagInput] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   // Keep ref in sync with state so saveNote/addTag always see latest note
   noteRef.current = note;
 
   useEffect(() => {
-    if (!params.id) return;
+    const id = params.id;
+    if (!id) return;
     let cancelled = false;
     const load = async () => {
       try {
-        const n = await api.notes.getById(params.id);
+        const n = await api.notes.getById(id);
         if (cancelled) return;
         if (!n.content || n.content.trim() === '') {
           setIsPreview(false);
         }
         setNote(n);
-      } catch (error) {
-        console.error('Error loading note:', error);
-        navigate('/notes');
+      } catch (error: any) {
+        if (!cancelled) setError(error?.message || 'Failed to load note');
       }
     };
     load();
@@ -105,9 +106,8 @@ export const NoteEditor: React.FC = () => {
       };
       await api.notes.update(current.id, input);
       navigate('/notes');
-    } catch (error) {
-      console.error('Error saving note:', error);
-      alert('Failed to save note. Please try again.');
+    } catch (error: any) {
+      setError(error?.message || 'Failed to save note');
     }
   };
 
@@ -156,10 +156,39 @@ export const NoteEditor: React.FC = () => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  if (!note) return <div>Loading...</div>;
+  if (!note) return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+      {error ? (
+        <div className="flex flex-col items-center gap-3 text-center">
+          <i className="fas fa-circle-exclamation text-red-400 text-4xl"></i>
+          <p className="text-red-600 font-medium">{error}</p>
+          <button
+            onClick={() => navigate('/notes')}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+          >
+            Back to Notes
+          </button>
+        </div>
+      ) : (
+        <div className="text-gray-400 flex items-center gap-2">
+          <i className="fas fa-spinner fa-spin"></i>
+          Loading...
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex-1 flex flex-col bg-white">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
       <div className="border-b border-gray-200 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
         <button
           onClick={() => navigate('/notes')}
@@ -410,9 +439,9 @@ export const NoteEditor: React.FC = () => {
         ownerId={note.ownerId}
         sharedWith={note.sharedWith}
         onShareSuccess={() => {
-          // Reload note to get updated sharedWith
-          if (params.id) {
-            api.notes.getById(params.id).then(setNote);
+          const id = params.id;
+          if (id) {
+            api.notes.getById(id).then(setNote);
           }
         }}
       />
