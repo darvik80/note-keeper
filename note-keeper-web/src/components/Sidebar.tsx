@@ -115,16 +115,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileM
         </nav>
 
         <div className="p-4 border-t border-border">
-          <div className="bg-gradient-to-r from-primary to-secondary text-white p-4 rounded-lg mb-3">
-            <p className="text-sm font-medium mb-1">Storage Used</p>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-white/30 rounded-full h-2">
-                <div className="bg-white h-2 rounded-full" style={{ width: '45%' }}></div>
-              </div>
-              <span className="text-xs">45%</span>
-            </div>
-          </div>
-          
           <button
             onClick={async () => {
               await api.auth.logout();

@@ -36,6 +36,9 @@ export const NoteEditor: React.FC = () => {
           setIsPreview(false);
         }
         setNote(n);
+      } catch (error) {
+        console.error('Error loading note:', error);
+        navigate('/notes');
       }
     };
     load();
@@ -102,6 +105,9 @@ export const NoteEditor: React.FC = () => {
       };
       await api.notes.update(current.id, input);
       navigate('/notes');
+    } catch (error) {
+      console.error('Error saving note:', error);
+      alert('Failed to save note. Please try again.');
     }
   };
 

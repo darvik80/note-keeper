@@ -89,12 +89,12 @@ export const Calendar: React.FC = () => {
   const selectedDateTodos = selectedDate ? getTodosForDate(selectedDate) : [];
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50">
+    <div className="flex-1 flex flex-col bg-gray-50 min-h-0">
       <Header title="Calendar" />
 
-      <div className="flex-1 overflow-auto p-8">
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
         <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 mb-4">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-dark">{monthName}</h2>
               <div className="flex gap-2">
@@ -127,7 +127,7 @@ export const Calendar: React.FC = () => {
               ))}
 
               {Array.from({ length: startingDayOfWeek }).map((_, i) => (
-                <div key={`empty-${i}`} className="aspect-square"></div>
+                <div key={`empty-${i}`} className="min-h-[80px]"></div>
               ))}
 
               {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -142,7 +142,7 @@ export const Calendar: React.FC = () => {
                   <div
                     key={day}
                     onClick={() => setSelectedDate(date)}
-                    className={`aspect-square border rounded-lg p-2 cursor-pointer transition-all hover:border-primary ${
+                    className={`min-h-[80px] border rounded-lg p-2 cursor-pointer transition-all hover:border-primary ${
                       isToday(day) ? 'bg-primary/10 border-primary' : 'border-gray-200'
                     } ${isSelected ? 'ring-2 ring-primary' : ''}`}
                   >
