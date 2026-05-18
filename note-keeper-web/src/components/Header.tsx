@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({ title, actions }) => {
   return (
     <div className="bg-surface border-b border-border px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2 min-w-0">
       <h2 className="text-xl sm:text-2xl font-bold text-text shrink-0">{title}</h2>
-      <div className="flex items-center gap-2 sm:gap-4 min-w-0 overflow-x-auto">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
         {actions && <div className="flex items-center gap-2 sm:gap-3 shrink-0">{actions}</div>}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <ThemeSelector />

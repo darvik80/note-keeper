@@ -15,7 +15,12 @@ export const ThemeSelector: React.FC = () => {
     { value: 'cyan', icon: 'fa-water' },
     { value: 'blue', icon: 'fa-cloud' },
     { value: 'purple', icon: 'fa-star' },
-    { value: 'darcula', icon: 'fa-code' }
+    { value: 'darcula', icon: 'fa-code' },
+    { value: 'rose', icon: 'fa-heart' },
+    { value: 'amber', icon: 'fa-fire' },
+    { value: 'teal', icon: 'fa-spa' },
+    { value: 'indigo', icon: 'fa-gem' },
+    { value: 'slate', icon: 'fa-circle-half-stroke' },
   ];
 
   useEffect(() => {
@@ -35,15 +40,16 @@ export const ThemeSelector: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded-lg hover:bg-hover transition-colors"
+        className="flex items-center gap-1 sm:gap-2 p-2 sm:px-4 sm:py-2 bg-surface border border-border rounded-lg hover:bg-hover transition-colors"
+        title={themes[theme].name}
       >
         <i className={`fas ${currentTheme?.icon} text-primary`}></i>
-        <span className="text-text font-medium">{themes[theme].name}</span>
+        <span className="hidden sm:inline text-text font-medium">{themes[theme].name}</span>
         <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'} text-text-secondary text-xs`}></i>
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg overflow-hidden z-50">
+        <div className="absolute right-0 mt-2 w-52 bg-surface border border-border rounded-lg shadow-lg overflow-y-auto z-50 max-h-80">
           {themeOptions.map(option => (
             <button
               key={option.value}

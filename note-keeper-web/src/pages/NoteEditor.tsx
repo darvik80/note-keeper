@@ -9,38 +9,33 @@ export const NoteEditor: React.FC = () => {
   const params = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [note, setNote] = useState<Note | null>(null);
+  const noteRef = React.useRef<Note | null>(null);
   const [isPreview, setIsPreview] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [tagInput, setTagInput] = useState('');
 
-  // Debug: log params object
-  useEffect(() => {
-    console.log('[NoteEditor] useParams result:', params);
-    console.log('[NoteEditor] id from params:', params.id);
-  }, [params]);
+  // Keep ref in sync with state so saveNote/addTag always see latest note
+  noteRef.current = note;
 
   useEffect(() => {
-    console.log('[NoteEditor] useEffect triggered, id:', params.id);
-    if (params.id) {
-      const load = async () => {
-        console.log('[NoteEditor] Loading note:', params.id);
-        const token = localStorage.getItem('token');
-        console.log('[NoteEditor] Token:', token ? 'exists' : 'missing');
-        try {
-          const n = await api.notes.getById(params.id);
-          console.log('[NoteEditor] Note loaded:', n);
-          // Start in edit mode for new notes (empty content)
-          if (!n.content || n.content.trim() === '') {
-            setIsPreview(false);
-          }
-          setNote(n);
-        } catch (err) {
-          console.error('[NoteEditor] Failed to load note', err);
+    if (!params.id) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const n = await api.notes.getById(params.id);
+        if (cancelled) return;
+        if (!n.content || n.content.trim() === '') {
+          setIsPreview(false);
         }
-      };
-      load();
-    }
+        setNote(n);
+      } catch (err) {
+        if (!cancelled) console.error('[NoteEditor] Failed to load note', err);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   }, [params.id]);
 
   // ESC to exit fullscreen
@@ -55,13 +50,14 @@ export const NoteEditor: React.FC = () => {
   }, [isFullscreen]);
 
   const saveNote = async () => {
-    if (!note) return;
+    const current = noteRef.current;
+    if (!current) return;
 
     try {
       // Upload new attachments (those with blob: URLs) to server
       const uploadedAttachments: any[] = [];
-      if (note.attachments && note.attachments.length > 0) {
-        for (const att of note.attachments) {
+      if (current.attachments && current.attachments.length > 0) {
+        for (const att of current.attachments) {
           if (att.url.startsWith('blob:')) {
             // This is a local file, need to upload
             console.log('[NoteEditor] Uploading attachment:', att.name);
@@ -70,7 +66,7 @@ export const NoteEditor: React.FC = () => {
             const blob = await response.blob();
             const file = new File([blob], att.name, { type: att.type });
             // Upload to server
-            const uploaded = await api.attachments.upload(file, note.id, 'note');
+            const uploaded = await api.attachments.upload(file, current.id, 'note');
             uploadedAttachments.push(uploaded);
           } else {
             // Already uploaded to server
@@ -80,17 +76,17 @@ export const NoteEditor: React.FC = () => {
       }
 
       const input: NoteInput = {
-        title: note.title,
-        content: note.content,
-        tags: note.tags,
-        folder: note.folder,
-        subfolder: note.subfolder,
-        priority: note.priority,
-        isFavorite: note.isFavorite,
-        isEncrypted: note.isEncrypted,
+        title: current.title,
+        content: current.content,
+        tags: current.tags ?? [],
+        folder: current.folder,
+        subfolder: current.subfolder,
+        priority: current.priority,
+        isFavorite: current.isFavorite,
+        isEncrypted: current.isEncrypted,
         // Convert local date to ISO UTC format for backend
-        reminder: note.reminder ? (typeof note.reminder === 'string' ? note.reminder : note.reminder.toISOString()) : undefined,
-        templateId: note.templateId,
+        reminder: current.reminder ? (typeof current.reminder === 'string' ? current.reminder : current.reminder.toISOString()) : undefined,
+        templateId: current.templateId,
         // Include uploaded attachments
         attachments: uploadedAttachments.map(att => ({
           id: att.id,
@@ -102,7 +98,7 @@ export const NoteEditor: React.FC = () => {
         })),
       };
       console.log('[NoteEditor] Saving note with attachments:', input.attachments?.length || 0);
-      await api.notes.update(note.id, input);
+      await api.notes.update(current.id, input);
       navigate('/notes');
     } catch (err) {
       console.error('Failed to save note', err);
@@ -110,18 +106,27 @@ export const NoteEditor: React.FC = () => {
   };
 
   const addTag = (tag: string) => {
-    if (!note || !tag.trim() || note.tags.includes(tag)) return;
-    setNote({ ...note, tags: [...note.tags, tag.trim()] });
+    if (!noteRef.current || !tag.trim()) return;
+    const trimmed = tag.trim();
+    setNote(prev => {
+      if (!prev) return prev;
+      const currentTags = prev.tags ?? [];
+      if (currentTags.includes(trimmed)) return prev;
+      return { ...prev, tags: [...currentTags, trimmed] };
+    });
+    setTagInput('');
   };
 
   const removeTag = (tag: string) => {
-    if (!note) return;
-    setNote({ ...note, tags: note.tags.filter(t => t !== tag) });
+    setNote(prev => {
+      if (!prev) return prev;
+      return { ...prev, tags: (prev.tags ?? []).filter(t => t !== tag) };
+    });
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || !note) return;
+    if (!files || !noteRef.current) return;
 
     const newAttachments: Attachment[] = Array.from(files).map(file => ({
       id: Date.now().toString() + Math.random(),
@@ -132,12 +137,11 @@ export const NoteEditor: React.FC = () => {
       uploadedAt: new Date()
     }));
 
-    setNote({ ...note, attachments: [...(note.attachments || []), ...newAttachments] });
+    setNote(prev => prev ? { ...prev, attachments: [...(prev.attachments || []), ...newAttachments] } : prev);
   };
 
   const removeAttachment = (id: string) => {
-    if (!note) return;
-    setNote({ ...note, attachments: (note.attachments || []).filter(a => a.id !== id) });
+    setNote(prev => prev ? { ...prev, attachments: (prev.attachments || []).filter(a => a.id !== id) } : prev);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -177,14 +181,14 @@ export const NoteEditor: React.FC = () => {
             <span className="hidden sm:inline">{isPreview ? 'Edit' : 'Preview'}</span>
           </button>
           <button
-            onClick={() => setNote({ ...note, isFavorite: !note.isFavorite })}
+            onClick={() => setNote(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : prev)}
             className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
             title="Favorite"
           >
             <i className={`fas fa-star ${note.isFavorite ? 'text-yellow-500' : 'text-gray-400'}`}></i>
           </button>
           <button
-            onClick={() => setNote({ ...note, isEncrypted: !note.isEncrypted })}
+            onClick={() => setNote(prev => prev ? { ...prev, isEncrypted: !prev.isEncrypted } : prev)}
             className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
             title="Encrypt"
           >
@@ -199,7 +203,7 @@ export const NoteEditor: React.FC = () => {
           </button>
           <select
             value={note.priority}
-            onChange={(e) => setNote({ ...note, priority: e.target.value as any })}
+            onChange={(e) => { const v = e.target.value as any; setNote(prev => prev ? { ...prev, priority: v } : prev); }}
             className="px-2 py-2 border border-gray-300 rounded-lg text-sm shrink-0"
           >
             <option value="low">Low</option>
@@ -238,7 +242,8 @@ export const NoteEditor: React.FC = () => {
                   <button
                     onClick={() => {
                       if (confirm('Restore this version?')) {
-                        setNote({ ...note, content: entry.content });
+                        const c = entry.content;
+                        setNote(prev => prev ? { ...prev, content: c } : prev);
                       }
                     }}
                     className="text-xs px-3 py-1 text-primary hover:bg-primary/10 rounded"
@@ -255,7 +260,7 @@ export const NoteEditor: React.FC = () => {
         <input
           type="text"
           value={note.title}
-          onChange={(e) => setNote({ ...note, title: e.target.value })}
+          onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, title: v } : prev); }}
           className="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6 w-full border-none outline-none"
           placeholder="Note Title"
         />
@@ -276,7 +281,7 @@ export const NoteEditor: React.FC = () => {
         ) : (
           <textarea
             value={note.content}
-            onChange={(e) => setNote({ ...note, content: e.target.value })}
+            onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, content: v } : prev); }}
             className="w-full h-96 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-primary font-mono"
             placeholder="Start writing your note... (Markdown & Mermaid supported)"
           />
@@ -284,7 +289,7 @@ export const NoteEditor: React.FC = () => {
 
         <div className="mt-6 space-y-4">
           <div className="flex flex-wrap gap-2">
-            {note.tags.map(tag => (
+            {(note.tags ?? []).map(tag => (
               <span
                 key={tag}
                 className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm flex items-center gap-2"
@@ -298,11 +303,13 @@ export const NoteEditor: React.FC = () => {
             <input
               type="text"
               placeholder="Add tag + Enter"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
               className="px-3 py-1 border border-gray-300 rounded-lg text-sm w-40"
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  addTag((e.target as HTMLInputElement).value);
-                  (e.target as HTMLInputElement).value = '';
+                  e.preventDefault();
+                  addTag(tagInput);
                 }
               }}
             />
@@ -312,21 +319,21 @@ export const NoteEditor: React.FC = () => {
             <input
               type="text"
               value={note.folder}
-              onChange={(e) => setNote({ ...note, folder: e.target.value })}
+              onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, folder: v } : prev); }}
               className="px-4 py-2 border border-gray-300 rounded-lg w-full"
               placeholder="Folder"
             />
             <input
               type="text"
               value={note.subfolder || ''}
-              onChange={(e) => setNote({ ...note, subfolder: e.target.value || undefined })}
+              onChange={(e) => { const v = e.target.value || undefined; setNote(prev => prev ? { ...prev, subfolder: v } : prev); }}
               className="px-4 py-2 border border-gray-300 rounded-lg w-full"
               placeholder="Subfolder (optional)"
             />
             <input
               type="datetime-local"
               value={note.reminder ? new Date(note.reminder).toISOString().slice(0, 16) : ''}
-              onChange={(e) => setNote({ ...note, reminder: e.target.value ? new Date(e.target.value) : undefined })}
+              onChange={(e) => { const v = e.target.value ? new Date(e.target.value) : undefined; setNote(prev => prev ? { ...prev, reminder: v } : prev); }}
               className="px-4 py-2 border border-gray-300 rounded-lg w-full"
             />
           </div>
