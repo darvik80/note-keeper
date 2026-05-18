@@ -1,9 +1,15 @@
+/**
+ * @module Templates
+ * @category Pages
+ * @description Note templates page — browse, create, and apply templates.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { NoteTemplate, NoteInput, NoteTemplateInput } from '../types';
 
+/** Templates page for managing reusable note templates. */
 export const Templates: React.FC = () => {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<NoteTemplate[]>([]);

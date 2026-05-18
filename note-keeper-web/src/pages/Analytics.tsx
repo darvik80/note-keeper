@@ -1,8 +1,14 @@
+/**
+ * @module Analytics
+ * @category Pages
+ * @description Analytics page — usage statistics over a selected time range.
+ */
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Note, Todo } from '../types';
 
+/** Analytics page showing note/todo creation counts, completion rate, top tags, priority distribution, and daily activity. */
 export const Analytics: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);

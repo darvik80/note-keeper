@@ -1,9 +1,15 @@
+/**
+ * @module Search
+ * @category Pages
+ * @description Full-text search page with saved queries.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Note, Todo, SavedQuery, SavedQueryInput } from '../types';
 
+/** Search page with full-text query input, result display, and saved query management. */
 export const Search: React.FC = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');

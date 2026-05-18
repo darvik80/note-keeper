@@ -1,18 +1,40 @@
+/**
+ * @module Header
+ * @category Components
+ * Top application bar shown on every page.
+ *
+ * Displays the page title, optional action buttons, the {@link ThemeSelector}
+ * dropdown, a notification bell, and the current user's avatar.  User info is
+ * read from `localStorage` (`"user"` key) and refreshed on cross-tab storage
+ * events so the avatar updates immediately after login/logout in another tab.
+ */
 import React, { useState, useEffect } from 'react';
 import { ThemeSelector } from './ThemeSelector';
 
+/** Minimal user shape read from `localStorage`. */
 interface User {
   id: string;
   email: string;
   name: string;
+  /** Google profile picture URL, if available. */
   picture?: string;
 }
 
+/** Props for {@link Header}. */
 interface HeaderProps {
+  /** Page title displayed on the left side of the bar. */
   title: string;
+  /**
+   * Optional action buttons rendered between the title and the user controls.
+   * Accepts any React node (typically `<button>` elements).
+   */
   actions?: React.ReactNode;
 }
 
+/**
+ * Top application bar.
+ * @param props - See {@link HeaderProps}.
+ */
 export const Header: React.FC<HeaderProps> = ({ title, actions }) => {
   const [user, setUser] = useState<User | null>(null);
 

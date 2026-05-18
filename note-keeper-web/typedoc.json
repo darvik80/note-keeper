@@ -1,0 +1,19 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src"],
+  "entryPointStrategy": "expand",
+  "out": "docs",
+  "name": "NoteKeeper Frontend",
+  "readme": "none",
+  "includeVersion": true,
+  "categorizeByGroup": true,
+  "categoryOrder": ["Types", "API", "Utils", "Contexts", "Components", "Pages", "*"],
+  "navigationLinks": {
+    "GitHub": "https://github.com/your-org/note-keeper"
+  },
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "plugin": [],
+  "tsconfig": "tsconfig.json"
+}

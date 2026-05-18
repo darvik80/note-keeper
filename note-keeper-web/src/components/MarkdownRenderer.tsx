@@ -1,12 +1,34 @@
+/**
+ * @module MarkdownRenderer
+ * @category Components
+ * Renders Markdown content with GitHub-Flavored Markdown (GFM) support and
+ * inline Mermaid diagram rendering.
+ *
+ * **Supported syntax:**
+ * - GFM: tables, task lists, strikethrough, autolinks
+ * - Code blocks with syntax highlighting classes
+ * - Mermaid diagrams via ` ```mermaid ``` ` fenced blocks
+ */
 import React, { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import mermaid from 'mermaid';
 
+/** Props for {@link MarkdownRenderer}. */
 interface MarkdownRendererProps {
+  /** Raw Markdown string to render. May include Mermaid diagram blocks. */
   content: string;
 }
 
+/**
+ * Stateless component that renders Markdown with Mermaid diagram support.
+ *
+ * On each `content` change the component re-initialises Mermaid, finds all
+ * `.language-mermaid` code blocks in the DOM, replaces them with `<div>`
+ * containers, and calls `mermaid.render()` asynchronously to inject SVG.
+ *
+ * @param props - See {@link MarkdownRendererProps}.
+ */
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 

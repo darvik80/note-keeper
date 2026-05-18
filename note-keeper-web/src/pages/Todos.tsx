@@ -1,9 +1,15 @@
+/**
+ * @module Todos
+ * @category Pages
+ * @description Todos list page with filtering and todo management.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Todo, TodoInput } from '../types';
 
+/** Full todos list page with filtering by status, priority, and tags. */
 export const Todos: React.FC = () => {
   const navigate = useNavigate();
   const [todos, setTodos] = useState<Todo[]>([]);

@@ -1,9 +1,15 @@
+/**
+ * @module Dashboard
+ * @category Pages
+ * @description Dashboard page — overview with stats, recent notes, and recent todos.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Note, Todo } from '../types';
 
+/** Dashboard home page showing key metrics and recent activity. */
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);

@@ -1,9 +1,15 @@
+/**
+ * @module Calendar
+ * @category Pages
+ * @description Calendar page — todos with due dates displayed in a monthly calendar grid.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Todo } from '../types';
 
+/** Calendar page displaying todos by due date in a monthly grid view. */
 export const Calendar: React.FC = () => {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());

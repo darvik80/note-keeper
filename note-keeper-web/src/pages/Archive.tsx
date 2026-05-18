@@ -1,9 +1,15 @@
+/**
+ * @module Archive
+ * @category Pages
+ * @description Archive page — view and restore archived notes and todos.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Note, Todo } from '../types';
 
+/** Archive page listing all archived notes and todos with restore and delete actions. */
 export const Archive: React.FC = () => {
   const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);

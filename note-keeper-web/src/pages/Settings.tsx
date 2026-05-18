@@ -1,3 +1,8 @@
+/**
+ * @module Settings
+ * @category Pages
+ * @description User settings page — integration config, keyboard shortcuts, theme, and backup.
+ */
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { storage } from '../utils/storage';
@@ -5,6 +10,7 @@ import { Settings as SettingsType } from '../types';
 import { api } from '../utils/api';
 import { IntegrationRequest, IntegrationResponse } from '../types';
 
+/** Settings page for configuring Telegram, DingTalk, email integrations, keyboard shortcuts, and backup. */
 export const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SettingsType>(storage.getSettings());
   const [saved, setSaved] = useState(false);

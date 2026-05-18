@@ -1,8 +1,22 @@
+/**
+ * @module ThemeSelector
+ * @category Components
+ * Dropdown button for switching the active UI theme.
+ *
+ * On mobile the button shows only the theme icon; on `sm` and wider it also
+ * shows the theme name.  The dropdown is scrollable and lists all 12 themes.
+ * Clicking outside closes the dropdown via a `mousedown` listener.
+ *
+ * Delegates theme persistence and CSS application to {@link useTheme}.
+ */
 import React, { useState, useRef, useEffect } from 'react';
 import { Theme } from '../types';
 import { themes } from '../utils/themes';
 import { useTheme } from '../contexts/ThemeContext';
 
+/**
+ * Theme picker dropdown.  No props required — reads and updates via {@link useTheme}.
+ */
 export const ThemeSelector: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);

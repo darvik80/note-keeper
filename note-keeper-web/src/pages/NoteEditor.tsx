@@ -1,3 +1,8 @@
+/**
+ * @module NoteEditor
+ * @category Pages
+ * @description Note editor page — edit title, Markdown content, tags, folder, reminder, and attachments.
+ */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
@@ -5,6 +10,7 @@ import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { ShareModal } from '../components/ShareModal';
 import { Note, Attachment, NoteInput } from '../types';
 
+/** Note editor page. Loads an existing note by route param `id`, supports Markdown preview, tag management, attachments, history restore, and sharing. */
 export const NoteEditor: React.FC = () => {
   const params = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -30,8 +36,6 @@ export const NoteEditor: React.FC = () => {
           setIsPreview(false);
         }
         setNote(n);
-      } catch (err) {
-        if (!cancelled) console.error('[NoteEditor] Failed to load note', err);
       }
     };
     load();
@@ -60,7 +64,6 @@ export const NoteEditor: React.FC = () => {
         for (const att of current.attachments) {
           if (att.url.startsWith('blob:')) {
             // This is a local file, need to upload
-            console.log('[NoteEditor] Uploading attachment:', att.name);
             // Fetch the blob from the blob URL
             const response = await fetch(att.url);
             const blob = await response.blob();
@@ -97,11 +100,8 @@ export const NoteEditor: React.FC = () => {
           uploadedAt: att.uploadedAt instanceof Date ? att.uploadedAt.toISOString() : att.uploadedAt
         })),
       };
-      console.log('[NoteEditor] Saving note with attachments:', input.attachments?.length || 0);
       await api.notes.update(current.id, input);
       navigate('/notes');
-    } catch (err) {
-      console.error('Failed to save note', err);
     }
   };
 

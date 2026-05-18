@@ -1,3 +1,8 @@
+/**
+ * @module Notes
+ * @category Pages
+ * @description Notes list page with folder panel, search, filtering, and note management.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
@@ -6,6 +11,7 @@ import { api } from '../utils/api';
 import { buildFolderTree, parsePath, getFullPath } from '../utils/folderUtils';
 import { Note, NoteInput } from '../types';
 
+/** Full notes list page with folder tree, filters, and inline note management actions. */
 export const Notes: React.FC = () => {
   const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);

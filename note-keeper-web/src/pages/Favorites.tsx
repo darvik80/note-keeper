@@ -1,9 +1,15 @@
+/**
+ * @module Favorites
+ * @category Pages
+ * @description Favorites page — all favorited notes and todos.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Note, Todo } from '../types';
 
+/** Favorites page listing all items marked as favorite. */
 export const Favorites: React.FC = () => {
   const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);

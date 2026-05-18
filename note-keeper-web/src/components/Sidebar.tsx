@@ -1,12 +1,31 @@
+/**
+ * @module Sidebar
+ * @category Components
+ * Application navigation sidebar.
+ *
+ * On desktop (`lg` breakpoint and above) the sidebar is always visible as a
+ * 256 px wide panel.  On mobile it renders as a slide-in drawer with a
+ * semi-transparent backdrop.
+ *
+ * The sidebar also listens for the `"toggle-sidebar"` custom event dispatched
+ * by {@link ShortcutProvider} when the user presses `Ctrl+B`.
+ */
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../utils/api';
 
+/** Props for {@link Sidebar}. */
 interface SidebarProps {
+  /** Whether the mobile drawer overlay is currently open. */
   isMobileMenuOpen: boolean;
+  /** Callback to open or close the mobile drawer. */
   setIsMobileMenuOpen: (open: boolean) => void;
 }
 
+/**
+ * Navigation sidebar component.
+ * @param props - See {@link SidebarProps}.
+ */
 export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();

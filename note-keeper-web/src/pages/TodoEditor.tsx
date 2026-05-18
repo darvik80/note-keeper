@@ -1,3 +1,8 @@
+/**
+ * @module TodoEditor
+ * @category Pages
+ * @description Todo editor page — edit title, description, tags, schedule, location, and attachments.
+ */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
@@ -23,6 +28,7 @@ const emptyTodo = (): Todo => ({
   schedule: { repeat: 'none', endDate: undefined }
 });
 
+/** Todo editor page. Supports Markdown description, tags, due date, reminder, recurrence schedule, geolocation, Telegram/DingTalk send, and attachments. */
 export const TodoEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();

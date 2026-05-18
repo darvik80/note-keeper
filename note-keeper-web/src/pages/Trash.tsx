@@ -1,8 +1,14 @@
+/**
+ * @module Trash
+ * @category Pages
+ * @description Trash page — view, restore, and permanently delete soft-deleted items.
+ */
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Note, Todo } from '../types';
 
+/** Trash page listing soft-deleted notes and todos with restore and hard-delete actions. */
 export const Trash: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
