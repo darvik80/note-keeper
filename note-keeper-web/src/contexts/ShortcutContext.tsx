@@ -88,7 +88,6 @@ export const ShortcutProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           });
           navigate(`/notes/${newNote.id}`);
         } catch (err) {
-          console.error('Failed to create note via shortcut', err);
         }
       } else if (key === shortcuts.newTodo) {
         e.preventDefault();
@@ -103,7 +102,6 @@ export const ShortcutProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           });
           navigate(`/todos/${newTodo.id}`);
         } catch (err) {
-          console.error('Failed to create todo via shortcut', err);
         }
       } else if (key === shortcuts.search) {
         e.preventDefault();

@@ -16,6 +16,7 @@ export const Todos: React.FC = () => {
   const [sharedTodos, setSharedTodos] = useState<Todo[]>([]);
   const [showCompleted, setShowCompleted] = useState(false);
   const [showSharedOnly, setShowSharedOnly] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadTodos();
@@ -27,7 +28,7 @@ export const Todos: React.FC = () => {
       const t = await api.todos.getAll({ isArchived: false, isDeleted: false });
       setTodos(t);
     } catch (err) {
-      console.error('Failed to load todos', err);
+      setError((err as any)?.message || 'Failed to load todos');
     }
   };
 
@@ -44,7 +45,7 @@ export const Todos: React.FC = () => {
         setSharedTodos(data);
       }
     } catch (err) {
-      console.error('Failed to load shared todos', err);
+      setError((err as any)?.message || 'Failed to load shared todos');
     }
   };
 
@@ -61,7 +62,7 @@ export const Todos: React.FC = () => {
       const newTodo = await api.todos.create(input);
       navigate(`/todos/${newTodo.id}`);
     } catch (err) {
-      console.error('Failed to create todo', err);
+      setError((err as any)?.message || 'Failed to create todo');
     }
   };
 
@@ -86,7 +87,7 @@ export const Todos: React.FC = () => {
       });
     } catch (err) {
       setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !newVal } : t));
-      console.error('Failed to toggle complete', err);
+      setError((err as any)?.message || 'Failed to toggle complete');
     }
   };
 
@@ -95,7 +96,7 @@ export const Todos: React.FC = () => {
       await api.todos.delete(id);
       setTodos(prev => prev.filter(t => t.id !== id));
     } catch (err) {
-      console.error('Failed to delete todo', err);
+      setError((err as any)?.message || 'Failed to delete todo');
     }
   };
 
@@ -104,7 +105,7 @@ export const Todos: React.FC = () => {
       await api.todos.archive(id);
       setTodos(prev => prev.filter(t => t.id !== id));
     } catch (err) {
-      console.error('Failed to archive todo', err);
+      setError((err as any)?.message || 'Failed to archive todo');
     }
   };
 
@@ -129,7 +130,7 @@ export const Todos: React.FC = () => {
       });
     } catch (err) {
       setTodos(prev => prev.map(t => t.id === id ? { ...t, isFavorite: !newVal } : t));
-      console.error('Failed to toggle favorite', err);
+      setError((err as any)?.message || 'Failed to toggle favorite');
     }
   };
 
@@ -141,6 +142,15 @@ export const Todos: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
       <Header
         title="Todos"
         actions={

@@ -15,6 +15,7 @@ export const Calendar: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [todos, setTodos] = useState<Todo[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -27,7 +28,7 @@ export const Calendar: React.FC = () => {
         console.log('[Calendar] Todos with date:', withDate.length);
         setTodos(withDate);
       } catch (err) {
-        console.error('[Calendar] Failed to load calendar data:', err);
+        setError((err as any)?.message || 'Failed to load calendar data');
       }
     };
     load();
@@ -90,6 +91,15 @@ export const Calendar: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50 min-h-0">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
       <Header title="Calendar" />
 
       <div className="flex-1 overflow-auto p-4 sm:p-6">

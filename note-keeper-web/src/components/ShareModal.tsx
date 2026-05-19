@@ -97,7 +97,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       users.forEach(user => userMap.set(user.id, user));
       setSharedUserDetails(userMap);
     } catch (err: any) {
-      console.error('[ShareModal] Failed to load user details:', err);
       // Fallback: create placeholder user objects with just ID
       const userMap = new Map<string, User>();
       userIds.forEach(id => {
@@ -187,7 +186,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           const parsed = JSON.parse(updatedSharedWith);
           setSharedUsers(Array.isArray(parsed) ? parsed : []);
         } catch (e) {
-          console.error('[ShareModal] Failed to parse sharedWith:', updatedSharedWith);
           setSharedUsers([...sharedUsers, userId]);
         }
       } else {
@@ -196,8 +194,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       
       onShareSuccess?.();
     } catch (err: any) {
-      console.error('[ShareModal] Share error:', err);
-      setError(err.message || 'Failed to share');
+      setError((err as any)?.message || 'Failed to share');
     } finally {
       setLoading(false);
     }
@@ -236,7 +233,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           const parsed = JSON.parse(updatedSharedWith);
           setSharedUsers(Array.isArray(parsed) ? parsed : []);
         } catch (e) {
-          console.error('[ShareModal] Failed to parse sharedWith:', updatedSharedWith);
           setSharedUsers(sharedUsers.filter(id => id !== userId));
         }
       } else {
@@ -245,8 +241,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       
       onShareSuccess?.();
     } catch (err: any) {
-      console.error('[ShareModal] Unshare error:', err);
-      setError(err.message || 'Failed to unshare');
+      setError((err as any)?.message || 'Failed to unshare');
     } finally {
       setLoading(false);
     }

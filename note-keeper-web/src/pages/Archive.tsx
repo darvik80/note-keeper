@@ -14,6 +14,7 @@ export const Archive: React.FC = () => {
   const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadArchived();
@@ -28,7 +29,7 @@ export const Archive: React.FC = () => {
       setNotes(n);
       setTodos(t);
     } catch (err) {
-      console.error('Failed to load archived items', err);
+      setError((err as any)?.message || 'Failed to load archived items');
     }
   };
 
@@ -37,7 +38,7 @@ export const Archive: React.FC = () => {
       await api.notes.restore(id);
       setNotes(prev => prev.filter(n => n.id !== id));
     } catch (err) {
-      console.error('Failed to unarchive note', err);
+      setError((err as any)?.message || 'Failed to unarchive note');
     }
   };
 
@@ -46,12 +47,21 @@ export const Archive: React.FC = () => {
       await api.todos.restore(id);
       setTodos(prev => prev.filter(t => t.id !== id));
     } catch (err) {
-      console.error('Failed to unarchive todo', err);
+      setError((err as any)?.message || 'Failed to unarchive todo');
     }
   };
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
       <Header title="Archive" />
 
       <div className="flex-1 overflow-auto p-4 lg:p-8">

@@ -14,6 +14,7 @@ export const Templates: React.FC = () => {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<NoteTemplate[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [newTemplate, setNewTemplate] = useState({
     name: '',
     content: '',
@@ -27,7 +28,7 @@ export const Templates: React.FC = () => {
         const t = await api.templates.getAll();
         setTemplates(t);
       } catch (err) {
-        console.error('Failed to load templates', err);
+        setError((err as any)?.message || 'Failed to load templates');
       }
     };
     load();
@@ -48,7 +49,7 @@ export const Templates: React.FC = () => {
       const newNote = await api.notes.create(input);
       navigate(`/notes/${newNote.id}`);
     } catch (err) {
-      console.error('Failed to create note from template', err);
+      setError((err as any)?.message || 'Failed to create note from template');
     }
   };
 
@@ -66,7 +67,7 @@ export const Templates: React.FC = () => {
       setShowCreate(false);
       setNewTemplate({ name: '', content: '', tags: [], category: 'Work' });
     } catch (err) {
-      console.error('Failed to create template', err);
+      setError((err as any)?.message || 'Failed to create template');
     }
   };
 
@@ -76,13 +77,22 @@ export const Templates: React.FC = () => {
         await api.templates.delete(id);
         setTemplates(prev => prev.filter(t => t.id !== id));
       } catch (err) {
-        console.error('Failed to delete template', err);
+        setError((err as any)?.message || 'Failed to delete template');
       }
     }
   };
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
       <Header
         title="Templates"
         actions={

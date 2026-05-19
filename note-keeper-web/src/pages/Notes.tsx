@@ -21,6 +21,7 @@ export const Notes: React.FC = () => {
   const [showImport, setShowImport] = useState(false);
   const [showFolderPanel, setShowFolderPanel] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [showSharedOnly, setShowSharedOnly] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export const Notes: React.FC = () => {
       const n = await api.notes.getAll({ isArchived: false, isDeleted: false });
       setNotes(n);
     } catch (err) {
-      console.error('Failed to load notes', err);
+      setError((err as any)?.message || 'Failed to load notes');
     }
   };
 
@@ -50,7 +51,7 @@ export const Notes: React.FC = () => {
         setSharedNotes(data);
       }
     } catch (err) {
-      console.error('Failed to load shared notes', err);
+      setError((err as any)?.message || 'Failed to load shared notes');
     }
   };
 
@@ -70,7 +71,7 @@ export const Notes: React.FC = () => {
       const newNote = await api.notes.create(input);
       navigate(`/notes/${newNote.id}`);
     } catch (err) {
-      console.error('Failed to create note', err);
+      setError((err as any)?.message || 'Failed to create note');
     }
   };
 
@@ -79,7 +80,7 @@ export const Notes: React.FC = () => {
       await api.notes.delete(id);
       setNotes(prev => prev.filter(n => n.id !== id));
     } catch (err) {
-      console.error('Failed to delete note', err);
+      setError((err as any)?.message || 'Failed to delete note');
     }
   };
 
@@ -88,7 +89,7 @@ export const Notes: React.FC = () => {
       await api.notes.archive(id);
       setNotes(prev => prev.filter(n => n.id !== id));
     } catch (err) {
-      console.error('Failed to archive note', err);
+      setError((err as any)?.message || 'Failed to archive note');
     }
   };
 
@@ -110,7 +111,7 @@ export const Notes: React.FC = () => {
       });
     } catch (err) {
       setNotes(prev => prev.map(n => n.id === id ? { ...n, isFavorite: !newVal } : n));
-      console.error('Failed to toggle favorite', err);
+      setError((err as any)?.message || 'Failed to toggle favorite');
     }
   };
 
@@ -150,12 +151,21 @@ export const Notes: React.FC = () => {
       setNotes(prev => [newNote, ...prev]);
       setShowImport(false);
     } catch (err) {
-      console.error('Failed to import file', err);
+      setError((err as any)?.message || 'Failed to import file');
     }
   };
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
       <Header
         title="Notes"
         actions={

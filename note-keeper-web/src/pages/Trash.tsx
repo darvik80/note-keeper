@@ -12,6 +12,7 @@ import { Note, Todo } from '../types';
 export const Trash: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDeleted();
@@ -26,7 +27,7 @@ export const Trash: React.FC = () => {
       setNotes(n);
       setTodos(t);
     } catch (err) {
-      console.error('Failed to load deleted items', err);
+      setError((err as any)?.message || 'Failed to load deleted items');
     }
   };
 
@@ -35,7 +36,7 @@ export const Trash: React.FC = () => {
       await api.notes.restore(id);
       setNotes(prev => prev.filter(n => n.id !== id));
     } catch (err) {
-      console.error('Failed to restore note', err);
+      setError((err as any)?.message || 'Failed to restore note');
     }
   };
 
@@ -44,7 +45,7 @@ export const Trash: React.FC = () => {
       await api.todos.restore(id);
       setTodos(prev => prev.filter(t => t.id !== id));
     } catch (err) {
-      console.error('Failed to restore todo', err);
+      setError((err as any)?.message || 'Failed to restore todo');
     }
   };
 
@@ -54,7 +55,7 @@ export const Trash: React.FC = () => {
         await api.notes.delete(id, true);
         setNotes(prev => prev.filter(n => n.id !== id));
       } catch (err) {
-        console.error('Failed to permanently delete note', err);
+        setError((err as any)?.message || 'Failed to permanently delete note');
       }
     }
   };
@@ -65,7 +66,7 @@ export const Trash: React.FC = () => {
         await api.todos.delete(id, true);
         setTodos(prev => prev.filter(t => t.id !== id));
       } catch (err) {
-        console.error('Failed to permanently delete todo', err);
+        setError((err as any)?.message || 'Failed to permanently delete todo');
       }
     }
   };
@@ -80,7 +81,7 @@ export const Trash: React.FC = () => {
         setNotes([]);
         setTodos([]);
       } catch (err) {
-        console.error('Failed to empty trash', err);
+        setError((err as any)?.message || 'Failed to empty trash');
         loadDeleted();
       }
     }
@@ -90,7 +91,16 @@ export const Trash: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
-      <Header 
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
+      <Header
         title="Trash"
         actions={
           totalItems > 0 && (
