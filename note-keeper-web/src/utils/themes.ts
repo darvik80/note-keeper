@@ -1,15 +1,50 @@
+/**
+ * @module themes
+ * @category Utils
+ * Theme colour palette definitions and DOM application utility.
+ *
+ * All 12 themes expose the same eight semantic colour tokens, which are written
+ * to CSS custom properties on `:root` by {@link applyTheme}.  Tailwind classes
+ * (`text-primary`, `bg-surface`, etc.) resolve to these custom properties via
+ * `tailwind.config.js`.
+ */
 import { Theme } from '../types';
 
+/**
+ * Map of all supported themes to their metadata and colour values.
+ *
+ * Each theme exposes eight semantic tokens:
+ * | Token           | CSS variable               | Tailwind class           |
+ * |-----------------|----------------------------|--------------------------|
+ * | `primary`       | `--color-primary`          | `text-primary` / `bg-primary` |
+ * | `secondary`     | `--color-secondary`        | `text-secondary`         |
+ * | `background`    | `--color-background`       | `bg-background`          |
+ * | `surface`       | `--color-surface`          | `bg-surface`             |
+ * | `text`          | `--color-text`             | `text-text`              |
+ * | `textSecondary` | `--color-text-secondary`   | `text-text-secondary`    |
+ * | `border`        | `--color-border`           | `border-border`          |
+ * | `hover`         | `--color-hover`            | `hover:bg-hover`         |
+ */
 export const themes: Record<Theme, {
+  /** Human-readable display name shown in the {@link ThemeSelector}. */
   name: string;
+  /** Colour palette for this theme. */
   colors: {
+    /** Brand / accent colour used for buttons and highlights. */
     primary: string;
+    /** Secondary accent colour. */
     secondary: string;
+    /** Page background colour. */
     background: string;
+    /** Card / panel surface colour (usually white or a slightly lighter shade). */
     surface: string;
+    /** Primary text colour. */
     text: string;
+    /** Muted / secondary text colour. */
     textSecondary: string;
+    /** Border and divider colour. */
     border: string;
+    /** Hover state background colour. */
     hover: string;
   };
 }> = {
@@ -171,6 +206,21 @@ export const themes: Record<Theme, {
   }
 };
 
+/**
+ * Apply a theme by writing its colour values to CSS custom properties on
+ * `document.documentElement` (`:root`) and updating `document.body` styles.
+ *
+ * Called automatically by {@link ThemeContext.ThemeProvider} when the theme
+ * changes, and also on initial mount to restore the persisted theme.
+ *
+ * @param theme - The {@link Theme} identifier to activate.
+ *
+ * @example
+ * ```ts
+ * import { applyTheme } from '../utils/themes';
+ * applyTheme('dark');
+ * ```
+ */
 export const applyTheme = (theme: Theme) => {
   const themeColors = themes[theme].colors;
   const root = document.documentElement;

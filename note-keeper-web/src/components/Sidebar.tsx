@@ -1,12 +1,31 @@
+/**
+ * @module Sidebar
+ * @category Components
+ * Application navigation sidebar.
+ *
+ * On desktop (`lg` breakpoint and above) the sidebar is always visible as a
+ * 256 px wide panel.  On mobile it renders as a slide-in drawer with a
+ * semi-transparent backdrop.
+ *
+ * The sidebar also listens for the `"toggle-sidebar"` custom event dispatched
+ * by {@link ShortcutProvider} when the user presses `Ctrl+B`.
+ */
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../utils/api';
 
+/** Props for {@link Sidebar}. */
 interface SidebarProps {
+  /** Whether the mobile drawer overlay is currently open. */
   isMobileMenuOpen: boolean;
+  /** Callback to open or close the mobile drawer. */
   setIsMobileMenuOpen: (open: boolean) => void;
 }
 
+/**
+ * Navigation sidebar component.
+ * @param props - See {@link SidebarProps}.
+ */
 export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -96,16 +115,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileM
         </nav>
 
         <div className="p-4 border-t border-border">
-          <div className="bg-gradient-to-r from-primary to-secondary text-white p-4 rounded-lg mb-3">
-            <p className="text-sm font-medium mb-1">Storage Used</p>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-white/30 rounded-full h-2">
-                <div className="bg-white h-2 rounded-full" style={{ width: '45%' }}></div>
-              </div>
-              <span className="text-xs">45%</span>
-            </div>
-          </div>
-          
           <button
             onClick={async () => {
               await api.auth.logout();

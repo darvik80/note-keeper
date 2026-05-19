@@ -1,9 +1,15 @@
+/**
+ * @module Search
+ * @category Pages
+ * @description Full-text search page with saved queries.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Note, Todo, SavedQuery, SavedQueryInput } from '../types';
 
+/** Search page with full-text query input, result display, and saved query management. */
 export const Search: React.FC = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
@@ -12,6 +18,7 @@ export const Search: React.FC = () => {
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [queryName, setQueryName] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -19,7 +26,7 @@ export const Search: React.FC = () => {
         const q = await api.search.getSavedQueries();
         setSavedQueries(q);
       } catch (err) {
-        console.error('Failed to load saved queries', err);
+        setError((err as any)?.message || 'Failed to load saved queries');
       }
     };
     load();
@@ -35,7 +42,7 @@ export const Search: React.FC = () => {
       const result = await api.search.search(searchQuery, typeParam);
       setResults(result);
     } catch (err) {
-      console.error('Failed to search', err);
+      setError((err as any)?.message || 'Failed to search');
     }
   };
 
@@ -57,7 +64,7 @@ export const Search: React.FC = () => {
       setShowSaveDialog(false);
       setQueryName('');
     } catch (err) {
-      console.error('Failed to save query', err);
+      setError((err as any)?.message || 'Failed to save query');
     }
   };
 
@@ -72,12 +79,21 @@ export const Search: React.FC = () => {
       await api.search.deleteQuery(id);
       setSavedQueries(prev => prev.filter(q => q.id !== id));
     } catch (err) {
-      console.error('Failed to delete query', err);
+      setError((err as any)?.message || 'Failed to delete query');
     }
   };
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
       <Header title="Search" />
 
       <div className="flex-1 overflow-auto p-8">

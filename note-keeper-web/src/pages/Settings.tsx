@@ -1,3 +1,8 @@
+/**
+ * @module Settings
+ * @category Pages
+ * @description User settings page — integration config, keyboard shortcuts, theme, and backup.
+ */
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { storage } from '../utils/storage';
@@ -5,12 +10,14 @@ import { Settings as SettingsType } from '../types';
 import { api } from '../utils/api';
 import { IntegrationRequest, IntegrationResponse } from '../types';
 
+/** Settings page for configuring Telegram, DingTalk, email integrations, keyboard shortcuts, and backup. */
 export const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SettingsType>(storage.getSettings());
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState<'integrations' | 'shortcuts' | 'api' | 'backup'>('integrations');
   const [telegramTestStatus, setTelegramTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [dingtalkTestStatus, setDingtalkTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [error, setError] = useState<string | null>(null);
   const [backupStatus, setBackupStatus] = useState<'idle' | 'exporting' | 'importing' | 'success' | 'error'>('idle');
   const [backupMessage, setBackupMessage] = useState('');
   const [backupSettings, setBackupSettings] = useState({
@@ -39,7 +46,7 @@ export const Settings: React.FC = () => {
       setTelegramTestStatus(response.success ? 'success' : 'error');
     } catch (err) {
       setTelegramTestStatus('error');
-      console.error('Telegram test failed', err);
+      setError((err as any)?.message || 'Telegram test failed');
     }
     setTimeout(() => setTelegramTestStatus('idle'), 3000);
   };
@@ -57,7 +64,7 @@ export const Settings: React.FC = () => {
       setDingtalkTestStatus(response.success ? 'success' : 'error');
     } catch (err) {
       setDingtalkTestStatus('error');
-      console.error('DingTalk test failed', err);
+      setError((err as any)?.message || 'DingTalk test failed');
     }
     setTimeout(() => setDingtalkTestStatus('idle'), 3000);
   };
@@ -155,7 +162,7 @@ export const Settings: React.FC = () => {
         retentionDays: data.retentionDays
       });
     } catch (err: any) {
-      console.error('Failed to load backup settings:', err);
+      setError((err as any)?.message || 'Failed to load backup settings');
     }
   };
 
@@ -180,8 +187,7 @@ export const Settings: React.FC = () => {
       setSettingsSaved(true);
       setTimeout(() => setSettingsSaved(false), 2000);
     } catch (err: any) {
-      console.error('Failed to save backup settings:', err);
-      alert('Failed to save backup settings: ' + err.message);
+      setError((err as any)?.message || 'Failed to save backup settings');
     }
   };
 
@@ -194,6 +200,15 @@ export const Settings: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-background">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
       <Header
         title="Settings"
         actions={

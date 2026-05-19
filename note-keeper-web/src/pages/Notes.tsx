@@ -1,3 +1,8 @@
+/**
+ * @module Notes
+ * @category Pages
+ * @description Notes list page with folder panel, search, filtering, and note management.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
@@ -6,6 +11,7 @@ import { api } from '../utils/api';
 import { buildFolderTree, parsePath, getFullPath } from '../utils/folderUtils';
 import { Note, NoteInput } from '../types';
 
+/** Full notes list page with folder tree, filters, and inline note management actions. */
 export const Notes: React.FC = () => {
   const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);
@@ -13,8 +19,10 @@ export const Notes: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string>('root');
   const [showImport, setShowImport] = useState(false);
-  const [showFolderPanel, setShowFolderPanel] = useState(true);
+  const [showFolderPanel, setShowFolderPanel] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [showSharedOnly, setShowSharedOnly] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
 
   useEffect(() => {
     loadNotes();
@@ -26,7 +34,7 @@ export const Notes: React.FC = () => {
       const n = await api.notes.getAll({ isArchived: false, isDeleted: false });
       setNotes(n);
     } catch (err) {
-      console.error('Failed to load notes', err);
+      setError((err as any)?.message || 'Failed to load notes');
     }
   };
 
@@ -43,7 +51,7 @@ export const Notes: React.FC = () => {
         setSharedNotes(data);
       }
     } catch (err) {
-      console.error('Failed to load shared notes', err);
+      setError((err as any)?.message || 'Failed to load shared notes');
     }
   };
 
@@ -63,7 +71,7 @@ export const Notes: React.FC = () => {
       const newNote = await api.notes.create(input);
       navigate(`/notes/${newNote.id}`);
     } catch (err) {
-      console.error('Failed to create note', err);
+      setError((err as any)?.message || 'Failed to create note');
     }
   };
 
@@ -72,7 +80,7 @@ export const Notes: React.FC = () => {
       await api.notes.delete(id);
       setNotes(prev => prev.filter(n => n.id !== id));
     } catch (err) {
-      console.error('Failed to delete note', err);
+      setError((err as any)?.message || 'Failed to delete note');
     }
   };
 
@@ -81,7 +89,7 @@ export const Notes: React.FC = () => {
       await api.notes.archive(id);
       setNotes(prev => prev.filter(n => n.id !== id));
     } catch (err) {
-      console.error('Failed to archive note', err);
+      setError((err as any)?.message || 'Failed to archive note');
     }
   };
 
@@ -103,7 +111,7 @@ export const Notes: React.FC = () => {
       });
     } catch (err) {
       setNotes(prev => prev.map(n => n.id === id ? { ...n, isFavorite: !newVal } : n));
-      console.error('Failed to toggle favorite', err);
+      setError((err as any)?.message || 'Failed to toggle favorite');
     }
   };
 
@@ -143,59 +151,84 @@ export const Notes: React.FC = () => {
       setNotes(prev => [newNote, ...prev]);
       setShowImport(false);
     } catch (err) {
-      console.error('Failed to import file', err);
+      setError((err as any)?.message || 'Failed to import file');
     }
   };
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
       <Header
         title="Notes"
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowFolderPanel(!showFolderPanel)}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Toggle folders"
             >
               <i className={`fas fa-folder-tree ${showFolderPanel ? 'text-primary' : 'text-gray-600'}`}></i>
             </button>
-            <div className="relative">
+            <div className="relative hidden sm:block">
               <input
                 type="text"
                 placeholder="Search notes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary w-64"
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary w-40 sm:w-56 lg:w-64"
               />
               <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
             <button
               onClick={() => setShowImport(!showImport)}
-              className="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors"
+              className="p-2 sm:px-4 sm:py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors"
+              title="Import"
             >
-              <i className="fas fa-file-import mr-2"></i>
-              Import
+              <i className="fas fa-file-import sm:mr-2"></i>
+              <span className="hidden sm:inline">Import</span>
             </button>
             <button
               onClick={() => setShowSharedOnly(!showSharedOnly)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
+              className={`p-2 sm:px-4 sm:py-2 rounded-lg transition-colors ${
                 showSharedOnly ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
-              title="Show only notes shared with me"
+              title="Shared with Me"
             >
-              <i className="fas fa-share-alt mr-2"></i>
-              Shared with Me
+              <i className="fas fa-share-alt sm:mr-2"></i>
+              <span className="hidden sm:inline">Shared</span>
             </button>
             <button
               onClick={createNote}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              className="p-2 sm:px-4 sm:py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              title="New Note"
             >
-              <i className="fas fa-plus mr-2"></i>
-              New Note
+              <i className="fas fa-plus sm:mr-2"></i>
+              <span className="hidden sm:inline">New Note</span>
             </button>
           </div>
         }
       />
+
+      <div className="sm:hidden px-4 py-2 bg-surface border-b border-gray-200">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search notes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary w-full"
+          />
+          <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        </div>
+      </div>
 
       {showImport && (
         <div className="bg-blue-50 border-b border-blue-200 px-8 py-3">
@@ -219,20 +252,34 @@ export const Notes: React.FC = () => {
         </div>
       )}
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         {showFolderPanel && (
-          <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto p-4">
-            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-              <i className="fas fa-folder"></i>
-              Folders
-            </h3>
-            <FolderTree
-              folders={folderTree}
-              selectedPath={selectedFolder}
-              onSelectFolder={setSelectedFolder}
-              onCreateFolder={handleCreateFolder}
+          <>
+            <div
+              className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+              onClick={() => setShowFolderPanel(false)}
             />
-          </div>
+            <div className="fixed lg:static inset-y-0 left-0 z-30 lg:z-auto w-64 bg-white border-r border-gray-200 overflow-y-auto p-4 shadow-lg lg:shadow-none">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                  <i className="fas fa-folder"></i>
+                  Folders
+                </h3>
+                <button
+                  onClick={() => setShowFolderPanel(false)}
+                  className="lg:hidden p-1 text-gray-500 hover:text-gray-700"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <FolderTree
+                folders={folderTree}
+                selectedPath={selectedFolder}
+                onSelectFolder={(path) => { setSelectedFolder(path); if (window.innerWidth < 1024) setShowFolderPanel(false); }}
+                onCreateFolder={handleCreateFolder}
+              />
+            </div>
+          </>
         )}
 
         <div className="flex-1 overflow-y-auto p-4 lg:p-8">

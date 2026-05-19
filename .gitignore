@@ -33,7 +33,7 @@ build/
 .vscode/
 
 ### Data ###
-./var/**
+.data/
 
 application-local.yml
 .env

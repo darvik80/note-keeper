@@ -1,14 +1,21 @@
+/**
+ * @module Dashboard
+ * @category Pages
+ * @description Dashboard page — overview with stats, recent notes, and recent todos.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Note, Todo } from '../types';
 
+/** Dashboard home page showing key metrics and recent activity. */
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [archivedCount, setArchivedCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -21,7 +28,7 @@ export const Dashboard: React.FC = () => {
         setTodos(t.filter(x => !x.isArchived));
         setArchivedCount(n.filter(x => x.isArchived).length + t.filter(x => x.isArchived).length);
       } catch (err) {
-        console.error('Failed to load dashboard data', err);
+        setError((err as any)?.message || 'Failed to load dashboard data');
       }
     };
     load();
@@ -39,6 +46,15 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
       <Header title="Dashboard" />
       
       <div className="flex-1 overflow-auto p-4 lg:p-8">

@@ -1,3 +1,8 @@
+/**
+ * @module Login
+ * @category Pages
+ * @description Login / registration page with local and Google OAuth authentication.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
@@ -11,6 +16,7 @@ declare global {
   }
 }
 
+/** Login page with email/password login, registration form, and Google OAuth button. */
 export default function Login() {
   useEffect(() => {
     // Initialize Google Sign-In

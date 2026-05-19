@@ -1,15 +1,22 @@
+/**
+ * @module Todos
+ * @category Pages
+ * @description Todos list page with filtering and todo management.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Todo, TodoInput } from '../types';
 
+/** Full todos list page with filtering by status, priority, and tags. */
 export const Todos: React.FC = () => {
   const navigate = useNavigate();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [sharedTodos, setSharedTodos] = useState<Todo[]>([]);
   const [showCompleted, setShowCompleted] = useState(false);
   const [showSharedOnly, setShowSharedOnly] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadTodos();
@@ -21,7 +28,7 @@ export const Todos: React.FC = () => {
       const t = await api.todos.getAll({ isArchived: false, isDeleted: false });
       setTodos(t);
     } catch (err) {
-      console.error('Failed to load todos', err);
+      setError((err as any)?.message || 'Failed to load todos');
     }
   };
 
@@ -38,7 +45,7 @@ export const Todos: React.FC = () => {
         setSharedTodos(data);
       }
     } catch (err) {
-      console.error('Failed to load shared todos', err);
+      setError((err as any)?.message || 'Failed to load shared todos');
     }
   };
 
@@ -55,7 +62,7 @@ export const Todos: React.FC = () => {
       const newTodo = await api.todos.create(input);
       navigate(`/todos/${newTodo.id}`);
     } catch (err) {
-      console.error('Failed to create todo', err);
+      setError((err as any)?.message || 'Failed to create todo');
     }
   };
 
@@ -80,7 +87,7 @@ export const Todos: React.FC = () => {
       });
     } catch (err) {
       setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !newVal } : t));
-      console.error('Failed to toggle complete', err);
+      setError((err as any)?.message || 'Failed to toggle complete');
     }
   };
 
@@ -89,7 +96,7 @@ export const Todos: React.FC = () => {
       await api.todos.delete(id);
       setTodos(prev => prev.filter(t => t.id !== id));
     } catch (err) {
-      console.error('Failed to delete todo', err);
+      setError((err as any)?.message || 'Failed to delete todo');
     }
   };
 
@@ -98,7 +105,7 @@ export const Todos: React.FC = () => {
       await api.todos.archive(id);
       setTodos(prev => prev.filter(t => t.id !== id));
     } catch (err) {
-      console.error('Failed to archive todo', err);
+      setError((err as any)?.message || 'Failed to archive todo');
     }
   };
 
@@ -123,7 +130,7 @@ export const Todos: React.FC = () => {
       });
     } catch (err) {
       setTodos(prev => prev.map(t => t.id === id ? { ...t, isFavorite: !newVal } : t));
-      console.error('Failed to toggle favorite', err);
+      setError((err as any)?.message || 'Failed to toggle favorite');
     }
   };
 
@@ -135,41 +142,52 @@ export const Todos: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
       <Header
         title="Todos"
         actions={
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 cursor-pointer shrink-0">
               <input
                 type="checkbox"
                 checked={showCompleted}
                 onChange={(e) => setShowCompleted(e.target.checked)}
                 className="w-4 h-4"
               />
-              <span className="text-sm font-medium">Show Completed</span>
+              <span className="text-sm font-medium hidden sm:inline">Show Completed</span>
+              <span className="text-sm font-medium sm:hidden">Done</span>
             </label>
             <button
               onClick={() => setShowSharedOnly(!showSharedOnly)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
+              className={`p-2 sm:px-4 sm:py-2 rounded-lg transition-colors ${
                 showSharedOnly ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
-              title="Show only todos shared with me"
+              title="Shared with Me"
             >
-              <i className="fas fa-share-alt mr-2"></i>
-              Shared with Me
+              <i className="fas fa-share-alt sm:mr-2"></i>
+              <span className="hidden sm:inline">Shared</span>
             </button>
             <button
               onClick={createTodo}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              className="p-2 sm:px-4 sm:py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              title="New Todo"
             >
-              <i className="fas fa-plus mr-2"></i>
-              New Todo
+              <i className="fas fa-plus sm:mr-2"></i>
+              <span className="hidden sm:inline">New Todo</span>
             </button>
           </div>
         }
       />
 
-      <div className="flex-1 overflow-auto p-8">
+      <div className="flex-1 overflow-auto p-4 sm:p-8">
         <div className="max-w-4xl mx-auto space-y-4">
           {filteredTodos.map(todo => (
             <div
@@ -220,7 +238,7 @@ export const Todos: React.FC = () => {
                           e.stopPropagation();
                           archiveTodo(todo.id);
                         }}
-                        className="text-gray-500 hover:text-gray-700"
+                        className="p-1 text-gray-500 hover:text-gray-700"
                         title="Archive"
                       >
                         <i className="fas fa-box-archive"></i>
@@ -230,7 +248,7 @@ export const Todos: React.FC = () => {
                           e.stopPropagation();
                           deleteTodo(todo.id);
                         }}
-                        className="text-red-500 hover:text-red-700"
+                        className="p-1 text-red-500 hover:text-red-700"
                         title="Delete"
                       >
                         <i className="fas fa-trash"></i>

@@ -1,13 +1,40 @@
+/**
+ * @module FolderTree
+ * @category Components
+ * Recursive tree component that renders a {@link FolderStructure} hierarchy.
+ *
+ * - Nodes with children show a chevron toggle button (expand / collapse).
+ * - The currently selected folder is highlighted with the primary colour.
+ * - Hovering a folder reveals a `+` button for inline sub-folder creation.
+ * - New folders are created by typing a name and pressing `Enter` or blurring
+ *   the input; `Escape` cancels.
+ */
 import React, { useState } from 'react';
 import { FolderStructure } from '../types';
 
+/** Props for {@link FolderTree}. */
 interface FolderTreeProps {
+  /**
+   * Root-level folder nodes to render.  Typically a single-element array
+   * containing the `"All Notes"` root returned by {@link buildFolderTree}.
+   */
   folders: FolderStructure[];
+  /** Path of the currently selected folder (highlights the matching node). */
   selectedPath: string;
+  /** Called when the user clicks a folder node. */
   onSelectFolder: (path: string) => void;
+  /**
+   * Called when the user creates a new sub-folder.
+   * @param parentPath - Path of the parent folder.
+   * @param name - Name for the new sub-folder.
+   */
   onCreateFolder: (parentPath: string, name: string) => void;
 }
 
+/**
+ * Recursive folder tree navigation component.
+ * @param props - See {@link FolderTreeProps}.
+ */
 export const FolderTree: React.FC<FolderTreeProps> = ({
   folders,
   selectedPath,

@@ -1,0 +1,43 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: note-keeper
+  profiles:
+    active: sqlite
+
+  config:
+    activate:
+      on-profile: sqlite
+  datasource:
+    url: jdbc:sqlite:${app.storage.db-path}
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+      connection-init-sql: "PRAGMA foreign_keys=OFF; PRAGMA journal_mode=WAL;"
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+app:
+  storage:
+    base-dir: {{ var_dir }}
+    attachments-dir: {{ var_dir }}/attachments
+    backups-dir: {{ var_dir }}/backups
+    data-dir: {{ var_dir }}/data
+    db-path: {{ var_dir }}/data/notekeeper.db
+  encryption:
+    key: {{ app_encryption_key }}
+
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  type-aliases-package: xyz.crearts.note.keeper.model
+  type-handlers-package: xyz.crearts.note.keeper.mapper.typehandler
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  file:
+    path: /var/log/note-keeper

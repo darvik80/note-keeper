@@ -1,3 +1,8 @@
+/**
+ * @module NoteEditor
+ * @category Pages
+ * @description Note editor page — edit title, Markdown content, tags, folder, reminder, and attachments.
+ */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
@@ -5,42 +10,40 @@ import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { ShareModal } from '../components/ShareModal';
 import { Note, Attachment, NoteInput } from '../types';
 
+/** Note editor page. Loads an existing note by route param `id`, supports Markdown preview, tag management, attachments, history restore, and sharing. */
 export const NoteEditor: React.FC = () => {
   const params = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [note, setNote] = useState<Note | null>(null);
+  const noteRef = React.useRef<Note | null>(null);
   const [isPreview, setIsPreview] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [tagInput, setTagInput] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  // Debug: log params object
-  useEffect(() => {
-    console.log('[NoteEditor] useParams result:', params);
-    console.log('[NoteEditor] id from params:', params.id);
-  }, [params]);
+  // Keep ref in sync with state so saveNote/addTag always see latest note
+  noteRef.current = note;
 
   useEffect(() => {
-    console.log('[NoteEditor] useEffect triggered, id:', params.id);
-    if (params.id) {
-      const load = async () => {
-        console.log('[NoteEditor] Loading note:', params.id);
-        const token = localStorage.getItem('token');
-        console.log('[NoteEditor] Token:', token ? 'exists' : 'missing');
-        try {
-          const n = await api.notes.getById(params.id);
-          console.log('[NoteEditor] Note loaded:', n);
-          // Start in edit mode for new notes (empty content)
-          if (!n.content || n.content.trim() === '') {
-            setIsPreview(false);
-          }
-          setNote(n);
-        } catch (err) {
-          console.error('[NoteEditor] Failed to load note', err);
+    const id = params.id;
+    if (!id) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const n = await api.notes.getById(id);
+        if (cancelled) return;
+        if (!n.content || n.content.trim() === '') {
+          setIsPreview(false);
         }
-      };
-      load();
-    }
+        setNote(n);
+      } catch (error: any) {
+        if (!cancelled) setError(error?.message || 'Failed to load note');
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   }, [params.id]);
 
   // ESC to exit fullscreen
@@ -55,22 +58,22 @@ export const NoteEditor: React.FC = () => {
   }, [isFullscreen]);
 
   const saveNote = async () => {
-    if (!note) return;
+    const current = noteRef.current;
+    if (!current) return;
 
     try {
       // Upload new attachments (those with blob: URLs) to server
       const uploadedAttachments: any[] = [];
-      if (note.attachments && note.attachments.length > 0) {
-        for (const att of note.attachments) {
+      if (current.attachments && current.attachments.length > 0) {
+        for (const att of current.attachments) {
           if (att.url.startsWith('blob:')) {
             // This is a local file, need to upload
-            console.log('[NoteEditor] Uploading attachment:', att.name);
             // Fetch the blob from the blob URL
             const response = await fetch(att.url);
             const blob = await response.blob();
             const file = new File([blob], att.name, { type: att.type });
             // Upload to server
-            const uploaded = await api.attachments.upload(file, note.id, 'note');
+            const uploaded = await api.attachments.upload(file, current.id, 'note');
             uploadedAttachments.push(uploaded);
           } else {
             // Already uploaded to server
@@ -80,17 +83,17 @@ export const NoteEditor: React.FC = () => {
       }
 
       const input: NoteInput = {
-        title: note.title,
-        content: note.content,
-        tags: note.tags,
-        folder: note.folder,
-        subfolder: note.subfolder,
-        priority: note.priority,
-        isFavorite: note.isFavorite,
-        isEncrypted: note.isEncrypted,
+        title: current.title,
+        content: current.content,
+        tags: current.tags ?? [],
+        folder: current.folder,
+        subfolder: current.subfolder,
+        priority: current.priority,
+        isFavorite: current.isFavorite,
+        isEncrypted: current.isEncrypted,
         // Convert local date to ISO UTC format for backend
-        reminder: note.reminder ? (typeof note.reminder === 'string' ? note.reminder : note.reminder.toISOString()) : undefined,
-        templateId: note.templateId,
+        reminder: current.reminder ? (typeof current.reminder === 'string' ? current.reminder : current.reminder.toISOString()) : undefined,
+        templateId: current.templateId,
         // Include uploaded attachments
         attachments: uploadedAttachments.map(att => ({
           id: att.id,
@@ -101,27 +104,35 @@ export const NoteEditor: React.FC = () => {
           uploadedAt: att.uploadedAt instanceof Date ? att.uploadedAt.toISOString() : att.uploadedAt
         })),
       };
-      console.log('[NoteEditor] Saving note with attachments:', input.attachments?.length || 0);
-      await api.notes.update(note.id, input);
+      await api.notes.update(current.id, input);
       navigate('/notes');
-    } catch (err) {
-      console.error('Failed to save note', err);
+    } catch (error: any) {
+      setError(error?.message || 'Failed to save note');
     }
   };
 
   const addTag = (tag: string) => {
-    if (!note || !tag.trim() || note.tags.includes(tag)) return;
-    setNote({ ...note, tags: [...note.tags, tag.trim()] });
+    if (!noteRef.current || !tag.trim()) return;
+    const trimmed = tag.trim();
+    setNote(prev => {
+      if (!prev) return prev;
+      const currentTags = prev.tags ?? [];
+      if (currentTags.includes(trimmed)) return prev;
+      return { ...prev, tags: [...currentTags, trimmed] };
+    });
+    setTagInput('');
   };
 
   const removeTag = (tag: string) => {
-    if (!note) return;
-    setNote({ ...note, tags: note.tags.filter(t => t !== tag) });
+    setNote(prev => {
+      if (!prev) return prev;
+      return { ...prev, tags: (prev.tags ?? []).filter(t => t !== tag) };
+    });
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || !note) return;
+    if (!files || !noteRef.current) return;
 
     const newAttachments: Attachment[] = Array.from(files).map(file => ({
       id: Date.now().toString() + Math.random(),
@@ -132,12 +143,11 @@ export const NoteEditor: React.FC = () => {
       uploadedAt: new Date()
     }));
 
-    setNote({ ...note, attachments: [...(note.attachments || []), ...newAttachments] });
+    setNote(prev => prev ? { ...prev, attachments: [...(prev.attachments || []), ...newAttachments] } : prev);
   };
 
   const removeAttachment = (id: string) => {
-    if (!note) return;
-    setNote({ ...note, attachments: (note.attachments || []).filter(a => a.id !== id) });
+    setNote(prev => prev ? { ...prev, attachments: (prev.attachments || []).filter(a => a.id !== id) } : prev);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -146,74 +156,107 @@ export const NoteEditor: React.FC = () => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  if (!note) return <div>Loading...</div>;
+  if (!note) return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+      {error ? (
+        <div className="flex flex-col items-center gap-3 text-center">
+          <i className="fas fa-circle-exclamation text-red-400 text-4xl"></i>
+          <p className="text-red-600 font-medium">{error}</p>
+          <button
+            onClick={() => navigate('/notes')}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+          >
+            Back to Notes
+          </button>
+        </div>
+      ) : (
+        <div className="text-gray-400 flex items-center gap-2">
+          <i className="fas fa-spinner fa-spin"></i>
+          Loading...
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex-1 flex flex-col bg-white">
-      <div className="border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
+      <div className="border-b border-gray-200 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
         <button
           onClick={() => navigate('/notes')}
-          className="text-gray-600 hover:text-gray-800"
+          className="text-gray-600 hover:text-gray-800 shrink-0 flex items-center gap-1"
         >
-          <i className="fas fa-arrow-left mr-2"></i>
-          Back to Notes
+          <i className="fas fa-arrow-left"></i>
+          <span className="hidden sm:inline ml-1">Back</span>
         </button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-3 overflow-x-auto">
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
             title="History"
           >
             <i className={`fas fa-clock-rotate-left ${showHistory ? 'text-primary' : 'text-gray-400'}`}></i>
           </button>
           <button
             onClick={() => setIsPreview(!isPreview)}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`p-2 sm:px-4 sm:py-2 rounded-lg transition-colors shrink-0 ${
               isPreview ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
+            title={isPreview ? 'Edit' : 'Preview'}
           >
-            <i className={`fas ${isPreview ? 'fa-edit' : 'fa-eye'} mr-2`}></i>
-            {isPreview ? 'Edit' : 'Preview'}
+            <i className={`fas ${isPreview ? 'fa-edit' : 'fa-eye'} sm:mr-2`}></i>
+            <span className="hidden sm:inline">{isPreview ? 'Edit' : 'Preview'}</span>
           </button>
           <button
-            onClick={() => setNote({ ...note, isFavorite: !note.isFavorite })}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            onClick={() => setNote(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : prev)}
+            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
+            title="Favorite"
           >
             <i className={`fas fa-star ${note.isFavorite ? 'text-yellow-500' : 'text-gray-400'}`}></i>
           </button>
           <button
-            onClick={() => setNote({ ...note, isEncrypted: !note.isEncrypted })}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            onClick={() => setNote(prev => prev ? { ...prev, isEncrypted: !prev.isEncrypted } : prev)}
+            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
+            title="Encrypt"
           >
             <i className={`fas fa-lock ${note.isEncrypted ? 'text-purple-500' : 'text-gray-400'}`}></i>
           </button>
           <button
             onClick={() => setShowShareModal(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
             title="Share"
           >
             <i className="fas fa-share-alt text-gray-400"></i>
           </button>
           <select
             value={note.priority}
-            onChange={(e) => setNote({ ...note, priority: e.target.value as any })}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
+            onChange={(e) => { const v = e.target.value as any; setNote(prev => prev ? { ...prev, priority: v } : prev); }}
+            className="px-2 py-2 border border-gray-300 rounded-lg text-sm shrink-0"
           >
-            <option value="low">Low Priority</option>
-            <option value="medium">Medium Priority</option>
-            <option value="high">High Priority</option>
+            <option value="low">Low</option>
+            <option value="medium">Med</option>
+            <option value="high">High</option>
           </select>
           <button
             onClick={saveNote}
-            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+            className="p-2 sm:px-6 sm:py-2 bg-primary text-white rounded-lg hover:bg-primary/90 shrink-0"
+            title="Save"
           >
-            <i className="fas fa-save mr-2"></i>
-            Save
+            <i className="fas fa-save sm:mr-2"></i>
+            <span className="hidden sm:inline">Save</span>
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-8">
+      <div className="flex-1 overflow-auto p-4 sm:p-8">
         {showHistory && note.history && note.history.length > 0 && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
@@ -234,7 +277,8 @@ export const NoteEditor: React.FC = () => {
                   <button
                     onClick={() => {
                       if (confirm('Restore this version?')) {
-                        setNote({ ...note, content: entry.content });
+                        const c = entry.content;
+                        setNote(prev => prev ? { ...prev, content: c } : prev);
                       }
                     }}
                     className="text-xs px-3 py-1 text-primary hover:bg-primary/10 rounded"
@@ -251,8 +295,8 @@ export const NoteEditor: React.FC = () => {
         <input
           type="text"
           value={note.title}
-          onChange={(e) => setNote({ ...note, title: e.target.value })}
-          className="text-4xl font-bold mb-6 w-full border-none outline-none"
+          onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, title: v } : prev); }}
+          className="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6 w-full border-none outline-none"
           placeholder="Note Title"
         />
 
@@ -272,7 +316,7 @@ export const NoteEditor: React.FC = () => {
         ) : (
           <textarea
             value={note.content}
-            onChange={(e) => setNote({ ...note, content: e.target.value })}
+            onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, content: v } : prev); }}
             className="w-full h-96 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-primary font-mono"
             placeholder="Start writing your note... (Markdown & Mermaid supported)"
           />
@@ -280,7 +324,7 @@ export const NoteEditor: React.FC = () => {
 
         <div className="mt-6 space-y-4">
           <div className="flex flex-wrap gap-2">
-            {note.tags.map(tag => (
+            {(note.tags ?? []).map(tag => (
               <span
                 key={tag}
                 className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm flex items-center gap-2"
@@ -294,36 +338,38 @@ export const NoteEditor: React.FC = () => {
             <input
               type="text"
               placeholder="Add tag + Enter"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
               className="px-3 py-1 border border-gray-300 rounded-lg text-sm w-40"
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  addTag((e.target as HTMLInputElement).value);
-                  (e.target as HTMLInputElement).value = '';
+                  e.preventDefault();
+                  addTag(tagInput);
                 }
               }}
             />
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input
               type="text"
               value={note.folder}
-              onChange={(e) => setNote({ ...note, folder: e.target.value })}
-              className="px-4 py-2 border border-gray-300 rounded-lg"
+              onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, folder: v } : prev); }}
+              className="px-4 py-2 border border-gray-300 rounded-lg w-full"
               placeholder="Folder"
             />
             <input
               type="text"
               value={note.subfolder || ''}
-              onChange={(e) => setNote({ ...note, subfolder: e.target.value || undefined })}
-              className="px-4 py-2 border border-gray-300 rounded-lg"
+              onChange={(e) => { const v = e.target.value || undefined; setNote(prev => prev ? { ...prev, subfolder: v } : prev); }}
+              className="px-4 py-2 border border-gray-300 rounded-lg w-full"
               placeholder="Subfolder (optional)"
             />
             <input
               type="datetime-local"
               value={note.reminder ? new Date(note.reminder).toISOString().slice(0, 16) : ''}
-              onChange={(e) => setNote({ ...note, reminder: e.target.value ? new Date(e.target.value) : undefined })}
-              className="px-4 py-2 border border-gray-300 rounded-lg"
+              onChange={(e) => { const v = e.target.value ? new Date(e.target.value) : undefined; setNote(prev => prev ? { ...prev, reminder: v } : prev); }}
+              className="px-4 py-2 border border-gray-300 rounded-lg w-full"
             />
           </div>
         </div>
@@ -393,9 +439,9 @@ export const NoteEditor: React.FC = () => {
         ownerId={note.ownerId}
         sharedWith={note.sharedWith}
         onShareSuccess={() => {
-          // Reload note to get updated sharedWith
-          if (params.id) {
-            api.notes.getById(params.id).then(setNote);
+          const id = params.id;
+          if (id) {
+            api.notes.getById(id).then(setNote);
           }
         }}
       />

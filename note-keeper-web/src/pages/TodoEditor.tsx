@@ -1,3 +1,8 @@
+/**
+ * @module TodoEditor
+ * @category Pages
+ * @description Todo editor page — edit title, description, tags, schedule, location, and attachments.
+ */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
@@ -7,130 +12,101 @@ import { Todo, Attachment, TodoInput } from '../types';
 import { storage } from '../utils/storage';
 import { IntegrationRequest, IntegrationResponse } from '../types';
 
+const emptyTodo = (): Todo => ({
+  id: 'new',
+  title: '',
+  description: '',
+  tags: [],
+  priority: 'medium',
+  isFavorite: false,
+  completed: false,
+  isArchived: false,
+  isDeleted: false,
+  ownerId: '',
+  sharedWith: '[]',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  attachments: [],
+  schedule: { repeat: 'none', endDate: undefined }
+});
+
+/** Todo editor page. Supports Markdown description, tags, due date, reminder, recurrence schedule, geolocation, Telegram/DingTalk send, and attachments. */
 export const TodoEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [todo, setTodo] = useState<Todo | null>(null);
+  const todoRef = React.useRef<Todo | null>(null);
   const [isPreview, setIsPreview] = useState(false);
   const [telegramStatus, setTelegramStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [dingtalkStatus, setDingtalkStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [showShareModal, setShowShareModal] = useState(false);
+  const [tagInput, setTagInput] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const settings = storage.getSettings();
+
+  // Keep ref in sync with state so saveTodo/addTag always see latest todo
+  todoRef.current = todo;
 
   useEffect(() => {
     if (id) {
+      let cancelled = false;
       const load = async () => {
         try {
-          console.log('[TodoEditor] Loading todo with id:', id);
           const t = await api.todos.getById(id);
-          console.log('[TodoEditor] Loaded todo:', t);
+          if (cancelled) return;
           if (t && t.id) {
             setTodo(t);
           } else {
-            console.error('[TodoEditor] API returned invalid todo:', t);
-            // Fallback to creating new todo
-            const newTodo: Todo = {
-              id: 'new',
-              title: '',
-              description: '',
-              tags: [],
-              priority: 'medium',
-              isFavorite: false,
-              completed: false,
-              isArchived: false,
-              isDeleted: false,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              attachments: [],
-              schedule: { repeat: 'none', endDate: undefined }
-            };
-            setTodo(newTodo);
+            setTodo(emptyTodo());
           }
-        } catch (err) {
-          console.error('[TodoEditor] Failed to load todo', err);
-          // Fallback to creating new todo on error
-          const newTodo: Todo = {
-            id: 'new',
-            title: '',
-            description: '',
-            tags: [],
-            priority: 'medium',
-            isFavorite: false,
-            completed: false,
-            isArchived: false,
-            isDeleted: false,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            attachments: [],
-            schedule: { repeat: 'none', endDate: undefined }
-          };
-          setTodo(newTodo);
+        } catch (err: any) {
+          if (!cancelled) setError(err?.message || 'Failed to load todo');
         }
       };
       load();
+      return () => { cancelled = true; };
     } else {
-      // Create new empty todo
-      const newTodo: Todo = {
-        id: 'new',
-        title: '',
-        description: '',
-        tags: [],
-        priority: 'medium',
-        isFavorite: false,
-        completed: false,
-        isArchived: false,
-        isDeleted: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        attachments: [],
-        schedule: { repeat: 'none', endDate: undefined }
-      };
-      setTodo(newTodo);
+      setTodo(emptyTodo());
     }
   }, [id]);
 
   const saveTodo = async () => {
-    if (!todo) return;
+    const current = todoRef.current;
+    if (!current) return;
 
     try {
       // Upload new attachments (those with blob: URLs) to server
       const uploadedAttachments: any[] = [];
-      if (todo.attachments && todo.attachments.length > 0) {
-        for (const att of todo.attachments) {
+      if (current.attachments && current.attachments.length > 0) {
+        for (const att of current.attachments) {
           if (att.url.startsWith('blob:')) {
-            // This is a local file, need to upload
             console.log('[TodoEditor] Uploading attachment:', att.name);
-            // Fetch the blob from the blob URL
             const response = await fetch(att.url);
             const blob = await response.blob();
             const file = new File([blob], att.name, { type: att.type });
-            // Upload to server
-            const uploaded = await api.attachments.upload(file, todo.id, 'todo');
+            const uploaded = await api.attachments.upload(file, current.id, 'todo');
             uploadedAttachments.push(uploaded);
           } else {
-            // Already uploaded to server
             uploadedAttachments.push(att);
           }
         }
       }
 
       const input: TodoInput = {
-        title: todo.title,
-        description: todo.description,
-        tags: todo.tags,
-        priority: todo.priority,
-        isFavorite: todo.isFavorite,
-        completed: todo.completed,
-        // Convert local date to ISO UTC format for backend
-        dueDate: todo.dueDate ? todo.dueDate.toISOString() : undefined,
-        reminder: todo.reminder ? (typeof todo.reminder === 'string' ? todo.reminder : todo.reminder.toISOString()) : undefined,
+        title: current.title,
+        description: current.description,
+        tags: current.tags ?? [],
+        priority: current.priority,
+        isFavorite: current.isFavorite,
+        completed: current.completed,
+        dueDate: current.dueDate ? current.dueDate.toISOString() : undefined,
+        reminder: current.reminder ? (typeof current.reminder === 'string' ? current.reminder : current.reminder.toISOString()) : undefined,
         notificationChannels: todo.notificationChannels,
-        location: todo.location,
-        schedule: todo.schedule && todo.schedule.repeat !== 'none' ? {
-          repeat: todo.schedule.repeat,
-          endDate: todo.schedule.endDate ? todo.schedule.endDate.toISOString() : undefined
+        location: current.location,
+        schedule: current.schedule && current.schedule.repeat !== 'none' ? {
+          repeat: current.schedule.repeat,
+          endDate: current.schedule.endDate ? current.schedule.endDate.toISOString() : undefined
         } : undefined,
-        // Include uploaded attachments
         attachments: uploadedAttachments.map(att => ({
           id: att.id,
           name: att.name,
@@ -141,14 +117,14 @@ export const TodoEditor: React.FC = () => {
         })),
       };
       console.log('[TodoEditor] Saving todo with attachments:', input.attachments?.length || 0);
-      if (todo.id === 'new') {
+      if (current.id === 'new') {
         await api.todos.create(input);
       } else {
-        await api.todos.update(todo.id, input);
+        await api.todos.update(current.id, input);
       }
       navigate('/todos');
-    } catch (err) {
-      console.error('Failed to save todo', err);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to save todo');
     }
   };
 
@@ -163,9 +139,9 @@ export const TodoEditor: React.FC = () => {
       };
       const response: IntegrationResponse = await api.integrations.sendToTelegram(request);
       setTelegramStatus(response.success ? 'success' : 'error');
-    } catch (err) {
+    } catch (err: any) {
       setTelegramStatus('error');
-      console.error('Telegram send failed', err);
+      setError(err?.message || 'Failed to send to Telegram');
     }
     setTimeout(() => setTelegramStatus('idle'), 3000);
   };
@@ -181,14 +157,13 @@ export const TodoEditor: React.FC = () => {
       };
       const response: IntegrationResponse = await api.integrations.sendToDingtalk(request);
       setDingtalkStatus(response.success ? 'success' : 'error');
-    } catch (err) {
+    } catch (err: any) {
       setDingtalkStatus('error');
-      console.error('DingTalk send failed', err);
+      setError(err?.message || 'Failed to send to DingTalk');
     }
     setTimeout(() => setDingtalkStatus('idle'), 3000);
   };
 
-  // Format ISO UTC date to local datetime-local string
   const formatDateTimeLocal = (date: Date | string): string => {
     const d = typeof date === 'string' ? new Date(date) : new Date(date);
     const year = d.getFullYear();
@@ -200,18 +175,27 @@ export const TodoEditor: React.FC = () => {
   };
 
   const addTag = (tag: string) => {
-    if (!todo || !tag.trim() || todo.tags.includes(tag)) return;
-    setTodo({ ...todo, tags: [...todo.tags, tag.trim()] });
+    if (!todoRef.current || !tag.trim()) return;
+    const trimmed = tag.trim();
+    setTodo(prev => {
+      if (!prev) return prev;
+      const currentTags = prev.tags ?? [];
+      if (currentTags.includes(trimmed)) return prev;
+      return { ...prev, tags: [...currentTags, trimmed] };
+    });
+    setTagInput('');
   };
 
   const removeTag = (tag: string) => {
-    if (!todo) return;
-    setTodo({ ...todo, tags: todo.tags.filter(t => t !== tag) });
+    setTodo(prev => {
+      if (!prev) return prev;
+      return { ...prev, tags: (prev.tags ?? []).filter(t => t !== tag) };
+    });
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || !todo) return;
+    if (!files || !todoRef.current) return;
 
     const newAttachments: Attachment[] = Array.from(files).map(file => ({
       id: Date.now().toString() + Math.random(),
@@ -222,12 +206,11 @@ export const TodoEditor: React.FC = () => {
       uploadedAt: new Date()
     }));
 
-    setTodo({ ...todo, attachments: [...(todo.attachments || []), ...newAttachments] });
+    setTodo(prev => prev ? { ...prev, attachments: [...(prev.attachments || []), ...newAttachments] } : prev);
   };
 
   const removeAttachment = (id: string) => {
-    if (!todo) return;
-    setTodo({ ...todo, attachments: (todo.attachments || []).filter(a => a.id !== id) });
+    setTodo(prev => prev ? { ...prev, attachments: (prev.attachments || []).filter(a => a.id !== id) } : prev);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -236,33 +219,62 @@ export const TodoEditor: React.FC = () => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  if (!todo) return <div>Loading...</div>;
+  if (!todo) return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+      {error ? (
+        <div className="flex flex-col items-center gap-3 text-center">
+          <i className="fas fa-circle-exclamation text-red-400 text-4xl"></i>
+          <p className="text-red-600 font-medium">{error}</p>
+          <button
+            onClick={() => navigate('/todos')}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+          >
+            Back to Todos
+          </button>
+        </div>
+      ) : (
+        <div className="text-gray-400 flex items-center gap-2">
+          <i className="fas fa-spinner fa-spin"></i>
+          Loading...
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex-1 flex flex-col bg-white">
-      <div className="border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+      {error && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          <i className="fas fa-circle-exclamation shrink-0"></i>
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
+      <div className="border-b border-gray-200 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
         <button
           onClick={() => navigate('/todos')}
-          className="text-gray-600 hover:text-gray-800"
+          className="text-gray-600 hover:text-gray-800 shrink-0 flex items-center gap-1"
         >
-          <i className="fas fa-arrow-left mr-2"></i>
-          Back to Todos
+          <i className="fas fa-arrow-left"></i>
+          <span className="hidden sm:inline ml-1">Back</span>
         </button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-3 overflow-x-auto">
           <button
             onClick={() => setIsPreview(!isPreview)}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`p-2 sm:px-4 sm:py-2 rounded-lg transition-colors shrink-0 ${
               isPreview ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            <i className={`fas ${isPreview ? 'fa-edit' : 'fa-eye'} mr-2`}></i>
-            {isPreview ? 'Edit' : 'Preview'}
+            <i className={`fas ${isPreview ? 'fa-edit' : 'fa-eye'} sm:mr-2`}></i>
+            <span className="hidden sm:inline">{isPreview ? 'Edit' : 'Preview'}</span>
           </button>
-          <div className="flex items-center gap-2 border-r border-gray-300 pr-3">
+          <div className="flex items-center gap-1 sm:gap-2 border-r border-gray-300 pr-1 sm:pr-3">
             <button
               onClick={sendToTelegram}
               disabled={telegramStatus === 'sending'}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`p-2 rounded-lg transition-colors shrink-0 ${
                 telegramStatus === 'success'
                   ? 'bg-green-500 text-white'
                   : telegramStatus === 'error'
@@ -271,14 +283,12 @@ export const TodoEditor: React.FC = () => {
               } disabled:opacity-50`}
               title="Send to Telegram"
             >
-              <i className={`fab fa-telegram ${
-                telegramStatus === 'sending' ? 'fa-spin' : ''
-              }`}></i>
+              <i className={`fab fa-telegram ${telegramStatus === 'sending' ? 'fa-spin' : ''}`}></i>
             </button>
             <button
               onClick={sendToDingtalk}
               disabled={dingtalkStatus === 'sending'}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`p-2 rounded-lg transition-colors shrink-0 ${
                 dingtalkStatus === 'success'
                   ? 'bg-green-500 text-white'
                   : dingtalkStatus === 'error'
@@ -287,49 +297,48 @@ export const TodoEditor: React.FC = () => {
               } disabled:opacity-50`}
               title="Send to DingTalk"
             >
-              <i className={`fas fa-comment ${
-                dingtalkStatus === 'sending' ? 'fa-spin' : ''
-              }`}></i>
+              <i className={`fas fa-comment ${dingtalkStatus === 'sending' ? 'fa-spin' : ''}`}></i>
             </button>
           </div>
           <button
-            onClick={() => setTodo({ ...todo, isFavorite: !todo.isFavorite })}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            onClick={() => setTodo(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : prev)}
+            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
           >
             <i className={`fas fa-star ${todo.isFavorite ? 'text-yellow-500' : 'text-gray-400'}`}></i>
           </button>
           <button
             onClick={() => setShowShareModal(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
             title="Share"
           >
             <i className="fas fa-share-alt text-gray-400"></i>
           </button>
           <select
             value={todo.priority}
-            onChange={(e) => setTodo({ ...todo, priority: e.target.value as any })}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
+            onChange={(e) => { const v = e.target.value as any; setTodo(prev => prev ? { ...prev, priority: v } : prev); }}
+            className="px-2 py-2 border border-gray-300 rounded-lg text-sm shrink-0"
           >
-            <option value="low">Low Priority</option>
-            <option value="medium">Medium Priority</option>
-            <option value="high">High Priority</option>
+            <option value="low">Low</option>
+            <option value="medium">Med</option>
+            <option value="high">High</option>
           </select>
           <button
             onClick={saveTodo}
-            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+            className="p-2 sm:px-6 sm:py-2 bg-primary text-white rounded-lg hover:bg-primary/90 shrink-0"
+            title="Save"
           >
-            <i className="fas fa-save mr-2"></i>
-            Save
+            <i className="fas fa-save sm:mr-2"></i>
+            <span className="hidden sm:inline">Save</span>
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-8 max-w-4xl mx-auto w-full">
+      <div className="flex-1 overflow-auto p-4 sm:p-8 max-w-4xl mx-auto w-full">
         <input
           type="text"
           value={todo.title}
-          onChange={(e) => setTodo({ ...todo, title: e.target.value })}
-          className="text-3xl font-bold mb-6 w-full border-none outline-none"
+          onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, title: v } : prev); }}
+          className="text-2xl sm:text-3xl font-bold mb-6 w-full border-none outline-none"
           placeholder="Todo Title"
         />
 
@@ -345,7 +354,7 @@ export const TodoEditor: React.FC = () => {
             ) : (
               <textarea
                 value={todo.description}
-                onChange={(e) => setTodo({ ...todo, description: e.target.value })}
+                onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, description: v } : prev); }}
                 className="w-full h-32 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-primary font-mono"
                 placeholder="Add description... (Markdown supported)"
               />
@@ -355,7 +364,7 @@ export const TodoEditor: React.FC = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
             <div className="flex flex-wrap gap-2 mb-3">
-              {todo.tags.map(tag => (
+              {(todo.tags ?? []).map(tag => (
                 <span
                   key={tag}
                   className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm flex items-center gap-2"
@@ -370,23 +379,25 @@ export const TodoEditor: React.FC = () => {
             <input
               type="text"
               placeholder="Add tag and press Enter"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg w-full"
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  addTag((e.target as HTMLInputElement).value);
-                  (e.target as HTMLInputElement).value = '';
+                  e.preventDefault();
+                  addTag(tagInput);
                 }
               }}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
               <input
                 type="datetime-local"
                 value={todo.dueDate ? formatDateTimeLocal(todo.dueDate) : ''}
-                onChange={(e) => setTodo({ ...todo, dueDate: e.target.value ? new Date(e.target.value) : undefined })}
+                onChange={(e) => { const v = e.target.value ? new Date(e.target.value) : undefined; setTodo(prev => prev ? { ...prev, dueDate: v } : prev); }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               />
             </div>
@@ -396,7 +407,7 @@ export const TodoEditor: React.FC = () => {
               <input
                 type="datetime-local"
                 value={todo.reminder ? formatDateTimeLocal(todo.reminder) : ''}
-                onChange={(e) => setTodo({ ...todo, reminder: e.target.value ? new Date(e.target.value) : undefined })}
+                onChange={(e) => { const v = e.target.value ? new Date(e.target.value) : undefined; setTodo(prev => prev ? { ...prev, reminder: v } : prev); }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               />
             </div>
@@ -413,16 +424,18 @@ export const TodoEditor: React.FC = () => {
                   type="checkbox"
                   checked={todo.notificationChannels?.includes('telegram') || false}
                   onChange={(e) => {
-                    const channels = todo.notificationChannels?.split(',').filter(c => c) || [];
-                    if (e.target.checked) {
-                      if (!channels.includes('telegram')) {
-                        channels.push('telegram');
+                    const checked = e.target.checked;
+                    setTodo(prev => {
+                      if (!prev) return prev;
+                      const channels = prev.notificationChannels?.split(',').filter(c => c) || [];
+                      if (checked) {
+                        if (!channels.includes('telegram')) channels.push('telegram');
+                      } else {
+                        const idx = channels.indexOf('telegram');
+                        if (idx > -1) channels.splice(idx, 1);
                       }
-                    } else {
-                      const idx = channels.indexOf('telegram');
-                      if (idx > -1) channels.splice(idx, 1);
-                    }
-                    setTodo({ ...todo, notificationChannels: channels.join(',') });
+                      return { ...prev, notificationChannels: channels.join(',') };
+                    });
                   }}
                   className="text-primary focus:ring-primary"
                 />
@@ -434,16 +447,18 @@ export const TodoEditor: React.FC = () => {
                   type="checkbox"
                   checked={todo.notificationChannels?.includes('dingtalk') || false}
                   onChange={(e) => {
-                    const channels = todo.notificationChannels?.split(',').filter(c => c) || [];
-                    if (e.target.checked) {
-                      if (!channels.includes('dingtalk')) {
-                        channels.push('dingtalk');
+                    const checked = e.target.checked;
+                    setTodo(prev => {
+                      if (!prev) return prev;
+                      const channels = prev.notificationChannels?.split(',').filter(c => c) || [];
+                      if (checked) {
+                        if (!channels.includes('dingtalk')) channels.push('dingtalk');
+                      } else {
+                        const idx = channels.indexOf('dingtalk');
+                        if (idx > -1) channels.splice(idx, 1);
                       }
-                    } else {
-                      const idx = channels.indexOf('dingtalk');
-                      if (idx > -1) channels.splice(idx, 1);
-                    }
-                    setTodo({ ...todo, notificationChannels: channels.join(',') });
+                      return { ...prev, notificationChannels: channels.join(',') };
+                    });
                   }}
                   className="text-primary focus:ring-primary"
                 />
@@ -455,13 +470,10 @@ export const TodoEditor: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Schedule</label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <select
                 value={todo.schedule?.repeat || 'none'}
-                onChange={(e) => setTodo({
-                  ...todo,
-                  schedule: { ...todo.schedule, repeat: e.target.value as any }
-                })}
+                onChange={(e) => { const v = e.target.value as any; setTodo(prev => prev ? { ...prev, schedule: { ...prev.schedule, repeat: v } } : prev); }}
                 className="px-4 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="none">No Repeat</option>
@@ -473,10 +485,7 @@ export const TodoEditor: React.FC = () => {
                 <input
                   type="date"
                   value={todo.schedule?.endDate ? new Date(todo.schedule.endDate).toISOString().slice(0, 10) : ''}
-                  onChange={(e) => setTodo({
-                    ...todo,
-                    schedule: { ...todo.schedule!, endDate: e.target.value ? new Date(e.target.value) : undefined }
-                  })}
+                  onChange={(e) => { const v = e.target.value ? new Date(e.target.value) : undefined; setTodo(prev => prev ? { ...prev, schedule: { ...prev.schedule!, endDate: v } } : prev); }}
                   className="px-4 py-2 border border-gray-300 rounded-lg"
                   placeholder="End Date"
                 />
@@ -489,10 +498,7 @@ export const TodoEditor: React.FC = () => {
             <input
               type="text"
               value={todo.location?.address || ''}
-              onChange={(e) => setTodo({
-                ...todo,
-                location: e.target.value ? { lat: 0, lng: 0, address: e.target.value } : undefined
-              })}
+              onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, location: v ? { lat: 0, lng: 0, address: v } : undefined } : prev); }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               placeholder="Add location..."
             />
@@ -553,7 +559,6 @@ export const TodoEditor: React.FC = () => {
         ownerId={todo.ownerId}
         sharedWith={todo.sharedWith}
         onShareSuccess={() => {
-          // Reload todo to get updated sharedWith
           if (id) {
             api.todos.getById(id).then(setTodo);
           }
