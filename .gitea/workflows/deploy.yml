@@ -28,5 +28,5 @@ jobs:
           docker run -d -p $TARGET_PORT:8080 \
             --volume /volume1/docker/$CONTAINER_NAME/etc:/app/etc:ro \
             --volume /volume1/docker/$CONTAINER_NAME/var:/app/var:rw \
-            ----env-file /app/etc/.env \
+            --env-file /app/etc/.env \
             --name $CONTAINER_NAME localhost/$CONTAINER_NAME:latest \
