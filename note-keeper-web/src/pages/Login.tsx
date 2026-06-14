@@ -22,7 +22,10 @@ export default function Login() {
     fetch('/api/v1/config')
       .then(res => res.json())
       .then(config => {
-        if (!config.googleClientId || !window.google) return;
+        if (!config.googleClientId || !window.google) {
+          console.error('Google client ID not found in config or Google SDK not loaded');
+          return;
+        }
         window.google.accounts.id.initialize({
           client_id: config.googleClientId,
           callback: window.handleGoogleCredentialResponse,
