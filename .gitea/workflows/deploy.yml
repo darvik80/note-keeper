@@ -29,5 +29,5 @@ jobs:
             --volume /volume1/docker/$CONTAINER_NAME/etc:/app/etc:ro \
             --volume /volume1/docker/$CONTAINER_NAME/var:/app/var:rw \
             --volume /volume1/docker/$CONTAINER_NAME/.env:/app/.env:ro \
-            --env-file /app/.env \
+            --env-file /volume1/docker/$CONTAINER_NAME/.env \
             --name $CONTAINER_NAME localhost/$CONTAINER_NAME:latest \
