@@ -30,4 +30,4 @@ jobs:
             --volume /volume1/docker/$CONTAINER_NAME/etc:/app/etc:ro \
             --volume /volume1/docker/$CONTAINER_NAME/var:/app/var:rw \
             --volume /volume1/docker/$CONTAINER_NAME/.env:/app/.env:ro \
-            --name $CONTAINER_NAME localhost/$CONTAINER_NAME:latest \
+            --name $CONTAINER_NAME localhost/$CONTAINER_NAME:latest
