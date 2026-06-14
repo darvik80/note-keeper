@@ -46,10 +46,10 @@ public class SecurityConfig {
                         // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )
-                .oauth2Login(oauth2 -> oauth2
-                        // Если у вас кастомный эндпоинт, базовый путь обработки OAuth тоже нужно указать
-                        .loginPage("/api/v1/auth/google")
-                )
+//                .oauth2Login(oauth2 -> oauth2
+//                        // Если у вас кастомный эндпоинт, базовый путь обработки OAuth тоже нужно указать
+//                        .loginPage("/api/v1/auth/google")
+//                )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
