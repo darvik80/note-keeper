@@ -13,7 +13,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins("http://localhost:3001","https://darvik.synology.me","https://darvik.synology.me:8443")
+                .allowedOrigins("http://localhost:3001","https://note.darvik.synology.me","https://note.darvik.synology.me:8443")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*");
     }
