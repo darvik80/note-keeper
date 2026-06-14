@@ -30,6 +30,9 @@
 						<goals>
 							<goal>install-node-and-npm</goal>
 						</goals>
+						<configuration>
+							<nodeVersion>v20.11.0</nodeVersion>
+						</configuration>
 						<phase>generate-resources</phase>
 					</execution>
 					<execution>
