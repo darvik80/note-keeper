@@ -5,8 +5,8 @@ COPY pom.xml .
 COPY note-keeper-service/pom.xml note-keeper-service/
 COPY note-keeper-web/pom.xml note-keeper-web/
 
-COPY note-keeper-service/src note-keeper-service
-COPY note-keeper-web/src note-keeper-web
+COPY note-keeper-service/src note-keeper-service/src
+COPY note-keeper-web/src note-keeper-web/src
 
 RUN mvn clean package -DskipTests
 
