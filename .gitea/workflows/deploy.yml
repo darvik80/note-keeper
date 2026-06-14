@@ -25,9 +25,9 @@ jobs:
         run: |
           export DOCKER_API_VERSION=1.43
           docker rm -f $CONTAINER_NAME
-          docker run -d -p $TARGET_PORT:8080 \
+          docker run --env-file /volume1/docker/$CONTAINER_NAME/.env \
+            -d -p $TARGET_PORT:8080 \
             --volume /volume1/docker/$CONTAINER_NAME/etc:/app/etc:ro \
             --volume /volume1/docker/$CONTAINER_NAME/var:/app/var:rw \
             --volume /volume1/docker/$CONTAINER_NAME/.env:/app/.env:ro \
-            --env-file /volume1/docker/$CONTAINER_NAME/.env \
             --name $CONTAINER_NAME localhost/$CONTAINER_NAME:latest \
