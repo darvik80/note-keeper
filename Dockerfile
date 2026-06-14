@@ -4,12 +4,9 @@ WORKDIR /app
 COPY pom.xml .
 COPY note-keeper-service/pom.xml note-keeper-service/
 COPY note-keeper-web/pom.xml note-keeper-web/
+RUN mvn dependency:go-offline -B
 
-COPY note-keeper-service/src note-keeper-service/src
-COPY note-keeper-web/src note-keeper-web/src
-COPY note-keeper-web/index.html note-keeper-web/
-COPY note-keeper-web/package.json note-keeper-web/
-COPY note-keeper-web/*.json note-keeper-web/
+COPY . .
 
 RUN mvn clean package -DskipTests
 

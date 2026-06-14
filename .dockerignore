@@ -1,0 +1,10 @@
+**/target/
+**/node_modules/
+.git/
+.idea/
+*.iml
+.gitea/
+.github/
+**/dist
+ansible
+android
