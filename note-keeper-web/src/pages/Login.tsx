@@ -19,23 +19,19 @@ declare global {
 /** Login page with email/password login, registration form, and Google OAuth button. */
 export default function Login() {
   useEffect(() => {
-    // Initialize Google Sign-In
-    if (window.google) {
-      window.google.accounts.id.initialize({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
-        callback: window.handleGoogleCredentialResponse,
+    fetch('/api/v1/config')
+      .then(res => res.json())
+      .then(config => {
+        if (!config.googleClientId || !window.google) return;
+        window.google.accounts.id.initialize({
+          client_id: config.googleClientId,
+          callback: window.handleGoogleCredentialResponse,
+        });
+        window.google.accounts.id.renderButton(
+          document.getElementById('googleSignInButton'),
+          { theme: 'outline', size: 'large', width: '100%' }
+        );
       });
-
-      // Render Google Sign-In button
-      window.google.accounts.id.renderButton(
-        document.getElementById('googleSignInButton'),
-        {
-          theme: 'outline',
-          size: 'large',
-          width: '100%',
-        }
-      );
-    }
   }, []);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -109,19 +105,10 @@ export default function Login() {
   // Google Sign-In callback
   window.handleGoogleCredentialResponse = async (response: any) => {
     try {
-      // Decode JWT token from Google
-      const userInfo = JSON.parse(atob(response.credential.split('.')[1]));
-      
       const res = await fetch('/api/v1/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          credential: response.credential,
-          googleId: userInfo.sub,
-          email: userInfo.email,
-          name: userInfo.name,
-          picture: userInfo.picture
-        })
+        body: JSON.stringify({ credential: response.credential })
       });
 
       if (!res.ok) {

@@ -19,6 +19,8 @@ app:
     # AES-256 key (Base64 encoded). Generate with: EncryptionService.generateKey()
     # WARNING: If not set, a random key is generated on each startup (encrypted data will be lost)
     key: yjySH54/8L2nhkSZEOvL8JcOV3ViYSIeKunaQnNlmZk=
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
 
 # Common configuration (applies to all profiles)
 mybatis:

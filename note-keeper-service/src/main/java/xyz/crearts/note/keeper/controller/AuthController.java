@@ -43,19 +43,12 @@ public class AuthController {
     /**
      * Login with Google OAuth token.
      * Expects: { "credential": "google_id_token" }
+     * The token is verified server-side — user data is extracted from the verified token only.
      */
     @PostMapping("/google")
     public AuthResponse loginWithGoogle(@RequestBody Map<String, String> request) {
         String credential = request.get("credential");
         log.info("Login with Google OAuth token");
-        
-        // For now, extract info from client (in production, validate token with Google)
-        // Client will decode JWT and send user info
-        return authService.loginWithGoogle(
-            request.get("googleId"),
-            request.get("email"),
-            request.get("name"),
-            request.get("picture")
-        );
+        return authService.loginWithGoogle(credential);
     }
 }
