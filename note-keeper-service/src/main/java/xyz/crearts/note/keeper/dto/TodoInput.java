@@ -21,6 +21,7 @@ public class TodoInput {
     
     private String dueDate;
     private String reminder;
+    private String notificationChannels;
     
     private Map<String, Object> location;
     private Map<String, Object> schedule;

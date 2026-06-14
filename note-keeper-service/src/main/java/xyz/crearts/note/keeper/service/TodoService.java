@@ -65,6 +65,7 @@ public class TodoService {
         todo.setSharedWith("[]");
         todo.setDueDate(parseDate(input.getDueDate()));
         todo.setReminder(parseDate(input.getReminder()));
+        todo.setNotificationChannels(input.getNotificationChannels());
 
         if (input.getLocation() != null) {
             todo.setLocation(convertToLocation(input.getLocation()));
@@ -106,6 +107,9 @@ public class TodoService {
         if (input.getIsFavorite() != null) existing.setFavorite(input.getIsFavorite());
         existing.setDueDate(parseDate(input.getDueDate()));
         existing.setReminder(parseDate(input.getReminder()));
+        if (input.getNotificationChannels() != null) {
+            existing.setNotificationChannels(input.getNotificationChannels());
+        }
 
         if (input.getLocation() != null) {
             existing.setLocation(convertToLocation(input.getLocation()));

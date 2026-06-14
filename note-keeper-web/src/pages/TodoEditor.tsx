@@ -101,6 +101,7 @@ export const TodoEditor: React.FC = () => {
         completed: current.completed,
         dueDate: current.dueDate ? current.dueDate.toISOString() : undefined,
         reminder: current.reminder ? (typeof current.reminder === 'string' ? current.reminder : current.reminder.toISOString()) : undefined,
+        notificationChannels: todo.notificationChannels,
         location: current.location,
         schedule: current.schedule && current.schedule.repeat !== 'none' ? {
           repeat: current.schedule.repeat,
