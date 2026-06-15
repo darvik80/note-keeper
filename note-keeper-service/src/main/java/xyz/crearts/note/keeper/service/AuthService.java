@@ -1,12 +1,7 @@
 package xyz.crearts.note.keeper.service;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import xyz.crearts.note.keeper.dto.AuthRequest;
 import xyz.crearts.note.keeper.dto.AuthResponse;
@@ -20,7 +15,6 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.UUID;
 
 /**
@@ -30,9 +24,6 @@ import java.util.UUID;
 public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
-
-    @Value("${app.google.client-id:}")
-    private String googleClientId;
 
     private final UserMapper userMapper;
     private final UserCredentialsMapper credentialsMapper;
@@ -115,40 +106,9 @@ public class AuthService {
 
     /**
      * Login or register with Google OAuth.
-     * Verifies the Google ID token server-side before trusting any user data.
+     * Called by OAuth2SuccessHandler after Spring Security verifies the token.
      */
-    public AuthResponse loginWithGoogle(String credential) {
-        if (googleClientId == null || googleClientId.isBlank()) {
-            throw new RuntimeException("Google OAuth is not configured");
-        }
-
-        GoogleIdToken.Payload payload;
-        try {
-            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
-                    new NetHttpTransport(), GsonFactory.getDefaultInstance())
-                    .setAudience(Collections.singletonList(googleClientId))
-                    .build();
-
-            GoogleIdToken idToken = verifier.verify(credential);
-            if (idToken == null) {
-                throw new RuntimeException("Invalid Google token");
-            }
-            payload = idToken.getPayload();
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to verify Google token", e);
-        }
-
-        String googleId = payload.getSubject();
-        String email = payload.getEmail();
-        String name = (String) payload.get("name");
-        String avatarUrl = (String) payload.get("picture");
-
-        return loginWithGoogleUser(googleId, email, name, avatarUrl);
-    }
-
-    private AuthResponse loginWithGoogleUser(String googleId, String email, String name, String avatarUrl) {
+    public AuthResponse loginWithGoogle(String googleId, String email, String name, String avatarUrl) {
         User user = userMapper.findByGoogleId(googleId);
         
         if (user == null) {

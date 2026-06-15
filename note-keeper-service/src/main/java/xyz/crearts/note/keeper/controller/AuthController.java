@@ -6,10 +6,9 @@ import xyz.crearts.note.keeper.dto.AuthRequest;
 import xyz.crearts.note.keeper.dto.AuthResponse;
 import xyz.crearts.note.keeper.service.AuthService;
 
-import java.util.Map;
-
 /**
- * Authentication controller for login, registration, and Google OAuth.
+ * Authentication controller for login and registration.
+ * Google OAuth is handled by Spring Security OAuth2 Client (see SecurityConfig).
  */
 @Slf4j
 @RestController
@@ -38,17 +37,5 @@ public class AuthController {
     public AuthResponse login(@RequestBody AuthRequest request) {
         log.info("Login user with email: {}", request.getEmail());
         return authService.loginWithEmail(request);
-    }
-
-    /**
-     * Login with Google OAuth token.
-     * Expects: { "credential": "google_id_token" }
-     * The token is verified server-side — user data is extracted from the verified token only.
-     */
-    @PostMapping("/google")
-    public AuthResponse loginWithGoogle(@RequestBody Map<String, String> request) {
-        String credential = request.get("credential");
-        log.info("Login with Google OAuth token");
-        return authService.loginWithGoogle(credential);
     }
 }
