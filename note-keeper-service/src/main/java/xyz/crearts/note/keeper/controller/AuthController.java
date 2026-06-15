@@ -1,13 +1,15 @@
 package xyz.crearts.note.keeper.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import xyz.crearts.note.keeper.dto.AuthRequest;
 import xyz.crearts.note.keeper.dto.AuthResponse;
+import xyz.crearts.note.keeper.model.User;
 import xyz.crearts.note.keeper.service.AuthService;
 
 /**
- * Authentication controller for login and registration.
+ * Authentication controller for login, registration, and current user info.
  * Google OAuth is handled by Spring Security OAuth2 Client (see SecurityConfig).
  */
 @Slf4j
@@ -37,5 +39,18 @@ public class AuthController {
     public AuthResponse login(@RequestBody AuthRequest request) {
         log.info("Login user with email: {}", request.getEmail());
         return authService.loginWithEmail(request);
+    }
+
+    /**
+     * Get current authenticated user info from JWT token.
+     */
+    @GetMapping("/me")
+    public ResponseEntity<User> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        User user = authService.validateToken(token);
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(user);
     }
 }
