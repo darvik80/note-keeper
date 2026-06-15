@@ -71,6 +71,12 @@
 			<artifactId>note-keeper-web</artifactId>
 		</dependency>
 
+		<!-- Google OAuth token verification -->
+		<dependency>
+			<groupId>com.google.api-client</groupId>
+			<artifactId>google-api-client</artifactId>
+			<version>2.7.0</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>

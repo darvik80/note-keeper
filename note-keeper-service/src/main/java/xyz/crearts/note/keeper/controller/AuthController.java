@@ -1,10 +1,13 @@
 package xyz.crearts.note.keeper.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import xyz.crearts.note.keeper.dto.AuthRequest;
 import xyz.crearts.note.keeper.dto.AuthResponse;
 import xyz.crearts.note.keeper.service.AuthService;
+import xyz.crearts.note.keeper.service.GoogleTokenVerifier;
 
 import java.util.Map;
 
@@ -17,9 +20,11 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final GoogleTokenVerifier googleTokenVerifier;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, GoogleTokenVerifier googleTokenVerifier) {
         this.authService = authService;
+        this.googleTokenVerifier = googleTokenVerifier;
     }
 
     /**
@@ -43,19 +48,27 @@ public class AuthController {
     /**
      * Login with Google OAuth token.
      * Expects: { "credential": "google_id_token" }
+     * Server verifies the token signature using Google's public keys.
      */
     @PostMapping("/google")
     public AuthResponse loginWithGoogle(@RequestBody Map<String, String> request) {
         String credential = request.get("credential");
-        log.info("Login with Google OAuth token");
-        
-        // For now, extract info from client (in production, validate token with Google)
-        // Client will decode JWT and send user info
+        if (credential == null || credential.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing 'credential' field");
+        }
+
+        log.info("Verifying Google OAuth token");
+        GoogleTokenVerifier.GoogleUserInfo userInfo = googleTokenVerifier.verify(credential);
+        if (userInfo == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Google ID token");
+        }
+
+        log.info("Google OAuth verified for user: {}", userInfo.email());
         return authService.loginWithGoogle(
-            request.get("googleId"),
-            request.get("email"),
-            request.get("name"),
-            request.get("picture")
+                userInfo.googleId(),
+                userInfo.email(),
+                userInfo.name(),
+                userInfo.pictureUrl()
         );
     }
 }
