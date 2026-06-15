@@ -28,13 +28,16 @@ public class NoteService {
     private final NoteHistoryMapper historyMapper;
     private final AttachmentMapper attachmentMapper;
     private final EncryptionService encryptionService;
+    private final NotificationService notificationService;
 
     public NoteService(NoteMapper noteMapper, NoteHistoryMapper historyMapper, 
-                      AttachmentMapper attachmentMapper, EncryptionService encryptionService) {
+                      AttachmentMapper attachmentMapper, EncryptionService encryptionService,
+                      NotificationService notificationService) {
         this.noteMapper = noteMapper;
         this.historyMapper = historyMapper;
         this.attachmentMapper = attachmentMapper;
         this.encryptionService = encryptionService;
+        this.notificationService = notificationService;
     }
 
     public List<Note> findAll(String folder, String tag, String priority,
@@ -128,6 +131,7 @@ public class NoteService {
             log.info("No attachments provided for note {}", note.getId());
         }
 
+        notificationService.notifyNoteCreated(note.getId(), ownerId);
         return findById(note.getId());
     }
 
@@ -191,6 +195,7 @@ public class NoteService {
             }
         }
 
+        notificationService.notifyNoteUpdated(id, existing.getOwnerId());
         return findById(id);
     }
 
@@ -200,12 +205,14 @@ public class NoteService {
         if (note == null) {
             throw new ResourceNotFoundException("Note not found: " + id);
         }
+        String ownerId = note.getOwnerId();
         if (permanent) {
             attachmentMapper.deleteByParent(id, "note");
             noteMapper.permanentDelete(id);
         } else {
             noteMapper.softDelete(id, LocalDateTime.now().toString());
         }
+        notificationService.notifyNoteDeleted(id, ownerId);
     }
 
     public Note archive(String id) {

@@ -24,10 +24,12 @@ public class TodoService {
 
     private final TodoMapper todoMapper;
     private final AttachmentMapper attachmentMapper;
+    private final NotificationService notificationService;
 
-    public TodoService(TodoMapper todoMapper, AttachmentMapper attachmentMapper) {
+    public TodoService(TodoMapper todoMapper, AttachmentMapper attachmentMapper, NotificationService notificationService) {
         this.todoMapper = todoMapper;
         this.attachmentMapper = attachmentMapper;
+        this.notificationService = notificationService;
     }
 
     public List<Todo> findAll(Boolean completed, String tag, String priority,
@@ -93,6 +95,7 @@ public class TodoService {
             saveAttachments(todo.getId(), "todo", input.getAttachments());
         }
 
+        notificationService.notifyTodoCreated(todo.getId(), ownerId);
         return findById(todo.getId());
     }
 
@@ -130,6 +133,7 @@ public class TodoService {
             saveAttachments(id, "todo", input.getAttachments());
         }
 
+        notificationService.notifyTodoUpdated(id, existing.getOwnerId());
         return findById(id);
     }
 
@@ -139,12 +143,14 @@ public class TodoService {
         if (todo == null) {
             throw new ResourceNotFoundException("Todo not found: " + id);
         }
+        String ownerId = todo.getOwnerId();
         if (permanent) {
             attachmentMapper.deleteByParent(id, "todo");
             todoMapper.permanentDelete(id);
         } else {
             todoMapper.softDelete(id, LocalDateTime.now().toString());
         }
+        notificationService.notifyTodoDeleted(id, ownerId);
     }
 
     public Todo archive(String id) {

@@ -3,11 +3,12 @@
  * @category Pages
  * @description Todos list page with filtering and todo management.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Todo, TodoInput } from '../types';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 /** Full todos list page with filtering by status, priority, and tags. */
 export const Todos: React.FC = () => {
@@ -18,21 +19,16 @@ export const Todos: React.FC = () => {
   const [showSharedOnly, setShowSharedOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadTodos();
-    loadSharedTodos();
-  }, []);
-
-  const loadTodos = async () => {
+  const loadTodos = useCallback(async () => {
     try {
       const t = await api.todos.getAll({ isArchived: false, isDeleted: false });
       setTodos(t);
     } catch (err) {
       setError((err as any)?.message || 'Failed to load todos');
     }
-  };
+  }, []);
 
-  const loadSharedTodos = async () => {
+  const loadSharedTodos = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('/api/v1/todos/shared-with-me', {
@@ -47,7 +43,19 @@ export const Todos: React.FC = () => {
     } catch (err) {
       setError((err as any)?.message || 'Failed to load shared todos');
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadTodos();
+    loadSharedTodos();
+  }, [loadTodos, loadSharedTodos]);
+
+  useWebSocket((event) => {
+    if (event.type.startsWith('TODO_')) {
+      loadTodos();
+      loadSharedTodos();
+    }
+  });
 
   const createTodo = async () => {
     const input: TodoInput = {

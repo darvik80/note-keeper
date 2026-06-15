@@ -3,13 +3,14 @@
  * @category Pages
  * @description Notes list page with folder panel, search, filtering, and note management.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { FolderTree } from '../components/FolderTree';
 import { api } from '../utils/api';
 import { buildFolderTree, parsePath, getFullPath } from '../utils/folderUtils';
 import { Note, NoteInput } from '../types';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 /** Full notes list page with folder tree, filters, and inline note management actions. */
 export const Notes: React.FC = () => {
@@ -24,21 +25,16 @@ export const Notes: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
 
-  useEffect(() => {
-    loadNotes();
-    loadSharedNotes();
-  }, []);
-
-  const loadNotes = async () => {
+  const loadNotes = useCallback(async () => {
     try {
       const n = await api.notes.getAll({ isArchived: false, isDeleted: false });
       setNotes(n);
     } catch (err) {
       setError((err as any)?.message || 'Failed to load notes');
     }
-  };
+  }, []);
 
-  const loadSharedNotes = async () => {
+  const loadSharedNotes = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('/api/v1/notes/shared-with-me', {
@@ -53,7 +49,19 @@ export const Notes: React.FC = () => {
     } catch (err) {
       setError((err as any)?.message || 'Failed to load shared notes');
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadNotes();
+    loadSharedNotes();
+  }, [loadNotes, loadSharedNotes]);
+
+  useWebSocket((event) => {
+    if (event.type.startsWith('NOTE_')) {
+      loadNotes();
+      loadSharedNotes();
+    }
+  });
 
   const createNote = async () => {
     const { folder, subfolder } = parsePath(selectedFolder);

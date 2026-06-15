@@ -3,11 +3,12 @@
  * @category Pages
  * @description Calendar page — todos with due dates displayed in a monthly calendar grid.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
 import { Todo, Note } from '../types';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 type CalendarItem = {
   id: string;
@@ -30,48 +31,53 @@ export const Calendar: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [todos, notes] = await Promise.all([
-          api.todos.getAll({ isArchived: false, isDeleted: false }),
-          api.notes.getAll({ isArchived: false, isDeleted: false })
-        ]);
+  const load = useCallback(async () => {
+    try {
+      const [todos, notes] = await Promise.all([
+        api.todos.getAll({ isArchived: false, isDeleted: false }),
+        api.notes.getAll({ isArchived: false, isDeleted: false })
+      ]);
 
-        const todoItems: CalendarItem[] = todos
-          .filter(t => t.dueDate || t.reminder)
-          .map(t => ({
-            id: t.id,
-            title: t.title,
-            type: 'todo' as const,
-            completed: t.completed,
-            priority: t.priority,
-            tags: t.tags,
-            description: t.description,
-            dueDate: t.dueDate,
-            reminder: t.reminder,
-            schedule: t.schedule
-          }));
+      const todoItems: CalendarItem[] = todos
+        .filter(t => t.dueDate || t.reminder)
+        .map(t => ({
+          id: t.id,
+          title: t.title,
+          type: 'todo' as const,
+          completed: t.completed,
+          priority: t.priority,
+          tags: t.tags,
+          description: t.description,
+          dueDate: t.dueDate,
+          reminder: t.reminder,
+          schedule: t.schedule
+        }));
 
-        const noteItems: CalendarItem[] = notes
-          .filter(n => n.reminder)
-          .map(n => ({
-            id: n.id,
-            title: n.title,
-            type: 'note' as const,
-            priority: n.priority,
-            tags: n.tags,
-            description: n.content?.slice(0, 100),
-            reminder: n.reminder
-          }));
+      const noteItems: CalendarItem[] = notes
+        .filter(n => n.reminder)
+        .map(n => ({
+          id: n.id,
+          title: n.title,
+          type: 'note' as const,
+          priority: n.priority,
+          tags: n.tags,
+          description: n.content?.slice(0, 100),
+          reminder: n.reminder
+        }));
 
-        setItems([...todoItems, ...noteItems]);
-      } catch (err) {
-        setError((err as any)?.message || 'Failed to load calendar data');
-      }
-    };
-    load();
+      setItems([...todoItems, ...noteItems]);
+    } catch (err) {
+      setError((err as any)?.message || 'Failed to load calendar data');
+    }
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  useWebSocket((event) => {
+    if (event.type.startsWith('TODO_') || event.type.startsWith('NOTE_')) {
+      load();
+    }
+  });
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
