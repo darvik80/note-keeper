@@ -17,7 +17,7 @@ spring:
             scope:
               - profile
               - email
-            redirect-uri: "{baseUrl}/login/oauth2/code/google"
+            redirect-uri: "https://note.darvik.synology.me:8443/login/oauth2/code/google"
 
 # Application configuration
 app:

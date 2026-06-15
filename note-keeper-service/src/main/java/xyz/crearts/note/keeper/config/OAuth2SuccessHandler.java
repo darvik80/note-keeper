@@ -48,8 +48,29 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         AuthResponse authResponse = authService.loginWithGoogle(googleId, email, name, picture);
         String token = authResponse.getToken();
 
-        // Redirect to frontend with token in query param
-        String redirectUrl = "/#/login?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
+        // Build absolute redirect URL respecting reverse proxy headers
+        String scheme = request.getHeader("X-Forwarded-Proto");
+        if (scheme == null || scheme.isEmpty()) {
+            scheme = request.getScheme();
+        }
+        // Force HTTPS when behind reverse proxy on non-standard port
+        if ("http".equalsIgnoreCase(scheme) && request.getServerPort() != 8080) {
+            scheme = "https";
+        }
+
+        String host = request.getHeader("X-Forwarded-Host");
+        if (host == null || host.isEmpty()) {
+            host = request.getServerName();
+            int port = request.getServerPort();
+            if (("https".equalsIgnoreCase(scheme) && port != 443)
+                    || ("http".equalsIgnoreCase(scheme) && port != 80)) {
+                host = host + ":" + port;
+            }
+        }
+
+        String baseUrl = scheme + "://" + host;
+        String redirectUrl = baseUrl + "/#/login?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
+        log.info("OAuth2 redirect URL: {}", redirectUrl);
         response.sendRedirect(redirectUrl);
     }
 }
