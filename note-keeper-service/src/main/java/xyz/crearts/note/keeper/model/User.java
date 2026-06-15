@@ -13,6 +13,7 @@ public class User {
     private String id;
     private String email;
     private String name;
+    @JsonProperty("picture")
     private String avatarUrl;
     private String provider; // 'local' or 'google'
     private String googleId;

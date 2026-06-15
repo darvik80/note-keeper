@@ -31,9 +31,9 @@ export default function Login() {
         .then(res => res.ok ? res.json() : null)
         .then(user => {
           if (user) localStorage.setItem('user', JSON.stringify(user));
-          navigate('/dashboard', { replace: true });
+          navigate('/', { replace: true });
         })
-        .catch(() => navigate('/dashboard', { replace: true }));
+        .catch(() => navigate('/', { replace: true }));
       return;
     }
 

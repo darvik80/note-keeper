@@ -45,12 +45,13 @@ public class AuthService {
             throw new RuntimeException("User with email already exists: " + request.getEmail());
         }
 
-        // Create user
+        // Create user with generated avatar for local accounts
         String userId = UUID.randomUUID().toString();
         User user = new User();
         user.setId(userId);
         user.setEmail(request.getEmail());
         user.setName(request.getName());
+        user.setAvatarUrl(generateAvatarUrl(request.getEmail()));
         user.setProvider("local");
         user.setActive(true);
         user.setCreatedAt(LocalDateTime.now());
@@ -176,5 +177,15 @@ public class AuthService {
         } catch (Exception e) {
             throw new RuntimeException("Error hashing password", e);
         }
+    }
+
+    /**
+     * Generate deterministic avatar URL using DiceBear API based on email.
+     * Uses 'avataaars' style for friendly, unique avatars without external storage.
+     */
+    private String generateAvatarUrl(String email) {
+        String seed = email.toLowerCase().trim();
+        return "https://api.dicebear.com/7.x/avataaars/svg?seed=" + 
+               java.net.URLEncoder.encode(seed, StandardCharsets.UTF_8);
     }
 }

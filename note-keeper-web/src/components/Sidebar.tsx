@@ -12,7 +12,6 @@
  */
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { api } from '../utils/api';
 
 /** Props for {@link Sidebar}. */
 interface SidebarProps {
@@ -114,18 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileM
           ))}
         </nav>
 
-        <div className="p-4 border-t border-border">
-          <button
-            onClick={async () => {
-              await api.auth.logout();
-              navigate('/login');
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-text hover:bg-hover transition-all active:scale-95"
-          >
-            <i className="fas fa-sign-out-alt w-5"></i>
-            <span className="font-medium">Logout</span>
-          </button>
-        </div>
+
       </div>
     </>
   );
