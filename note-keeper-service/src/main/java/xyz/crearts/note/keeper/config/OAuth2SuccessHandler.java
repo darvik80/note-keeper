@@ -53,10 +53,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         if (scheme == null || scheme.isEmpty()) {
             scheme = request.getScheme();
         }
-        // Force HTTPS when behind reverse proxy on non-standard port
-        if ("http".equalsIgnoreCase(scheme) && request.getServerPort() != 8080) {
-            scheme = "https";
-        }
+//        // Force HTTPS when behind reverse proxy on non-standard port
+//        if ("http".equalsIgnoreCase(scheme) && request.getServerPort() != 8080) {
+//            scheme = "https";
+//        }
 
         String host = request.getHeader("X-Forwarded-Host");
         if (host == null || host.isEmpty()) {
