@@ -26,8 +26,80 @@ export const Settings: React.FC = () => {
     retentionDays: 30
   });
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [showTelegramToken, setShowTelegramToken] = useState(false);
+  const [showTelegramChatId, setShowTelegramChatId] = useState(false);
+  const [showDingtalkWebhook, setShowDingtalkWebhook] = useState(false);
+  const [showDingtalkSecret, setShowDingtalkSecret] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(false);
 
-  const saveSettings = () => {
+  // Load settings from backend on mount; migrate from localStorage if backend is empty
+  useEffect(() => {
+    const loadSettings = async () => {
+      setLoadingSettings(true);
+      try {
+        const backendSettings = await api.settings.get();
+        const hasBackendData = backendSettings && (
+          backendSettings.telegramBotToken ||
+          backendSettings.telegramChatId ||
+          backendSettings.dingtalkWebhook ||
+          backendSettings.dingtalkSecret
+        );
+
+        if (hasBackendData) {
+          // Use backend settings (already decrypted)
+          setSettings(prev => ({
+            ...prev,
+            telegram: {
+              enabled: !!backendSettings.telegramBotToken,
+              botToken: backendSettings.telegramBotToken || '',
+              chatId: backendSettings.telegramChatId || ''
+            },
+            dingtalk: {
+              enabled: !!backendSettings.dingtalkWebhook,
+              webhook: backendSettings.dingtalkWebhook || '',
+              secret: backendSettings.dingtalkSecret || ''
+            }
+          }));
+        } else {
+          // Backend is empty — migrate from localStorage
+          const localSettings = storage.getSettings();
+          const hasLocalData = localSettings.telegram?.botToken || localSettings.dingtalk?.webhook;
+          if (hasLocalData) {
+            // Save local settings to backend (will be encrypted)
+            await api.settings.save({
+              telegramBotToken: localSettings.telegram?.botToken || null,
+              telegramChatId: localSettings.telegram?.chatId || null,
+              dingtalkWebhook: localSettings.dingtalk?.webhook || null,
+              dingtalkSecret: localSettings.dingtalk?.secret || null
+            });
+            // Update state with local values
+            setSettings(localSettings);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load/migrate settings:', err);
+      } finally {
+        setLoadingSettings(false);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  const saveSettings = async () => {
+    // Save integration settings to backend (encrypted)
+    try {
+      await api.settings.save({
+        telegramBotToken: settings.telegram.botToken || null,
+        telegramChatId: settings.telegram.chatId || null,
+        dingtalkWebhook: settings.dingtalk.webhook || null,
+        dingtalkSecret: settings.dingtalk.secret || null
+      });
+    } catch (err) {
+      console.error('Failed to save integration settings:', err);
+      setError('Failed to save integration settings');
+      return;
+    }
+    // Save non-sensitive settings locally
     storage.saveSettings(settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -306,31 +378,51 @@ export const Settings: React.FC = () => {
                       <label className="block text-sm font-medium text-text mb-2">
                         Bot Token
                       </label>
-                      <input
-                        type="text"
-                        value={settings.telegram.botToken}
-                        onChange={(e) => setSettings({
-                          ...settings,
-                          telegram: { ...settings.telegram, botToken: e.target.value }
-                        })}
-                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
-                        placeholder="Enter your Telegram bot token"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showTelegramToken ? 'text' : 'password'}
+                          value={settings.telegram.botToken}
+                          onChange={(e) => setSettings({
+                            ...settings,
+                            telegram: { ...settings.telegram, botToken: e.target.value }
+                          })}
+                          className="w-full px-4 py-2 pr-10 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
+                          placeholder="Enter your Telegram bot token"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowTelegramToken(!showTelegramToken)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text"
+                          tabIndex={-1}
+                        >
+                          <i className={`fas ${showTelegramToken ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-text mb-2">
                         Chat ID
                       </label>
-                      <input
-                        type="text"
-                        value={settings.telegram.chatId}
-                        onChange={(e) => setSettings({
-                          ...settings,
-                          telegram: { ...settings.telegram, chatId: e.target.value }
-                        })}
-                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
-                        placeholder="Enter your chat ID"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showTelegramChatId ? 'text' : 'password'}
+                          value={settings.telegram.chatId}
+                          onChange={(e) => setSettings({
+                            ...settings,
+                            telegram: { ...settings.telegram, chatId: e.target.value }
+                          })}
+                          className="w-full px-4 py-2 pr-10 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
+                          placeholder="Enter your chat ID"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowTelegramChatId(!showTelegramChatId)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text"
+                          tabIndex={-1}
+                        >
+                          <i className={`fas ${showTelegramChatId ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                        </button>
+                      </div>
                     </div>
                     <div className="flex gap-2 pt-2">
                       <button
@@ -389,31 +481,51 @@ export const Settings: React.FC = () => {
                       <label className="block text-sm font-medium text-text mb-2">
                         Webhook URL
                       </label>
-                      <input
-                        type="text"
-                        value={settings.dingtalk.webhook}
-                        onChange={(e) => setSettings({
-                          ...settings,
-                          dingtalk: { ...settings.dingtalk, webhook: e.target.value }
-                        })}
-                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
-                        placeholder="Enter your DingTalk webhook URL"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showDingtalkWebhook ? 'text' : 'password'}
+                          value={settings.dingtalk.webhook}
+                          onChange={(e) => setSettings({
+                            ...settings,
+                            dingtalk: { ...settings.dingtalk, webhook: e.target.value }
+                          })}
+                          className="w-full px-4 py-2 pr-10 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
+                          placeholder="Enter your DingTalk webhook URL"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowDingtalkWebhook(!showDingtalkWebhook)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text"
+                          tabIndex={-1}
+                        >
+                          <i className={`fas ${showDingtalkWebhook ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-text mb-2">
                         Secret
                       </label>
-                      <input
-                        type="text"
-                        value={settings.dingtalk.secret}
-                        onChange={(e) => setSettings({
-                          ...settings,
-                          dingtalk: { ...settings.dingtalk, secret: e.target.value }
-                        })}
-                        className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
-                        placeholder="Enter your DingTalk secret"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showDingtalkSecret ? 'text' : 'password'}
+                          value={settings.dingtalk.secret}
+                          onChange={(e) => setSettings({
+                            ...settings,
+                            dingtalk: { ...settings.dingtalk, secret: e.target.value }
+                          })}
+                          className="w-full px-4 py-2 pr-10 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
+                          placeholder="Enter your DingTalk secret"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowDingtalkSecret(!showDingtalkSecret)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text"
+                          tabIndex={-1}
+                        >
+                          <i className={`fas ${showDingtalkSecret ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                        </button>
+                      </div>
                     </div>
                     <div className="flex gap-2 pt-2">
                       <button

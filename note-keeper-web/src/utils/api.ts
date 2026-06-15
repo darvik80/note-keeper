@@ -623,5 +623,37 @@ export const api = {
       });
       return handleResponse(res);
     }
+  },
+
+  /**
+   * User settings endpoints (encrypted on backend).
+   * @category API
+   */
+  settings: {
+    /**
+     * Get current user's settings (sensitive fields decrypted by backend).
+     */
+    get: async (): Promise<any> => {
+      const res = await fetch(`${API_BASE}/settings`, {
+        headers: { ...getAuthHeaders() }
+      });
+      return handleResponse(res);
+    },
+
+    /**
+     * Save current user's settings (sensitive fields encrypted by backend).
+     */
+    save: async (settings: any): Promise<void> => {
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify(settings)
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+      // Backend returns 200 OK with empty body — no JSON to parse
+    }
   }
 };

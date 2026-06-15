@@ -80,10 +80,13 @@ export const Todos: React.FC = () => {
         isFavorite: todo.isFavorite,
         completed: newVal,
         // Convert local date to ISO UTC format for backend
-        dueDate: todo.dueDate ? todo.dueDate.toISOString() : undefined,
-        reminder: todo.reminder ? todo.reminder.toISOString() : undefined,
+        dueDate: todo.dueDate ? (typeof todo.dueDate === 'string' ? todo.dueDate : todo.dueDate.toISOString()) : undefined,
+        reminder: todo.reminder ? (typeof todo.reminder === 'string' ? todo.reminder : todo.reminder.toISOString()) : undefined,
         location: todo.location,
-        schedule: todo.schedule,
+        schedule: todo.schedule ? {
+          repeat: todo.schedule.repeat,
+          endDate: todo.schedule.endDate ? (typeof todo.schedule.endDate === 'string' ? todo.schedule.endDate : todo.schedule.endDate.toISOString()) : undefined
+        } : undefined,
       });
     } catch (err) {
       setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !newVal } : t));
@@ -123,10 +126,13 @@ export const Todos: React.FC = () => {
         isFavorite: newVal,
         completed: todo.completed,
         // Convert local date to ISO UTC format for backend
-        dueDate: todo.dueDate ? todo.dueDate.toISOString() : undefined,
-        reminder: todo.reminder ? todo.reminder.toISOString() : undefined,
+        dueDate: todo.dueDate ? (typeof todo.dueDate === 'string' ? todo.dueDate : todo.dueDate.toISOString()) : undefined,
+        reminder: todo.reminder ? (typeof todo.reminder === 'string' ? todo.reminder : todo.reminder.toISOString()) : undefined,
         location: todo.location,
-        schedule: todo.schedule,
+        schedule: todo.schedule ? {
+          repeat: todo.schedule.repeat,
+          endDate: todo.schedule.endDate ? (typeof todo.schedule.endDate === 'string' ? todo.schedule.endDate : todo.schedule.endDate.toISOString()) : undefined
+        } : undefined,
       });
     } catch (err) {
       setTodos(prev => prev.map(t => t.id === id ? { ...t, isFavorite: !newVal } : t));

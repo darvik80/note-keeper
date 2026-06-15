@@ -7,26 +7,65 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { api } from '../utils/api';
-import { Todo } from '../types';
+import { Todo, Note } from '../types';
 
-/** Calendar page displaying todos by due date in a monthly grid view. */
+type CalendarItem = {
+  id: string;
+  title: string;
+  type: 'todo' | 'note';
+  completed?: boolean;
+  priority: string;
+  tags: string[];
+  description?: string;
+  dueDate?: Date | string;
+  reminder?: Date | string;
+  schedule?: { repeat: string; endDate?: string };
+};
+
+/** Calendar page displaying todos and notes by date in a monthly grid view. */
 export const Calendar: React.FC = () => {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [todos, setTodos] = useState<Todo[]>([]);
+  const [items, setItems] = useState<CalendarItem[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        console.log('[Calendar] Loading todos...');
-        const t = await api.todos.getAll({ isArchived: false, isDeleted: false });
-        console.log('[Calendar] Loaded todos:', t.length);
-        // Show todos with dueDate OR reminder
-        const withDate = t.filter(todo => todo.dueDate || todo.reminder);
-        console.log('[Calendar] Todos with date:', withDate.length);
-        setTodos(withDate);
+        const [todos, notes] = await Promise.all([
+          api.todos.getAll({ isArchived: false, isDeleted: false }),
+          api.notes.getAll({ isArchived: false, isDeleted: false })
+        ]);
+
+        const todoItems: CalendarItem[] = todos
+          .filter(t => t.dueDate || t.reminder)
+          .map(t => ({
+            id: t.id,
+            title: t.title,
+            type: 'todo' as const,
+            completed: t.completed,
+            priority: t.priority,
+            tags: t.tags,
+            description: t.description,
+            dueDate: t.dueDate,
+            reminder: t.reminder,
+            schedule: t.schedule
+          }));
+
+        const noteItems: CalendarItem[] = notes
+          .filter(n => n.reminder)
+          .map(n => ({
+            id: n.id,
+            title: n.title,
+            type: 'note' as const,
+            priority: n.priority,
+            tags: n.tags,
+            description: n.content?.slice(0, 100),
+            reminder: n.reminder
+          }));
+
+        setItems([...todoItems, ...noteItems]);
       } catch (err) {
         setError((err as any)?.message || 'Failed to load calendar data');
       }
@@ -45,24 +84,43 @@ export const Calendar: React.FC = () => {
     return { daysInMonth, startingDayOfWeek };
   };
 
-  const getTodosForDate = (date: Date) => {
-    return todos.filter(todo => {
-      // Check dueDate
-      if (todo.dueDate) {
-        const dueDate = new Date(todo.dueDate);
-        if (dueDate.getDate() === date.getDate() &&
-            dueDate.getMonth() === date.getMonth() &&
-            dueDate.getFullYear() === date.getFullYear()) {
-          return true;
-        }
+  const isSameDay = (a: Date, b: Date) =>
+    a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+
+  const getItemsForDate = (date: Date) => {
+    return items.filter(item => {
+      // Check dueDate match
+      if (item.dueDate && isSameDay(new Date(item.dueDate), date)) {
+        return true;
       }
-      // Check reminder
-      if (todo.reminder) {
-        const reminderDate = new Date(todo.reminder);
-        if (reminderDate.getDate() === date.getDate() &&
-            reminderDate.getMonth() === date.getMonth() &&
-            reminderDate.getFullYear() === date.getFullYear()) {
-          return true;
+      // Check reminder match
+      if (item.reminder && isSameDay(new Date(item.reminder), date)) {
+        return true;
+      }
+      // Check recurring schedule (todos only)
+      if (item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none' && item.dueDate) {
+        const startDate = new Date(item.dueDate);
+        const endDateRaw = item.schedule.endDate;
+        const endDate = endDateRaw ? new Date(typeof endDateRaw === 'string' ? endDateRaw : endDateRaw) : null;
+
+        // Skip if date is before start or after end
+        if (date < startDate) return false;
+        if (endDate && date > endDate) return false;
+
+        const diffMs = date.getTime() - startDate.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        switch (item.schedule.repeat) {
+          case 'daily':
+            return diffDays >= 0;
+          case 'weekly':
+            return diffDays >= 0 && diffDays % 7 === 0;
+          case 'monthly': {
+            // Same day-of-month as start date
+            return date.getDate() === startDate.getDate() && diffDays >= 0;
+          }
+          default:
+            return false;
         }
       }
       return false;
@@ -87,7 +145,7 @@ export const Calendar: React.FC = () => {
            currentDate.getFullYear() === today.getFullYear();
   };
 
-  const selectedDateTodos = selectedDate ? getTodosForDate(selectedDate) : [];
+  const selectedDateItems = selectedDate ? getItemsForDate(selectedDate) : [];
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50 min-h-0">
@@ -143,7 +201,7 @@ export const Calendar: React.FC = () => {
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1;
                 const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-                const dayTodos = getTodosForDate(date);
+                const dayItems = getItemsForDate(date);
                 const isSelected = selectedDate?.getDate() === day &&
                                  selectedDate?.getMonth() === currentDate.getMonth() &&
                                  selectedDate?.getFullYear() === currentDate.getFullYear();
@@ -161,20 +219,25 @@ export const Calendar: React.FC = () => {
                     }`}>
                       {day}
                     </div>
-                    {dayTodos.length > 0 && (
+                    {dayItems.length > 0 && (
                       <div className="space-y-1">
-                        {dayTodos.slice(0, 2).map(todo => (
+                        {dayItems.slice(0, 2).map(item => (
                           <div
-                            key={todo.id}
-                            className={`text-xs px-1 py-0.5 rounded truncate ${
-                              todo.completed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                            key={item.id}
+                            className={`text-xs px-1 py-0.5 rounded truncate flex items-center gap-1 ${
+                              item.type === 'note' ? 'bg-blue-100 text-blue-700' :
+                              item.completed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                             }`}
                           >
-                            {todo.title}
+                            {item.type === 'note' && <i className="fas fa-note-sticky text-[10px] opacity-60"></i>}
+                            {item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none' && (
+                              <i className="fas fa-repeat text-[10px] opacity-60" title={`Repeats ${item.schedule.repeat}`}></i>
+                            )}
+                            <span className="truncate">{item.title}</span>
                           </div>
                         ))}
-                        {dayTodos.length > 2 && (
-                          <div className="text-xs text-gray-500">+{dayTodos.length - 2} more</div>
+                        {dayItems.length > 2 && (
+                          <div className="text-xs text-gray-500">+{dayItems.length - 2} more</div>
                         )}
                       </div>
                     )}
@@ -184,36 +247,44 @@ export const Calendar: React.FC = () => {
             </div>
           </div>
 
-          {selectedDate && selectedDateTodos.length > 0 && (
+          {selectedDate && selectedDateItems.length > 0 && (
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <h3 className="text-lg font-bold text-dark mb-4">
-                Todos for {selectedDate.toLocaleDateString()}
+                Items for {selectedDate.toLocaleDateString()}
               </h3>
               <div className="space-y-3">
-                {selectedDateTodos.map(todo => (
+                {selectedDateItems.map(item => (
                   <div
-                    key={todo.id}
+                    key={item.id}
                     className="p-4 border border-gray-200 rounded-lg hover:border-primary transition-colors cursor-pointer"
-                    onClick={() => navigate(`/todos/${todo.id}`)}
+                    onClick={() => navigate(item.type === 'note' ? `/notes/${item.id}` : `/todos/${item.id}`)}
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold text-dark">{todo.title}</h4>
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        todo.completed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {todo.completed ? 'Completed' : 'Pending'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {item.type === 'note' && <i className="fas fa-note-sticky text-blue-500"></i>}
+                        <h4 className="font-semibold text-dark">{item.title}</h4>
+                      </div>
+                      {item.type === 'todo' && (
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          item.completed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {item.completed ? 'Completed' : 'Pending'}
+                        </span>
+                      )}
+                      {item.type === 'note' && (
+                        <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">Note</span>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{todo.description}</p>
+                    {item.description && <p className="text-sm text-gray-600 mb-2">{item.description}</p>}
                     <div className="flex items-center gap-2">
                       <span className={`text-xs px-2 py-1 rounded ${
-                        todo.priority === 'high' ? 'bg-red-100 text-red-700' :
-                        todo.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                        item.priority === 'high' ? 'bg-red-100 text-red-700' :
+                        item.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
                         'bg-gray-100 text-gray-700'
                       }`}>
-                        {todo.priority}
+                        {item.priority}
                       </span>
-                      {todo.tags.slice(0, 3).map(tag => (
+                      {item.tags.slice(0, 3).map(tag => (
                         <span key={tag} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
                           #{tag}
                         </span>

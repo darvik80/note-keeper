@@ -1,17 +1,15 @@
 package xyz.crearts.note.keeper.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import xyz.crearts.note.keeper.client.DingTalkClient;
 import xyz.crearts.note.keeper.client.TelegramClient;
 import xyz.crearts.note.keeper.dto.IntegrationRequest;
 import xyz.crearts.note.keeper.dto.IntegrationResponse;
 
+@Slf4j
 @Service
 public class IntegrationService {
-
-    private static final Logger log = LoggerFactory.getLogger(IntegrationService.class);
 
     private final TelegramClient telegramClient;
     private final DingTalkClient dingTalkClient;

@@ -92,6 +92,28 @@ export const TodoEditor: React.FC = () => {
         }
       }
 
+      // Validate dates are in the future and reminder <= due date
+      const now = new Date();
+      let dueDateObj: Date | null = null;
+      if (current.dueDate) {
+        dueDateObj = typeof current.dueDate === 'string' ? new Date(current.dueDate) : current.dueDate;
+        if (dueDateObj < now) {
+          setError('Due date must be in the future');
+          return;
+        }
+      }
+      if (current.reminder) {
+        const reminderObj = typeof current.reminder === 'string' ? new Date(current.reminder) : current.reminder;
+        if (reminderObj < now) {
+          setError('Reminder must be in the future');
+          return;
+        }
+        if (dueDateObj && reminderObj > dueDateObj) {
+          setError('Reminder cannot be after due date');
+          return;
+        }
+      }
+
       const input: TodoInput = {
         title: current.title,
         description: current.description,
@@ -99,13 +121,12 @@ export const TodoEditor: React.FC = () => {
         priority: current.priority,
         isFavorite: current.isFavorite,
         completed: current.completed,
-        dueDate: current.dueDate ? current.dueDate.toISOString() : undefined,
+        dueDate: current.dueDate ? (typeof current.dueDate === 'string' ? current.dueDate : current.dueDate.toISOString()) : undefined,
         reminder: current.reminder ? (typeof current.reminder === 'string' ? current.reminder : current.reminder.toISOString()) : undefined,
-        notificationChannels: todo.notificationChannels,
         location: current.location,
         schedule: current.schedule && current.schedule.repeat !== 'none' ? {
           repeat: current.schedule.repeat,
-          endDate: current.schedule.endDate ? current.schedule.endDate.toISOString() : undefined
+          endDate: current.schedule.endDate ? (typeof current.schedule.endDate === 'string' ? current.schedule.endDate : new Date(current.schedule.endDate).toISOString()) : undefined
         } : undefined,
         attachments: uploadedAttachments.map(att => ({
           id: att.id,
@@ -116,7 +137,7 @@ export const TodoEditor: React.FC = () => {
           uploadedAt: att.uploadedAt instanceof Date ? att.uploadedAt.toISOString() : att.uploadedAt
         })),
       };
-      console.log('[TodoEditor] Saving todo with attachments:', input.attachments?.length || 0);
+      console.log('[TodoEditor] Saving todo:', JSON.stringify({ id: current.id, schedule: input.schedule }, null, 2));
       if (current.id === 'new') {
         await api.todos.create(input);
       } else {
@@ -482,13 +503,16 @@ export const TodoEditor: React.FC = () => {
                 <option value="monthly">Monthly</option>
               </select>
               {todo.schedule?.repeat !== 'none' && (
-                <input
-                  type="date"
-                  value={todo.schedule?.endDate ? new Date(todo.schedule.endDate).toISOString().slice(0, 10) : ''}
-                  onChange={(e) => { const v = e.target.value ? new Date(e.target.value) : undefined; setTodo(prev => prev ? { ...prev, schedule: { ...prev.schedule!, endDate: v } } : prev); }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg"
-                  placeholder="End Date"
-                />
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Repeat until (optional)</label>
+                  <input
+                    type="date"
+                    value={todo.schedule?.endDate ? (typeof todo.schedule.endDate === 'string' ? todo.schedule.endDate.slice(0, 10) : new Date(todo.schedule.endDate).toISOString().slice(0, 10)) : ''}
+                    onChange={(e) => { const v = e.target.value || undefined; setTodo(prev => prev ? { ...prev, schedule: { ...prev.schedule!, endDate: v } } : prev); }}
+                    className="px-4 py-2 border border-gray-300 rounded-lg w-full"
+                    placeholder="End Date"
+                  />
+                </div>
               )}
             </div>
           </div>

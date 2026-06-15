@@ -8,6 +8,7 @@ import xyz.crearts.note.keeper.mapper.AttachmentMapper;
 import xyz.crearts.note.keeper.mapper.TodoMapper;
 import xyz.crearts.note.keeper.model.Todo;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -247,10 +248,22 @@ public class TodoService {
         Object endDate = map.get("endDate");
         if (repeat instanceof String) schedule.setRepeat((String) repeat);
         if (endDate instanceof String) {
+            String dateStr = (String) endDate;
             try {
-                schedule.setEndDate(LocalDateTime.parse((String) endDate, DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                // Try ISO instant format first (e.g. "2026-06-19T00:00:00.000Z")
+                schedule.setEndDate(java.time.Instant.parse(dateStr).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime());
             } catch (Exception e) {
-                // Ignore invalid date
+                try {
+                    // Fallback: ISO local date time without zone
+                    schedule.setEndDate(LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                } catch (Exception e2) {
+                    try {
+                        // Fallback: date-only format (YYYY-MM-DD)
+                        schedule.setEndDate(LocalDate.parse(dateStr).atStartOfDay());
+                    } catch (Exception ignored) {
+                        // Ignore invalid date
+                    }
+                }
             }
         }
         return schedule;

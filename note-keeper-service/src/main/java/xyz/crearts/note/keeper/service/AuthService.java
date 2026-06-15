@@ -1,7 +1,6 @@
 package xyz.crearts.note.keeper.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import xyz.crearts.note.keeper.dto.AuthRequest;
 import xyz.crearts.note.keeper.dto.AuthResponse;
@@ -20,10 +19,9 @@ import java.util.UUID;
 /**
  * Authentication service supporting password and Google OAuth.
  */
+@Slf4j
 @Service
 public class AuthService {
-
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserMapper userMapper;
     private final UserCredentialsMapper credentialsMapper;

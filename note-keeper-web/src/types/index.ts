@@ -121,8 +121,8 @@ export interface Todo {
   schedule?: {
     /** Recurrence interval. `"none"` means no repeat. */
     repeat: 'none' | 'daily' | 'weekly' | 'monthly';
-    /** When the recurrence stops. */
-    endDate?: Date;
+    /** When the recurrence stops (ISO date string from API). */
+    endDate?: string;
   };
   /** Files attached to this todo. */
   attachments: Attachment[];
