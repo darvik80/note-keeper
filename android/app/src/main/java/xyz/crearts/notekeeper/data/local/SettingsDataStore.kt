@@ -34,7 +34,7 @@ class SettingsDataStore(private val context: Context) {
     }
 
     companion object {
-        const val DEFAULT_URL = "http://30.108.107.118:8080/api/v1/"
+        const val DEFAULT_URL = "https://note.darvik.synology.me:8443/api/v1/"
         const val DEFAULT_CHANNEL = "reminders"
     }
 }
