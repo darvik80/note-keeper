@@ -8,8 +8,8 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
-import xyz.crearts.notekeeper.data.model.Todo
 import xyz.crearts.notekeeper.data.model.TodoInput
+import xyz.crearts.notekeeper.data.model.TodoResponse
 
 interface TodoApiService {
 
@@ -21,16 +21,16 @@ interface TodoApiService {
         @Query("isFavorite") isFavorite: Boolean? = null,
         @Query("isArchived") isArchived: Boolean? = null,
         @Query("isDeleted") isDeleted: Boolean? = null
-    ): Response<List<Todo>>
+    ): Response<List<TodoResponse>>
 
     @GET("todos/{id}")
-    suspend fun getTodoById(@Path("id") id: String): Response<Todo>
+    suspend fun getTodoById(@Path("id") id: String): Response<TodoResponse>
 
     @POST("todos")
-    suspend fun createTodo(@Body input: TodoInput): Response<Todo>
+    suspend fun createTodo(@Body input: TodoInput): Response<TodoResponse>
 
     @PUT("todos/{id}")
-    suspend fun updateTodo(@Path("id") id: String, @Body input: TodoInput): Response<Todo>
+    suspend fun updateTodo(@Path("id") id: String, @Body input: TodoInput): Response<TodoResponse>
 
     @DELETE("todos/{id}")
     suspend fun deleteTodo(
@@ -39,21 +39,24 @@ interface TodoApiService {
     ): Response<Unit>
 
     @POST("todos/{id}/archive")
-    suspend fun archiveTodo(@Path("id") id: String): Response<Todo>
+    suspend fun archiveTodo(@Path("id") id: String): Response<TodoResponse>
 
     @POST("todos/{id}/restore")
-    suspend fun restoreTodo(@Path("id") id: String): Response<Todo>
+    suspend fun restoreTodo(@Path("id") id: String): Response<TodoResponse>
+
+    @GET("todos/shared-with-me")
+    suspend fun getSharedWithMe(): Response<List<TodoResponse>>
 
     @POST("todos/{id}/share")
     suspend fun shareTodo(
         @Path("id") id: String,
         @Query("userId") userId: String
-    ): Response<Todo>
+    ): Response<TodoResponse>
 
     @DELETE("todos/{id}/share")
     suspend fun unshareTodo(
         @Path("id") id: String,
         @Query("userId") userId: String
-    ): Response<Todo>
+    ): Response<TodoResponse>
 }
 

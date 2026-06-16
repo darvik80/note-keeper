@@ -6,6 +6,7 @@ import xyz.crearts.notekeeper.data.local.entity.NoteEntity
 import xyz.crearts.notekeeper.data.model.Attachment
 import xyz.crearts.notekeeper.data.model.Note
 import xyz.crearts.notekeeper.data.model.NoteInput
+import xyz.crearts.notekeeper.data.model.NoteResponse
 import xyz.crearts.notekeeper.data.model.SyncStatus
 
 object NoteMapper {
@@ -75,6 +76,31 @@ object NoteMapper {
             isEncrypted = note.isEncrypted,
             reminder = note.reminder,
             templateId = note.templateId
+        )
+    }
+
+    fun fromResponse(response: NoteResponse, syncStatus: SyncStatus = SyncStatus.SYNCED): Note {
+        return Note(
+            id = response.id,
+            title = response.title,
+            content = response.content,
+            tags = response.tags,
+            folder = response.folder,
+            subfolder = response.subfolder,
+            priority = response.priority,
+            isFavorite = response.isFavorite,
+            isEncrypted = response.isEncrypted,
+            isArchived = response.isArchived,
+            isDeleted = response.isDeleted,
+            deletedAt = response.deletedAt,
+            reminder = response.reminder,
+            templateId = response.templateId,
+            ownerId = response.ownerId,
+            sharedWith = response.sharedWith,
+            createdAt = response.createdAt,
+            updatedAt = response.updatedAt,
+            attachments = response.attachments,
+            syncStatus = syncStatus
         )
     }
 

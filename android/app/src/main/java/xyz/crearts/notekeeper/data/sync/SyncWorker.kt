@@ -9,6 +9,7 @@ import androidx.work.WorkerParameters
 import xyz.crearts.notekeeper.data.local.NoteDatabase
 import xyz.crearts.notekeeper.data.remote.RetrofitClient
 import xyz.crearts.notekeeper.data.repository.NoteRepository
+import xyz.crearts.notekeeper.data.repository.TodoRepository
 import java.util.concurrent.TimeUnit
 
 class SyncWorker(
@@ -16,19 +17,31 @@ class SyncWorker(
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
 
-    private val repository = NoteRepository(
+    private val noteRepository = NoteRepository(
         noteDao = NoteDatabase.getDatabase(context).noteDao(),
         apiService = RetrofitClient.noteApiService,
         attachmentApiService = RetrofitClient.attachmentApiService
     )
 
+    private val todoRepository = TodoRepository(
+        todoDao = NoteDatabase.getDatabase(context).todoDao(),
+        apiService = RetrofitClient.todoApiService,
+        attachmentApiService = RetrofitClient.attachmentApiService
+    )
+
     override suspend fun doWork(): Result {
-        return try {
-            val success = repository.syncNotes()
-            if (success) Result.success() else Result.retry()
-        } catch (e: Exception) {
-            Result.retry()
-        }
+        var notesOk = false
+        var todosOk = false
+
+        try {
+            notesOk = noteRepository.syncNotes()
+        } catch (_: Exception) { }
+
+        try {
+            todosOk = todoRepository.syncTodos().isSuccess
+        } catch (_: Exception) { }
+
+        return if (notesOk || todosOk) Result.success() else Result.retry()
     }
 
     companion object {

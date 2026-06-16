@@ -133,7 +133,8 @@ class TodoRepository(
             val response = apiService.shareTodo(todo.id, userId)
             if (response.isSuccessful) {
                 response.body()?.let { serverTodo ->
-                    todoDao.updateTodo(TodoMapper.toEntity(serverTodo.copy(syncStatus = SyncStatus.SYNCED, localId = todo.localId)))
+                    val domainTodo = TodoMapper.fromResponse(serverTodo)
+                    todoDao.updateTodo(TodoMapper.toEntity(domainTodo.copy(syncStatus = SyncStatus.SYNCED, localId = todo.localId)))
                 }
                 "Shared successfully"
             } else {
@@ -141,6 +142,17 @@ class TodoRepository(
             }
         } catch (e: Exception) {
             "Share error: ${e.message}"
+        }
+    }
+
+    suspend fun getSharedWithMe(): List<Todo> {
+        return try {
+            val response = apiService.getSharedWithMe()
+            if (response.isSuccessful) {
+                response.body()?.map { TodoMapper.fromResponse(it) } ?: emptyList()
+            } else emptyList()
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 
@@ -206,11 +218,12 @@ class TodoRepository(
             if (response.isSuccessful) {
                 response.body()?.let { serverTodos ->
                     for (serverTodo in serverTodos) {
-                        val existing = todoDao.getTodoById(serverTodo.id)
+                        val domainTodo = TodoMapper.fromResponse(serverTodo)
+                        val existing = todoDao.getTodoById(domainTodo.id)
                         if (existing == null) {
-                            todoDao.insertTodo(TodoMapper.toEntity(serverTodo.copy(syncStatus = SyncStatus.SYNCED)))
+                            todoDao.insertTodo(TodoMapper.toEntity(domainTodo.copy(syncStatus = SyncStatus.SYNCED)))
                         } else if (existing.syncStatus == SyncStatus.SYNCED.name) {
-                            todoDao.updateTodo(TodoMapper.toEntity(serverTodo.copy(syncStatus = SyncStatus.SYNCED, localId = existing.localId)))
+                            todoDao.updateTodo(TodoMapper.toEntity(domainTodo.copy(syncStatus = SyncStatus.SYNCED, localId = existing.localId)))
                         }
                     }
                 }

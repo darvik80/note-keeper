@@ -11,6 +11,8 @@ import xyz.crearts.notekeeper.data.local.TokenDataStore
 import xyz.crearts.notekeeper.data.remote.api.AttachmentApiService
 import xyz.crearts.notekeeper.data.remote.api.AuthApiService
 import xyz.crearts.notekeeper.data.remote.api.NoteApiService
+import xyz.crearts.notekeeper.data.remote.api.SearchApiService
+import xyz.crearts.notekeeper.data.remote.api.TagApiService
 import xyz.crearts.notekeeper.data.remote.api.TodoApiService
 
 object RetrofitClient {
@@ -66,4 +68,6 @@ object RetrofitClient {
     val authApiService: AuthApiService get() = retrofit.create(AuthApiService::class.java)
     val attachmentApiService: AttachmentApiService get() = retrofit.create(AttachmentApiService::class.java)
     val todoApiService: TodoApiService get() = retrofit.create(TodoApiService::class.java)
+    val tagApiService: TagApiService get() = retrofit.create(TagApiService::class.java)
+    val searchApiService: SearchApiService get() = retrofit.create(SearchApiService::class.java)
 }

@@ -116,7 +116,8 @@ class NoteRepository(
             val response = apiService.shareNote(note.id, userId)
             if (response.isSuccessful) {
                 response.body()?.let { serverNote ->
-                    noteDao.updateNote(NoteMapper.toEntity(serverNote.copy(syncStatus = SyncStatus.SYNCED, localId = note.localId)))
+                    val domainNote = NoteMapper.fromResponse(serverNote)
+                    noteDao.updateNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED, localId = note.localId)))
                 }
                 "Shared successfully"
             } else {
@@ -124,6 +125,17 @@ class NoteRepository(
             }
         } catch (e: Exception) {
             "Share error: ${e.message}"
+        }
+    }
+
+    suspend fun getSharedWithMe(): List<Note> {
+        return try {
+            val response = apiService.getSharedWithMe()
+            if (response.isSuccessful) {
+                response.body()?.map { NoteMapper.fromResponse(it) } ?: emptyList()
+            } else emptyList()
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 
@@ -193,11 +205,12 @@ class NoteRepository(
             if (response.isSuccessful) {
                 response.body()?.let { serverNotes ->
                     for (serverNote in serverNotes) {
-                        val existing = noteDao.getNoteById(serverNote.id)
+                        val domainNote = NoteMapper.fromResponse(serverNote)
+                        val existing = noteDao.getNoteById(domainNote.id)
                         if (existing == null) {
-                            noteDao.insertNote(NoteMapper.toEntity(serverNote.copy(syncStatus = SyncStatus.SYNCED)))
+                            noteDao.insertNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED)))
                         } else if (existing.syncStatus == SyncStatus.SYNCED.name) {
-                            noteDao.updateNote(NoteMapper.toEntity(serverNote.copy(syncStatus = SyncStatus.SYNCED, localId = existing.localId)))
+                            noteDao.updateNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED, localId = existing.localId)))
                         }
                     }
                 }
@@ -214,11 +227,12 @@ class NoteRepository(
             if (response.isSuccessful) {
                 response.body()?.let { serverNotes ->
                     for (serverNote in serverNotes) {
-                        val existing = noteDao.getNoteById(serverNote.id)
+                        val domainNote = NoteMapper.fromResponse(serverNote)
+                        val existing = noteDao.getNoteById(domainNote.id)
                         if (existing == null) {
-                            noteDao.insertNote(NoteMapper.toEntity(serverNote.copy(syncStatus = SyncStatus.SYNCED)))
+                            noteDao.insertNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED)))
                         } else if (existing.syncStatus == SyncStatus.SYNCED.name) {
-                            noteDao.updateNote(NoteMapper.toEntity(serverNote.copy(syncStatus = SyncStatus.SYNCED, localId = existing.localId)))
+                            noteDao.updateNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED, localId = existing.localId)))
                         }
                     }
                 }

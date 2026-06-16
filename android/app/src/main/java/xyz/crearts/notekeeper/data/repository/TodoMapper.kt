@@ -4,10 +4,13 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import xyz.crearts.notekeeper.data.local.entity.TodoEntity
 import xyz.crearts.notekeeper.data.model.Attachment
+import xyz.crearts.notekeeper.data.model.AttachmentInput
+import xyz.crearts.notekeeper.data.model.LocationInput
 import xyz.crearts.notekeeper.data.model.ScheduleInput
 import xyz.crearts.notekeeper.data.model.SyncStatus
 import xyz.crearts.notekeeper.data.model.Todo
 import xyz.crearts.notekeeper.data.model.TodoInput
+import xyz.crearts.notekeeper.data.model.TodoResponse
 
 object TodoMapper {
     private val gson = Gson()
@@ -75,6 +78,10 @@ object TodoMapper {
     }
 
     fun toInput(todo: Todo): TodoInput {
+        val locationInput = if (todo.locationLat != null || todo.locationLng != null || todo.locationAddress != null) {
+            LocationInput(lat = todo.locationLat, lng = todo.locationLng, address = todo.locationAddress)
+        } else null
+
         return TodoInput(
             title = todo.title,
             description = todo.description,
@@ -85,10 +92,50 @@ object TodoMapper {
             dueDate = todo.dueDate,
             reminder = todo.reminder,
             notificationChannels = todo.notificationChannels,
-            location = todo.locationAddress,
+            location = locationInput,
             schedule = if ((todo.scheduleRepeat ?: "none") != "none") {
                 ScheduleInput(repeat = todo.scheduleRepeat ?: "none", endDate = todo.scheduleEndDate)
-            } else null
+            } else null,
+            attachments = todo.attachments?.map { att ->
+                AttachmentInput(
+                    id = att.id,
+                    name = att.name,
+                    url = att.url,
+                    size = att.size,
+                    mimeType = att.type,
+                    uploadedAt = att.uploadedAt
+                )
+            }
+        )
+    }
+
+    fun fromResponse(response: TodoResponse, syncStatus: SyncStatus = SyncStatus.SYNCED): Todo {
+        return Todo(
+            id = response.id,
+            title = response.title,
+            description = response.description,
+            completed = response.completed,
+            tags = response.tags,
+            priority = response.priority,
+            isFavorite = response.isFavorite,
+            isArchived = response.isArchived,
+            isDeleted = response.isDeleted,
+            deletedAt = response.deletedAt,
+            dueDate = response.dueDate,
+            reminder = response.reminder,
+            notifiedAt = response.notifiedAt,
+            notificationChannels = response.notificationChannels,
+            locationLat = response.location?.lat,
+            locationLng = response.location?.lng,
+            locationAddress = response.location?.address,
+            scheduleRepeat = response.schedule?.repeat ?: "none",
+            scheduleEndDate = response.schedule?.endDate,
+            ownerId = response.ownerId,
+            sharedWith = response.sharedWith,
+            createdAt = response.createdAt,
+            updatedAt = response.updatedAt,
+            attachments = response.attachments,
+            syncStatus = syncStatus
         )
     }
 
