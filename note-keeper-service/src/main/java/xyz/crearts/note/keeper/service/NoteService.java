@@ -29,15 +29,17 @@ public class NoteService {
     private final AttachmentMapper attachmentMapper;
     private final EncryptionService encryptionService;
     private final NotificationService notificationService;
+    private final TagSyncService tagSyncService;
 
     public NoteService(NoteMapper noteMapper, NoteHistoryMapper historyMapper, 
                       AttachmentMapper attachmentMapper, EncryptionService encryptionService,
-                      NotificationService notificationService) {
+                      NotificationService notificationService, TagSyncService tagSyncService) {
         this.noteMapper = noteMapper;
         this.historyMapper = historyMapper;
         this.attachmentMapper = attachmentMapper;
         this.encryptionService = encryptionService;
         this.notificationService = notificationService;
+        this.tagSyncService = tagSyncService;
     }
 
     public List<Note> findAll(String folder, String tag, String priority,
@@ -131,6 +133,7 @@ public class NoteService {
             log.info("No attachments provided for note {}", note.getId());
         }
 
+        tagSyncService.addTags(ownerId, note.getTags());
         notificationService.notifyNoteCreated(note.getId(), ownerId);
         return findById(note.getId());
     }
@@ -138,6 +141,7 @@ public class NoteService {
     @Transactional
     public Note update(String id, NoteInput input) {
         Note existing = findById(id);
+        List<String> oldTags = existing.getTags() != null ? new ArrayList<>(existing.getTags()) : new ArrayList<>();
 
         existing.setTitle(input.getTitle());
         
@@ -195,6 +199,7 @@ public class NoteService {
             }
         }
 
+        tagSyncService.updateTags(existing.getOwnerId(), oldTags, existing.getTags());
         notificationService.notifyNoteUpdated(id, existing.getOwnerId());
         return findById(id);
     }
@@ -206,9 +211,11 @@ public class NoteService {
             throw new ResourceNotFoundException("Note not found: " + id);
         }
         String ownerId = note.getOwnerId();
+        List<String> tags = note.getTags();
         if (permanent) {
             attachmentMapper.deleteByParent(id, "note");
             noteMapper.permanentDelete(id);
+            tagSyncService.removeTagsIfUnused(ownerId, tags);
         } else {
             noteMapper.softDelete(id, LocalDateTime.now().toString());
         }

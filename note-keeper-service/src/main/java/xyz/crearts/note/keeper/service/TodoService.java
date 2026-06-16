@@ -25,11 +25,14 @@ public class TodoService {
     private final TodoMapper todoMapper;
     private final AttachmentMapper attachmentMapper;
     private final NotificationService notificationService;
+    private final TagSyncService tagSyncService;
 
-    public TodoService(TodoMapper todoMapper, AttachmentMapper attachmentMapper, NotificationService notificationService) {
+    public TodoService(TodoMapper todoMapper, AttachmentMapper attachmentMapper,
+                       NotificationService notificationService, TagSyncService tagSyncService) {
         this.todoMapper = todoMapper;
         this.attachmentMapper = attachmentMapper;
         this.notificationService = notificationService;
+        this.tagSyncService = tagSyncService;
     }
 
     public List<Todo> findAll(Boolean completed, String tag, String priority,
@@ -95,6 +98,7 @@ public class TodoService {
             saveAttachments(todo.getId(), "todo", input.getAttachments());
         }
 
+        tagSyncService.addTags(ownerId, todo.getTags());
         notificationService.notifyTodoCreated(todo.getId(), ownerId);
         return findById(todo.getId());
     }
@@ -102,6 +106,7 @@ public class TodoService {
     @Transactional
     public Todo update(String id, TodoInput input) {
         Todo existing = findById(id);
+        List<String> oldTags = existing.getTags() != null ? new ArrayList<>(existing.getTags()) : new ArrayList<>();
 
         existing.setTitle(input.getTitle());
         existing.setDescription(input.getDescription());
@@ -133,6 +138,7 @@ public class TodoService {
             saveAttachments(id, "todo", input.getAttachments());
         }
 
+        tagSyncService.updateTags(existing.getOwnerId(), oldTags, existing.getTags());
         notificationService.notifyTodoUpdated(id, existing.getOwnerId());
         return findById(id);
     }
@@ -144,9 +150,11 @@ public class TodoService {
             throw new ResourceNotFoundException("Todo not found: " + id);
         }
         String ownerId = todo.getOwnerId();
+        List<String> tags = todo.getTags();
         if (permanent) {
             attachmentMapper.deleteByParent(id, "todo");
             todoMapper.permanentDelete(id);
+            tagSyncService.removeTagsIfUnused(ownerId, tags);
         } else {
             todoMapper.softDelete(id, LocalDateTime.now().toString());
         }

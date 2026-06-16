@@ -8,6 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { ShareModal } from '../components/ShareModal';
+import { TagInput } from '../components/TagInput';
 import { Note, Attachment, NoteInput } from '../types';
 
 /** Note editor page. Loads an existing note by route param `id`, supports Markdown preview, tag management, attachments, history restore, and sharing. */
@@ -20,7 +21,6 @@ export const NoteEditor: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   // Keep ref in sync with state so saveNote/addTag always see latest note
@@ -111,24 +111,7 @@ export const NoteEditor: React.FC = () => {
     }
   };
 
-  const addTag = (tag: string) => {
-    if (!noteRef.current || !tag.trim()) return;
-    const trimmed = tag.trim();
-    setNote(prev => {
-      if (!prev) return prev;
-      const currentTags = prev.tags ?? [];
-      if (currentTags.includes(trimmed)) return prev;
-      return { ...prev, tags: [...currentTags, trimmed] };
-    });
-    setTagInput('');
-  };
 
-  const removeTag = (tag: string) => {
-    setNote(prev => {
-      if (!prev) return prev;
-      return { ...prev, tags: (prev.tags ?? []).filter(t => t !== tag) };
-    });
-  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -323,32 +306,10 @@ export const NoteEditor: React.FC = () => {
         )}
 
         <div className="mt-6 space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {(note.tags ?? []).map(tag => (
-              <span
-                key={tag}
-                className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm flex items-center gap-2"
-              >
-                #{tag}
-                <button onClick={() => removeTag(tag)} className="hover:text-primary/70">
-                  <i className="fas fa-times"></i>
-                </button>
-              </span>
-            ))}
-            <input
-              type="text"
-              placeholder="Add tag + Enter"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              className="px-3 py-1 border border-gray-300 rounded-lg text-sm w-40"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addTag(tagInput);
-                }
-              }}
-            />
-          </div>
+          <TagInput
+            tags={note.tags ?? []}
+            onChange={(newTags) => setNote(prev => prev ? { ...prev, tags: newTags } : prev)}
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input

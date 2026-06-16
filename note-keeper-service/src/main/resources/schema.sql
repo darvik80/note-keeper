@@ -139,5 +139,14 @@ CREATE TABLE IF NOT EXISTS user_credentials (
 CREATE INDEX IF NOT EXISTS idx_note_owner ON note(owner_id);
 CREATE INDEX IF NOT EXISTS idx_todo_owner ON todo(owner_id);
 
+CREATE TABLE IF NOT EXISTS user_tag (
+    id TEXT PRIMARY KEY,
+    owner_id TEXT NOT NULL REFERENCES users(id),
+    tag_name TEXT NOT NULL,
+    UNIQUE(owner_id, tag_name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_tag_owner ON user_tag(owner_id);
+
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);

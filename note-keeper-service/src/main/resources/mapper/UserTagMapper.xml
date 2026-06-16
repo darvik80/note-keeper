@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="xyz.crearts.note.keeper.mapper.UserTagMapper">
+
+    <select id="findAllByOwner" resultType="string">
+        SELECT tag_name FROM user_tag WHERE owner_id = #{ownerId} ORDER BY tag_name COLLATE NOCASE
+    </select>
+
+    <insert id="insert">
+        INSERT OR IGNORE INTO user_tag (id, owner_id, tag_name) VALUES (#{id}, #{ownerId}, #{tagName})
+    </insert>
+
+    <delete id="deleteByName">
+        DELETE FROM user_tag WHERE owner_id = #{ownerId} AND tag_name = #{tagName}
+    </delete>
+
+    <select id="countByOwnerAndTag" resultType="int">
+        SELECT COUNT(*) FROM user_tag WHERE owner_id = #{ownerId} AND tag_name = #{tagName}
+    </select>
+
+</mapper>

@@ -29,4 +29,6 @@ public interface UserMapper {
     List<User> findByIds(@Param("ids") List<String> ids);
 
     List<User> searchByEmailOrName(@Param("query") String query, @Param("excludeUserId") String excludeUserId);
+
+    List<User> findAll();
 }

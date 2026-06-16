@@ -655,5 +655,21 @@ export const api = {
       }
       // Backend returns 200 OK with empty body — no JSON to parse
     }
+  },
+
+  /**
+   * Tag endpoints — fetch distinct tags across notes and todos.
+   * @category API
+   */
+  tags: {
+    /**
+     * Get all unique tags for the current user (from notes + todos).
+     */
+    getAll: async (): Promise<string[]> => {
+      const res = await fetch(`${API_BASE}/tags`, {
+        headers: { ...getAuthHeaders() }
+      });
+      return handleResponse(res);
+    }
   }
 };

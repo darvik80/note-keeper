@@ -85,4 +85,8 @@
         LIMIT 10
     </select>
 
+    <select id="findAll" resultMap="userResultMap">
+        SELECT * FROM users WHERE is_active = 1
+    </select>
+
 </mapper>

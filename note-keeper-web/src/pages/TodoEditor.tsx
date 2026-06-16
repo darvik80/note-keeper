@@ -8,6 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { ShareModal } from '../components/ShareModal';
+import { TagInput } from '../components/TagInput';
 import { Todo, Attachment, TodoInput } from '../types';
 import { storage } from '../utils/storage';
 import { IntegrationRequest, IntegrationResponse } from '../types';
@@ -40,7 +41,6 @@ export const TodoEditor: React.FC = () => {
   const [telegramStatus, setTelegramStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [dingtalkStatus, setDingtalkStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [showShareModal, setShowShareModal] = useState(false);
-  const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const settings = storage.getSettings();
 
@@ -195,24 +195,7 @@ export const TodoEditor: React.FC = () => {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-  const addTag = (tag: string) => {
-    if (!todoRef.current || !tag.trim()) return;
-    const trimmed = tag.trim();
-    setTodo(prev => {
-      if (!prev) return prev;
-      const currentTags = prev.tags ?? [];
-      if (currentTags.includes(trimmed)) return prev;
-      return { ...prev, tags: [...currentTags, trimmed] };
-    });
-    setTagInput('');
-  };
 
-  const removeTag = (tag: string) => {
-    setTodo(prev => {
-      if (!prev) return prev;
-      return { ...prev, tags: (prev.tags ?? []).filter(t => t !== tag) };
-    });
-  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -382,35 +365,10 @@ export const TodoEditor: React.FC = () => {
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {(todo.tags ?? []).map(tag => (
-                <span
-                  key={tag}
-                  className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm flex items-center gap-2"
-                >
-                  #{tag}
-                  <button onClick={() => removeTag(tag)} className="hover:text-primary/70">
-                    <i className="fas fa-times"></i>
-                  </button>
-                </span>
-              ))}
-            </div>
-            <input
-              type="text"
-              placeholder="Add tag and press Enter"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addTag(tagInput);
-                }
-              }}
-            />
-          </div>
+          <TagInput
+            tags={todo.tags ?? []}
+            onChange={(newTags) => setTodo(prev => prev ? { ...prev, tags: newTags } : prev)}
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
