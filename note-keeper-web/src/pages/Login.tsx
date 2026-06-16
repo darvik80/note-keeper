@@ -54,7 +54,6 @@ export default function Login() {
 
       const response = await api.auth[isLogin ? 'login' : 'register'](request);
       
-      // Save token to localStorage
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
       

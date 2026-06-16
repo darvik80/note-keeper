@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS note (
     deleted_at TEXT,
     reminder TEXT,
     template_id TEXT,
-    owner_id TEXT REFERENCES users(id),
+    owner_id TEXT NOT NULL REFERENCES users(id),
     shared_with TEXT DEFAULT '[]',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS todo (
     location_address TEXT,
     schedule_repeat TEXT DEFAULT 'none' CHECK(schedule_repeat IN ('none','daily','weekly','monthly')),
     schedule_end_date TEXT,
-    owner_id TEXT REFERENCES users(id),
+    owner_id TEXT NOT NULL REFERENCES users(id),
     shared_with TEXT DEFAULT '[]',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
