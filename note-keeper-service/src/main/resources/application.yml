@@ -79,3 +79,8 @@ spring:
     init:
       mode: always
       platform: postgresql
+
+logging:
+  level:
+    xyz.crearts.note.keeper.mapper: DEBUG
+    org.apache.ibatis.logging.jdbc: TRACE
