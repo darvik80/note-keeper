@@ -17,3 +17,5 @@ build/
 
 # cursor 相关
 .cursorrules
+
+package-lock.json
