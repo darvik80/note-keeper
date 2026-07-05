@@ -16,8 +16,8 @@
         <result property="encrypted" column="is_encrypted"/>
         <result property="archived" column="is_archived"/>
         <result property="deleted" column="is_deleted"/>
-        <result property="deletedAt" column="deleted_at"/>
-        <result property="reminder" column="reminder"/>
+        <result property="deletedAt" column="deleted_at" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="reminder" column="reminder" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
         <result property="templateId" column="template_id"/>
         <result property="ownerId" column="owner_id"/>
         <result property="sharedWith" column="shared_with"/>
@@ -56,8 +56,8 @@
         VALUES (#{id}, #{title}, #{content},
             #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
             #{folder}, #{subfolder}, #{priority},
-            #{favorite}, #{encrypted}, #{archived}, #{deleted}, #{deletedAt},
-            #{reminder}, #{templateId}, #{ownerId}, #{sharedWith}, #{createdAt}, #{updatedAt})
+            #{favorite}, #{encrypted}, #{archived}, #{deleted}, #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, #{templateId}, #{ownerId}, #{sharedWith}, #{createdAt}, #{updatedAt})
     </insert>
 
     <update id="update" parameterType="xyz.crearts.note.keeper.model.Note">
@@ -70,14 +70,14 @@
             priority = #{priority},
             is_favorite = #{favorite},
             is_encrypted = #{encrypted},
-            reminder = #{reminder},
+            reminder = #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             template_id = #{templateId},
             updated_at = #{updatedAt}
         WHERE id = #{id}
     </update>
 
     <update id="softDelete">
-        UPDATE note SET is_deleted = 1, deleted_at = #{deletedAt}, updated_at = #{deletedAt}
+        UPDATE note SET is_deleted = 1, deleted_at = #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, updated_at = #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
         WHERE id = #{id}
     </update>
 

@@ -93,6 +93,26 @@ export const Calendar: React.FC = () => {
   const isSameDay = (a: Date, b: Date) =>
     a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
 
+  /**
+   * Parse API date string (e.g. "2026-07-05T15:00:00Z") into local Date
+   * by extracting date+time parts directly, ignoring timezone suffix.
+   * This avoids UTC→local day shift that occurs with new Date("...Z").
+   */
+  const parseLocalDate = (dateStr: string | Date | undefined): Date | null => {
+    if (!dateStr) return null;
+    const str = typeof dateStr === 'string' ? dateStr : dateStr.toISOString();
+    const match = str.match(/(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/);
+    if (match) {
+      return new Date(
+        parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]),
+        match[4] ? parseInt(match[4]) : 0,
+        match[5] ? parseInt(match[5]) : 0
+      );
+    }
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   const getItemsForDate = (date: Date) => {
     // Normalize date to midnight for accurate day-level comparison
     const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -100,26 +120,35 @@ export const Calendar: React.FC = () => {
     return items.filter(item => {
       // Check dueDate match
       if (item.dueDate) {
-        const dueDate = new Date(item.dueDate);
-        if (isSameDay(dueDate, date)) {
+        const dueDate = parseLocalDate(item.dueDate);
+        if (dueDate && isSameDay(dueDate, date)) {
           return true;
         }
       }
       // Check reminder match
       if (item.reminder) {
-        const reminderDate = new Date(item.reminder);
-        if (isSameDay(reminderDate, date)) {
+        const reminderDate = parseLocalDate(item.reminder);
+        if (reminderDate && isSameDay(reminderDate, date)) {
           return true;
         }
       }
       // Check recurring schedule (todos only)
       if (item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none' && item.dueDate) {
-        // Normalize start date to midnight
-        const rawStart = new Date(item.dueDate);
+        // Normalize start date to midnight using local date parts
+        const rawStart = parseLocalDate(item.dueDate);
+        if (!rawStart) return false;
         const startDate = new Date(rawStart.getFullYear(), rawStart.getMonth(), rawStart.getDate());
+
         const endDateRaw = item.schedule.endDate;
         const endDate = endDateRaw
-          ? (() => { const d = new Date(typeof endDateRaw === 'string' ? endDateRaw : endDateRaw); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); })()
+          ? (() => {
+              // Parse date portion directly from ISO string to avoid UTC→local timezone day shift
+              const str = typeof endDateRaw === 'string' ? endDateRaw : String(endDateRaw);
+              const match = str.match(/(\d{4})-(\d{2})-(\d{2})/);
+              if (match) return new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+              const d = new Date(str);
+              return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            })()
           : null;
 
         // Skip if date is before start or after end

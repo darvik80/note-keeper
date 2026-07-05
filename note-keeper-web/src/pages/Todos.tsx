@@ -93,7 +93,7 @@ export const Todos: React.FC = () => {
         location: todo.location,
         schedule: todo.schedule ? {
           repeat: todo.schedule.repeat,
-          endDate: todo.schedule.endDate ? (typeof todo.schedule.endDate === 'string' ? todo.schedule.endDate : todo.schedule.endDate.toISOString()) : undefined
+          endDate: todo.schedule.endDate || undefined
         } : undefined,
       });
     } catch (err) {
@@ -139,7 +139,7 @@ export const Todos: React.FC = () => {
         location: todo.location,
         schedule: todo.schedule ? {
           repeat: todo.schedule.repeat,
-          endDate: todo.schedule.endDate ? (typeof todo.schedule.endDate === 'string' ? todo.schedule.endDate : todo.schedule.endDate.toISOString()) : undefined
+          endDate: todo.schedule.endDate || undefined
         } : undefined,
       });
     } catch (err) {

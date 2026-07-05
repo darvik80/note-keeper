@@ -14,10 +14,10 @@
         <result property="favorite" column="is_favorite"/>
         <result property="archived" column="is_archived"/>
         <result property="deleted" column="is_deleted"/>
-        <result property="deletedAt" column="deleted_at" jdbcType="TIMESTAMP"/>
-        <result property="dueDate" column="due_date" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
-        <result property="reminder" column="reminder" jdbcType="TIMESTAMP"/>
-        <result property="notifiedAt" column="notified_at" jdbcType="TIMESTAMP"/>
+        <result property="deletedAt" column="deleted_at" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="dueDate" column="due_date" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="reminder" column="reminder" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="notifiedAt" column="notified_at" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
         <result property="notificationChannels" column="notification_channels"/>
         <result property="ownerId" column="owner_id"/>
         <result property="sharedWith" column="shared_with"/>
@@ -30,7 +30,7 @@
         </association>
         <association property="schedule" javaType="xyz.crearts.note.keeper.model.Todo$Schedule">
             <result property="repeat" column="schedule_repeat"/>
-            <result property="endDate" column="schedule_end_date"/>
+            <result property="endDate" column="schedule_end_date" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
         </association>
         <collection property="attachments" column="id" select="xyz.crearts.note.keeper.mapper.AttachmentMapper.findByTodoId"/>
     </resultMap>
@@ -70,12 +70,12 @@
             created_at, updated_at)
         VALUES (#{id}, #{title}, #{description}, #{completed},
             #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
-            #{priority}, #{favorite}, #{archived}, #{deleted}, #{deletedAt},
-            #{dueDate}, #{reminder},
+            #{priority}, #{favorite}, #{archived}, #{deleted}, #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            #{dueDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             #{notificationChannels, jdbcType=VARCHAR},
             #{location.lat, jdbcType=REAL}, #{location.lng, jdbcType=REAL},
             #{location.address, jdbcType=VARCHAR},
-            #{schedule.repeat, jdbcType=VARCHAR}, #{schedule.endDate, jdbcType=VARCHAR},
+            #{schedule.repeat, jdbcType=VARCHAR}, #{schedule.endDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             #{ownerId}, #{sharedWith},
             #{createdAt}, #{updatedAt})
     </insert>
@@ -88,20 +88,20 @@
             tags = #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
             priority = #{priority},
             is_favorite = #{favorite},
-            due_date = #{dueDate},
-            reminder = #{reminder},
+            due_date = #{dueDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            reminder = #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             notification_channels = #{notificationChannels, jdbcType=VARCHAR},
             location_lat = #{location.lat, jdbcType=REAL},
             location_lng = #{location.lng, jdbcType=REAL},
             location_address = #{location.address, jdbcType=VARCHAR},
             schedule_repeat = #{schedule.repeat, jdbcType=VARCHAR},
-            schedule_end_date = #{schedule.endDate, jdbcType=VARCHAR},
+            schedule_end_date = #{schedule.endDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             updated_at = #{updatedAt}
         WHERE id = #{id}
     </update>
 
     <update id="softDelete">
-        UPDATE todo SET is_deleted = 1, deleted_at = #{deletedAt}, updated_at = #{deletedAt}
+        UPDATE todo SET is_deleted = 1, deleted_at = #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, updated_at = #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
         WHERE id = #{id}
     </update>
 
@@ -150,7 +150,7 @@
     <select id="findWithDueReminders" resultMap="todoResultMap">
         SELECT * FROM todo
         WHERE reminder IS NOT NULL
-          AND reminder &lt;= #{now}
+          AND reminder &lt;= #{now, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
           AND (notified_at IS NULL OR notified_at &lt; reminder)
           AND is_deleted = 0
           AND is_archived = 0
@@ -159,7 +159,7 @@
 
     <!-- Mark todo reminder as notified -->
     <update id="markReminderNotified">
-        UPDATE todo SET notified_at = #{notifiedAt}, updated_at = #{notifiedAt}
+        UPDATE todo SET notified_at = #{notifiedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, updated_at = #{notifiedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
         WHERE id = #{id}
     </update>
 
