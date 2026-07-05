@@ -325,17 +325,17 @@ public class NoteService {
     private LocalDateTime parseDate(String dateStr) {
         if (dateStr == null || dateStr.isEmpty()) return null;
         try {
-            // Parse ISO UTC format (with 'Z') from frontend
+            // Parse ISO UTC format (with 'Z') from frontend — store as UTC LocalDateTime
             java.time.Instant instant = java.time.Instant.parse(dateStr);
-            return LocalDateTime.ofInstant(instant, java.time.ZoneId.systemDefault());
+            return LocalDateTime.ofInstant(instant, java.time.ZoneOffset.UTC);
         } catch (Exception e1) {
             try {
-                // Try ISO local date-time format
+                // Try ISO local date-time format (treat as UTC for consistency)
                 return LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             } catch (Exception e2) {
                 try {
                     // Try "yyyy-MM-dd" format
-                    return LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+                    return java.time.LocalDate.parse(dateStr).atStartOfDay();
                 } catch (Exception e3) {
                     // Ignore invalid date
                     return null;

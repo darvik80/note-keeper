@@ -10,6 +10,7 @@ import xyz.crearts.note.keeper.model.Todo;
 import xyz.crearts.note.keeper.model.UserSettings;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 /**
@@ -40,7 +41,7 @@ public class ReminderService {
     public void checkReminders() {
         log.debug("Checking for due reminders...");
         
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         // Find todos with reminder time <= now
         List<Todo> todosWithReminders = todoMapper.findWithDueReminders(now);
         
@@ -80,7 +81,7 @@ public class ReminderService {
         }
         
         // Mark reminder as notified
-        todoMapper.markReminderNotified(todo.getId(), LocalDateTime.now());
+        todoMapper.markReminderNotified(todo.getId(), LocalDateTime.now(ZoneOffset.UTC));
     }
 
     /**
