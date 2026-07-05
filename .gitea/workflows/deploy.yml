@@ -21,7 +21,7 @@ jobs:
           docker build -t localhost/$CONTAINER_NAME:latest .
 
       # Перезапускаем контейнер
-      - name: Restart ai-agent
+      - name: Restart note-keeper
         run: |
           export DOCKER_API_VERSION=1.43
           docker rm -f $CONTAINER_NAME
