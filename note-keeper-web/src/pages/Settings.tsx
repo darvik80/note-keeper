@@ -271,7 +271,7 @@ export const Settings: React.FC = () => {
   }, [activeTab]);
 
   return (
-    <div className="flex-1 flex flex-col bg-background">
+    <div className="flex-1 flex flex-col bg-background min-h-0 overflow-hidden">
       {error && (
         <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
           <i className="fas fa-circle-exclamation shrink-0"></i>
@@ -296,7 +296,7 @@ export const Settings: React.FC = () => {
         }
       />
 
-      <div className="flex-1 overflow-auto p-8">
+      <div className="flex-1 overflow-auto p-8 min-h-0">
         <div className="max-w-5xl mx-auto">
           <div className="flex gap-4 mb-8 border-b border-border">
             <button
