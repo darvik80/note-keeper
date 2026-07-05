@@ -113,6 +113,16 @@ export const NoteEditor: React.FC = () => {
 
 
 
+  const formatDateTimeLocal = (date: Date | string): string => {
+    const d = typeof date === 'string' ? new Date(date) : new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || !noteRef.current) return;
@@ -328,7 +338,7 @@ export const NoteEditor: React.FC = () => {
             />
             <input
               type="datetime-local"
-              value={note.reminder ? new Date(note.reminder).toISOString().slice(0, 16) : ''}
+              value={note.reminder ? formatDateTimeLocal(note.reminder) : ''}
               onChange={(e) => { const v = e.target.value ? new Date(e.target.value) : undefined; setNote(prev => prev ? { ...prev, reminder: v } : prev); }}
               className="px-4 py-2 border border-gray-300 rounded-lg w-full"
             />
