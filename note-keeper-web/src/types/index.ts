@@ -330,6 +330,8 @@ export interface TodoInput {
   location?: { lat: number; lng: number; address: string };
   /** Recurrence schedule. */
   schedule?: { repeat: string; endDate?: string };
+  /** Comma-separated notification channels (e.g. "telegram,dingtalk"). */
+  notificationChannels?: string;
   /** Attachments to persist. */
   attachments?: {
     id: string;

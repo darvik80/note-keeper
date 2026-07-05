@@ -128,6 +128,7 @@ export const TodoEditor: React.FC = () => {
           repeat: current.schedule.repeat,
           endDate: current.schedule.endDate ? (typeof current.schedule.endDate === 'string' ? current.schedule.endDate : new Date(current.schedule.endDate).toISOString()) : undefined
         } : undefined,
+        notificationChannels: current.notificationChannels || undefined,
         attachments: uploadedAttachments.map(att => ({
           id: att.id,
           name: att.name,
