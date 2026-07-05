@@ -162,7 +162,7 @@ export const NoteEditor: React.FC = () => {
   );
 
   return (
-    <div className="flex-1 flex flex-col bg-white">
+    <div className="flex-1 flex flex-col bg-white min-h-0 overflow-hidden">
       {error && (
         <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
           <i className="fas fa-circle-exclamation shrink-0"></i>
@@ -239,7 +239,7 @@ export const NoteEditor: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 sm:p-8">
+      <div className="flex-1 overflow-auto p-4 sm:p-8 min-h-0">
         {showHistory && note.history && note.history.length > 0 && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">

@@ -94,27 +94,40 @@ export const Calendar: React.FC = () => {
     a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
 
   const getItemsForDate = (date: Date) => {
+    // Normalize date to midnight for accurate day-level comparison
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
     return items.filter(item => {
       // Check dueDate match
-      if (item.dueDate && isSameDay(new Date(item.dueDate), date)) {
-        return true;
+      if (item.dueDate) {
+        const dueDate = new Date(item.dueDate);
+        if (isSameDay(dueDate, date)) {
+          return true;
+        }
       }
       // Check reminder match
-      if (item.reminder && isSameDay(new Date(item.reminder), date)) {
-        return true;
+      if (item.reminder) {
+        const reminderDate = new Date(item.reminder);
+        if (isSameDay(reminderDate, date)) {
+          return true;
+        }
       }
       // Check recurring schedule (todos only)
       if (item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none' && item.dueDate) {
-        const startDate = new Date(item.dueDate);
+        // Normalize start date to midnight
+        const rawStart = new Date(item.dueDate);
+        const startDate = new Date(rawStart.getFullYear(), rawStart.getMonth(), rawStart.getDate());
         const endDateRaw = item.schedule.endDate;
-        const endDate = endDateRaw ? new Date(typeof endDateRaw === 'string' ? endDateRaw : endDateRaw) : null;
+        const endDate = endDateRaw
+          ? (() => { const d = new Date(typeof endDateRaw === 'string' ? endDateRaw : endDateRaw); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); })()
+          : null;
 
         // Skip if date is before start or after end
-        if (date < startDate) return false;
-        if (endDate && date > endDate) return false;
+        if (dateOnly < startDate) return false;
+        if (endDate && dateOnly > endDate) return false;
 
-        const diffMs = date.getTime() - startDate.getTime();
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffMs = dateOnly.getTime() - startDate.getTime();
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
         switch (item.schedule.repeat) {
           case 'daily':
@@ -123,7 +136,7 @@ export const Calendar: React.FC = () => {
             return diffDays >= 0 && diffDays % 7 === 0;
           case 'monthly': {
             // Same day-of-month as start date
-            return date.getDate() === startDate.getDate() && diffDays >= 0;
+            return dateOnly.getDate() === startDate.getDate() && diffDays >= 0;
           }
           default:
             return false;

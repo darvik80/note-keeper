@@ -53,6 +53,7 @@ const App: React.FC = () => {
                 <div className="w-10"></div>
               </div>
 
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -69,6 +70,7 @@ const App: React.FC = () => {
                 <Route path="/trash" element={<ProtectedRoute><Trash /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               </Routes>
+              </div>
             </div>
           </div>
         </ShortcutProvider>

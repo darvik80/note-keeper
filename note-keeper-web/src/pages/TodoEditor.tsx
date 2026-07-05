@@ -247,7 +247,7 @@ export const TodoEditor: React.FC = () => {
   );
 
   return (
-    <div className="flex-1 flex flex-col bg-white">
+    <div className="flex-1 flex flex-col bg-white min-h-0 overflow-hidden">
       {error && (
         <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
           <i className="fas fa-circle-exclamation shrink-0"></i>
@@ -338,7 +338,7 @@ export const TodoEditor: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 sm:p-8 max-w-4xl mx-auto w-full">
+      <div className="flex-1 overflow-auto p-4 sm:p-8 max-w-4xl mx-auto w-full min-h-0">
         <input
           type="text"
           value={todo.title}
