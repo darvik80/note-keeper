@@ -132,10 +132,9 @@ export const Calendar: React.FC = () => {
           return true;
         }
       }
-      // Check recurring schedule (todos only)
-      if (item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none' && item.dueDate) {
-        // Normalize start date to midnight using local date parts
-        const rawStart = parseLocalDate(item.dueDate);
+      // Check recurring schedule (todos only) — use dueDate or reminder as start
+      if (item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none' && (item.dueDate || item.reminder)) {
+        const rawStart = parseLocalDate(item.dueDate || item.reminder);
         if (!rawStart) return false;
         const startDate = new Date(rawStart.getFullYear(), rawStart.getMonth(), rawStart.getDate());
 
