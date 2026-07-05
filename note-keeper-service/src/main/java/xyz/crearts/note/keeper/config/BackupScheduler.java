@@ -31,6 +31,7 @@ public class BackupScheduler {
     private TaskScheduler taskScheduler;
 
     private ScheduledFuture<?> scheduledTask;
+    private boolean initialized = false;
 
     /**
      * Check and update backup schedule based on database settings.
@@ -107,12 +108,13 @@ public class BackupScheduler {
     }
 
     /**
-     * Initial scheduled backup (runs once on startup if enabled).
+     * Initial backup schedule setup (runs once after startup).
      */
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelay = Long.MAX_VALUE, initialDelay = 5000)
     public void init() {
-        updateSchedule();
-        // Unschedule this method after first execution
-        // This is just to trigger initial schedule setup
+        if (!initialized) {
+            initialized = true;
+            updateSchedule();
+        }
     }
 }
