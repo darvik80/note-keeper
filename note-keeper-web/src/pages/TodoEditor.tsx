@@ -104,7 +104,7 @@ export const TodoEditor: React.FC = () => {
       }
       if (current.reminder) {
         const reminderObj = typeof current.reminder === 'string' ? new Date(current.reminder) : current.reminder;
-        if (reminderObj < now) {
+        if (reminderObj < now && (current.schedule == null || current.schedule.repeat === 'none')) {
           setError('Reminder must be in the future');
           return;
         }
