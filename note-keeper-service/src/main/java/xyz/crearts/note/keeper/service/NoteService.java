@@ -217,7 +217,7 @@ public class NoteService {
             noteMapper.permanentDelete(id);
             tagSyncService.removeTagsIfUnused(ownerId, tags);
         } else {
-            noteMapper.softDelete(id, LocalDateTime.now().toString());
+            noteMapper.softDelete(id, LocalDateTime.now());
         }
         notificationService.notifyNoteDeleted(id, ownerId);
     }

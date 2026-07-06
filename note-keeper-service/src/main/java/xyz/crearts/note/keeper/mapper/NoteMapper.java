@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import xyz.crearts.note.keeper.model.Note;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -24,7 +25,7 @@ public interface NoteMapper {
 
     void update(Note note);
 
-    void softDelete(@Param("id") String id, @Param("deletedAt") String deletedAt);
+    void softDelete(@Param("id") String id, @Param("deletedAt") LocalDateTime deletedAt);
 
     void permanentDelete(@Param("id") String id);
 

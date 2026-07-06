@@ -26,7 +26,7 @@ public interface TodoMapper {
 
     void update(Todo todo);
 
-    void softDelete(@Param("id") String id, @Param("deletedAt") String deletedAt);
+    void softDelete(@Param("id") String id, @Param("deletedAt") LocalDateTime deletedAt);
 
     void permanentDelete(@Param("id") String id);
 

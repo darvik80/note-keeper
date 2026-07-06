@@ -156,7 +156,7 @@ public class TodoService {
             todoMapper.permanentDelete(id);
             tagSyncService.removeTagsIfUnused(ownerId, tags);
         } else {
-            todoMapper.softDelete(id, LocalDateTime.now().toString());
+            todoMapper.softDelete(id, LocalDateTime.now());
         }
         notificationService.notifyTodoDeleted(id, ownerId);
     }
