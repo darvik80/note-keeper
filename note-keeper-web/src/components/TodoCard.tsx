@@ -62,7 +62,7 @@ export const TodoCard: React.FC<TodoCardProps> = ({
 
   return (
     <div
-      className={`bg-surface rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-all ${
+      className={`bg-surface rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-all overflow-hidden ${
         todo.completed ? 'opacity-60' : ''
       }`}
     >

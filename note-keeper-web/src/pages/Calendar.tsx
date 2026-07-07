@@ -199,15 +199,16 @@ export const Calendar: React.FC = () => {
     <PageShell error={error} onDismissError={() => setError(null)}>
       <Header title="Calendar" />
 
-      <div className="flex-1 overflow-auto p-4 sm:p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 mb-4">
+      <div className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden">
+        <div className="max-w-6xl mx-auto p-4 sm:p-6">
+          <div className="bg-surface rounded-xl p-4 sm:p-6 shadow-sm border border-border mb-4">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-dark">{monthName}</h2>
+              <h2 className="text-2xl font-bold text-text">{monthName}</h2>
               <div className="flex gap-2">
                 <button
                   onClick={previousMonth}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-hover rounded-lg transition-colors text-text"
+                  aria-label="Previous month"
                 >
                   <i className="fas fa-chevron-left"></i>
                 </button>
@@ -219,7 +220,8 @@ export const Calendar: React.FC = () => {
                 </button>
                 <button
                   onClick={nextMonth}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-hover rounded-lg transition-colors text-text"
+                  aria-label="Next month"
                 >
                   <i className="fas fa-chevron-right"></i>
                 </button>
@@ -228,7 +230,7 @@ export const Calendar: React.FC = () => {
 
             <div className="grid grid-cols-7 gap-2">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="text-center font-bold text-gray-600 py-2">
+                <div key={day} className="text-center font-bold text-text-secondary py-2">
                   {day}
                 </div>
               ))}
@@ -250,11 +252,11 @@ export const Calendar: React.FC = () => {
                     key={day}
                     onClick={() => setSelectedDate(date)}
                     className={`min-h-[80px] border rounded-lg p-2 cursor-pointer transition-all hover:border-primary ${
-                      isToday(day) ? 'bg-primary/10 border-primary' : 'border-gray-200'
+                      isToday(day) ? 'bg-primary/10 border-primary' : 'border-border bg-background'
                     } ${isSelected ? 'ring-2 ring-primary' : ''}`}
                   >
                     <div className={`text-sm font-medium mb-1 ${
-                      isToday(day) ? 'text-primary' : 'text-gray-700'
+                      isToday(day) ? 'text-primary' : 'text-text'
                     }`}>
                       {day}
                     </div>
@@ -264,8 +266,8 @@ export const Calendar: React.FC = () => {
                           <div
                             key={item.id}
                             className={`text-xs px-1 py-0.5 rounded truncate flex items-center gap-1 ${
-                              item.type === 'note' ? 'bg-blue-100 text-blue-700' :
-                              item.completed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                              item.type === 'note' ? 'bg-blue-500/15 text-blue-400' :
+                              item.completed ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'
                             }`}
                           >
                             {item.type === 'note' && <i className="fas fa-note-sticky text-[10px] opacity-60"></i>}
@@ -276,7 +278,7 @@ export const Calendar: React.FC = () => {
                           </div>
                         ))}
                         {dayItems.length > 2 && (
-                          <div className="text-xs text-gray-500">+{dayItems.length - 2} more</div>
+                          <div className="text-xs text-text-secondary">+{dayItems.length - 2} more</div>
                         )}
                       </div>
                     )}
@@ -287,34 +289,34 @@ export const Calendar: React.FC = () => {
           </div>
 
           {selectedDate && selectedDateItems.length > 0 && (
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <h3 className="text-lg font-bold text-dark mb-4">
+            <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+              <h3 className="text-lg font-bold text-text mb-4">
                 Items for {selectedDate.toLocaleDateString()}
               </h3>
               <div className="space-y-3">
                 {selectedDateItems.map(item => (
                   <div
                     key={item.id}
-                    className="p-4 border border-gray-200 rounded-lg hover:border-primary transition-colors cursor-pointer"
+                    className="p-4 border border-border rounded-lg hover:border-primary transition-colors cursor-pointer bg-background"
                     onClick={() => navigate(item.type === 'note' ? `/notes/${item.id}` : `/todos/${item.id}`)}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        {item.type === 'note' && <i className="fas fa-note-sticky text-blue-500"></i>}
-                        <h4 className="font-semibold text-dark">{item.title}</h4>
+                        {item.type === 'note' && <i className="fas fa-note-sticky text-secondary"></i>}
+                        <h4 className="font-semibold text-text">{item.title}</h4>
                       </div>
                       {item.type === 'todo' && (
                         <span className={`text-xs px-2 py-1 rounded ${
-                          item.completed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                          item.completed ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'
                         }`}>
                           {item.completed ? 'Completed' : 'Pending'}
                         </span>
                       )}
                       {item.type === 'note' && (
-                        <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">Note</span>
+                        <span className="text-xs px-2 py-1 rounded bg-blue-500/15 text-blue-400">Note</span>
                       )}
                     </div>
-                    {item.description && <p className="text-sm text-gray-600 mb-2">{item.description}</p>}
+                    {item.description && <p className="text-sm text-text-secondary mb-2">{item.description}</p>}
                     <div className="flex items-center gap-2">
                       <PriorityBadge priority={item.priority} />
                       {item.tags.slice(0, 3).map(tag => (

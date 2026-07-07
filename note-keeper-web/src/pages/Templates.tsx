@@ -3,16 +3,17 @@
  * @category Pages
  * @description Note templates page — browse, create, and apply templates.
  */
-import React, {useEffect, useState} from 'react';
-import {useNavigate} from 'react-router-dom';
-import {Header} from '../components/Header';
-import {PageShell} from '../components/PageShell';
-import {ConfirmDialog} from '../components/ConfirmDialog';
-import {useToast} from '../contexts/ToastContext';
-import {api} from '../utils/api';
-import {NoteInput, NoteTemplate, NoteTemplateInput} from '../types';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Header } from '../components/Header';
+import { PageShell } from '../components/PageShell';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { EmptyState } from '../components/EmptyState';
+import { MarkdownPreview } from '../components/MarkdownPreview';
+import { useToast } from '../contexts/ToastContext';
+import { api } from '../utils/api';
+import { NoteInput, NoteTemplate, NoteTemplateInput } from '../types';
 
-/** Templates page for managing reusable note templates. */
 export const Templates: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -25,14 +26,13 @@ export const Templates: React.FC = () => {
     name: '',
     content: '',
     tags: [] as string[],
-    category: 'Work'
+    category: 'Work',
   });
 
   useEffect(() => {
     const load = async () => {
       try {
-        const t = await api.templates.getAll();
-        setTemplates(t);
+        setTemplates(await api.templates.getAll());
       } catch (err) {
         setError((err as any)?.message || 'Failed to load templates');
       }
@@ -72,6 +72,7 @@ export const Templates: React.FC = () => {
       setTemplates(prev => [template, ...prev]);
       setShowCreate(false);
       setNewTemplate({ name: '', content: '', tags: [], category: 'Work' });
+      toast.success('Template created');
     } catch (err) {
       setError((err as any)?.message || 'Failed to create template');
     }
@@ -107,103 +108,107 @@ export const Templates: React.FC = () => {
         }
       />
 
-      <div className="flex-1 overflow-auto p-4 lg:p-8">
-        {showCreate && (
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
-            <h3 className="text-lg font-bold mb-4">Create New Template</h3>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Template name"
-                value={newTemplate.name}
-                onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              />
-              <select
-                value={newTemplate.category}
-                onChange={(e) => setNewTemplate({ ...newTemplate, category: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              >
-                <option value="Work">Work</option>
-                <option value="Personal">Personal</option>
-                <option value="Study">Study</option>
-                <option value="Other">Other</option>
-              </select>
-              <textarea
-                placeholder="Template content (Markdown supported)"
-                value={newTemplate.content}
-                onChange={(e) => setNewTemplate({ ...newTemplate, content: e.target.value })}
-                className="w-full h-48 px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm"
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={saveNewTemplate}
-                  className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+      <div className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden">
+        <div className="p-4 lg:p-8">
+          {showCreate && (
+            <div className="bg-surface rounded-xl p-6 shadow-sm border border-border mb-6">
+              <h3 className="text-lg font-bold text-text mb-4">Create New Template</h3>
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Template name"
+                  value={newTemplate.name}
+                  onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
+                  className="input-field"
+                />
+                <select
+                  value={newTemplate.category}
+                  onChange={(e) => setNewTemplate({ ...newTemplate, category: e.target.value })}
+                  className="input-field"
                 >
-                  Save Template
-                </button>
-                <button
-                  onClick={() => setShowCreate(false)}
-                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
+                  <option value="Work">Work</option>
+                  <option value="Personal">Personal</option>
+                  <option value="Study">Study</option>
+                  <option value="Other">Other</option>
+                </select>
+                <textarea
+                  placeholder="Template content (Markdown supported)"
+                  value={newTemplate.content}
+                  onChange={(e) => setNewTemplate({ ...newTemplate, content: e.target.value })}
+                  className="input-field h-48 font-mono text-sm resize-y"
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={saveNewTemplate}
+                    className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+                  >
+                    Save Template
+                  </button>
+                  <button
+                    onClick={() => setShowCreate(false)}
+                    className="px-6 py-2 btn-secondary rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          {templates.map(template => (
-            <div
-              key={template.id}
-              className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h4 className="font-bold text-dark text-lg mb-1">{template.name}</h4>
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                    {template.category}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setDeleteId(template.id)}
-                  className="text-red-500 hover:text-red-700 p-1"
+          {templates.length === 0 && !showCreate ? (
+            <EmptyState icon="fa-file-lines" message="No templates yet" />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+              {templates.map(template => (
+                <div
+                  key={template.id}
+                  className="bg-surface rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow flex flex-col"
                 >
-                  <i className="fas fa-trash"></i>
-                </button>
-              </div>
-              
-              <pre className="text-sm text-gray-600 mb-4 line-clamp-4 whitespace-pre-wrap font-mono bg-gray-50 p-3 rounded">
-                {template.content}
-              </pre>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex flex-wrap gap-2">
-                  {template.tags.slice(0, 3).map(tag => (
-                    <span key={tag} className="text-xs bg-gray-100 px-2 py-1 rounded">
-                      #{tag}
-                    </span>
-                  ))}
+                  <div className="flex items-start justify-between mb-3 gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-text text-lg mb-1 truncate">{template.name}</h4>
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                        {template.category}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setDeleteId(template.id)}
+                      className="text-red-500 hover:text-red-600 p-1 shrink-0"
+                      aria-label="Delete template"
+                    >
+                      <i className="fas fa-trash"></i>
+                    </button>
+                  </div>
+
+                  <div className="bg-background rounded-lg p-3 mb-4 flex-1 min-h-0">
+                    <MarkdownPreview
+                      content={template.content}
+                      maxLines={4}
+                      emptyText="Empty template"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 mt-auto">
+                    <div className="flex flex-wrap gap-2">
+                      {template.tags.slice(0, 3).map(tag => (
+                        <span key={tag} className="text-xs bg-hover px-2 py-1 rounded">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => createFromTemplate(template)}
+                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 text-sm shrink-0"
+                    >
+                      <i className="fas fa-file-circle-plus mr-2"></i>
+                      Use
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => createFromTemplate(template)}
-                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 text-sm"
-                >
-                  <i className="fas fa-file-circle-plus mr-2"></i>
-                  Use
-                </button>
-              </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-
-        {templates.length === 0 && !showCreate && (
-          <div className="text-center py-16">
-            <i className="fas fa-file-lines text-6xl text-gray-300 mb-4"></i>
-            <p className="text-gray-500 text-lg">No templates yet</p>
-          </div>
-        )}
       </div>
 
       <ConfirmDialog

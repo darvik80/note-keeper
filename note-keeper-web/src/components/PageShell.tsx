@@ -9,7 +9,7 @@ interface PageShellProps {
 }
 
 export const PageShell: React.FC<PageShellProps> = ({ error, onDismissError, className = '', children }) => (
-  <div className={`flex-1 flex flex-col bg-background min-h-0 ${className}`}>
+  <div className={`flex flex-1 flex-col bg-background min-h-0 w-full overflow-hidden ${className}`}>
     {error && <ErrorBanner message={error} onDismiss={onDismissError} />}
     {children}
   </div>

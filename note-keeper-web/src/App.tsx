@@ -24,10 +24,14 @@ const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.S
 const isAuthenticated = (): boolean => localStorage.getItem('token') !== null;
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =>
-  isAuthenticated() ? <>{children}</> : <Navigate to="/login" replace />;
+  isAuthenticated()
+    ? <div className="flex flex-1 flex-col min-h-0 w-full overflow-hidden">{children}</div>
+    : <Navigate to="/login" replace />;
 
 const LazyPage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Suspense fallback={<PageLoader />}>{children}</Suspense>
+  <Suspense fallback={<PageLoader />}>
+    <div className="flex flex-1 flex-col min-h-0 w-full overflow-hidden">{children}</div>
+  </Suspense>
 );
 
 const AppLayout: React.FC = () => {
@@ -63,7 +67,7 @@ const AppLayout: React.FC = () => {
           <div className="w-10"></div>
         </div>
 
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex flex-1 flex-col min-h-0 w-full overflow-hidden">
           <Routes>
             <Route path="/" element={<ProtectedRoute><LazyPage><Dashboard /></LazyPage></ProtectedRoute>} />
             <Route path="/notes" element={<ProtectedRoute><LazyPage><Notes /></LazyPage></ProtectedRoute>} />

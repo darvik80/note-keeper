@@ -20,7 +20,7 @@ export const CardGridSkeleton: React.FC<{ count?: number }> = ({ count = 6 }) =>
 );
 
 export const TodoListSkeleton: React.FC<{ count?: number }> = ({ count = 4 }) => (
-  <div className="max-w-4xl mx-auto space-y-4">
+  <div className="space-y-4">
     {Array.from({ length: count }).map((_, i) => (
       <div key={i} className="bg-surface rounded-xl p-6 border border-border">
         <div className="flex items-start gap-4">

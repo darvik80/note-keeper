@@ -176,14 +176,14 @@ export const Todos: React.FC = () => {
         }
       />
 
-      <div className="flex-1 overflow-auto p-4 sm:p-8">
+      <div className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden">
+        <div className="mx-auto w-full max-w-4xl px-4 sm:px-8 py-4 sm:py-8 space-y-4">
         {loading ? (
           <TodoListSkeleton />
         ) : filteredTodos.length === 0 ? (
           <EmptyState icon="fa-list-check" message="No todos found" />
         ) : (
-          <div className="max-w-4xl mx-auto space-y-4">
-            {filteredTodos.map(todo => (
+            filteredTodos.map(todo => (
               <TodoCard
                 key={todo.id}
                 todo={todo}
@@ -193,9 +193,9 @@ export const Todos: React.FC = () => {
                 onArchive={(e) => { e.stopPropagation(); archiveTodo(todo.id); }}
                 onDelete={(e) => { e.stopPropagation(); deleteTodo(todo.id); }}
               />
-            ))}
-          </div>
+            ))
         )}
+        </div>
       </div>
     </PageShell>
   );

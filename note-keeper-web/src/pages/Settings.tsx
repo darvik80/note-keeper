@@ -697,9 +697,9 @@ export const Settings: React.FC = () => {
                   )}
                 </div>
 
-                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-800">
-                    <i className="fas fa-exclamation-triangle mr-2"></i>
+                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <p className="text-sm text-text">
+                    <i className="fas fa-exclamation-triangle mr-2 text-yellow-500"></i>
                     <strong>Warning:</strong> Importing a backup will overwrite existing data. Make sure to export your current data first.
                   </p>
                 </div>
@@ -726,7 +726,7 @@ export const Settings: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-background rounded-lg">
                     <div>
                       <label className="text-sm font-medium text-text">Enable Automatic Backup</label>
                       <p className="text-xs text-text-secondary mt-1">
@@ -743,11 +743,11 @@ export const Settings: React.FC = () => {
                         })}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                      <div className="w-11 h-6 bg-hover peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-surface after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                     </label>
                   </div>
 
-                  <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="p-4 bg-background rounded-lg">
                     <label className="block text-sm font-medium text-text mb-2">
                       Cron Schedule
                     </label>
@@ -758,21 +758,21 @@ export const Settings: React.FC = () => {
                         ...backupSettings,
                         cron: e.target.value
                       })}
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text font-mono text-sm"
+                      className="input-field font-mono text-sm"
                       placeholder="0 0 2 * * *"
                     />
                     <p className="text-xs text-text-secondary mt-2">
                       <strong>Examples:</strong>
                       <br />
-                      <code className="bg-white px-2 py-1 rounded">0 0 2 * * *</code> - Daily at 2 AM
+                      <code className="bg-hover px-2 py-1 rounded font-mono text-xs">0 0 2 * * *</code> — Daily at 2 AM
                       <br />
-                      <code className="bg-white px-2 py-1 rounded">0 0 * * * *</code> - Every hour
+                      <code className="bg-hover px-2 py-1 rounded font-mono text-xs">0 0 * * * *</code> — Every hour
                       <br />
-                      <code className="bg-white px-2 py-1 rounded">0 30 8 * * MON-FRI</code> - Weekdays at 8:30 AM
+                      <code className="bg-hover px-2 py-1 rounded font-mono text-xs">0 30 8 * * MON-FRI</code> — Weekdays at 8:30 AM
                     </p>
                   </div>
 
-                  <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="p-4 bg-background rounded-lg">
                     <label className="block text-sm font-medium text-text mb-2">
                       Retention Period (days)
                     </label>
@@ -783,7 +783,7 @@ export const Settings: React.FC = () => {
                         ...backupSettings,
                         retentionDays: parseInt(e.target.value) || 30
                       })}
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text"
+                      className="input-field"
                       min="1"
                       max="365"
                     />
@@ -792,10 +792,10 @@ export const Settings: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800">
-                      <i className="fas fa-info-circle mr-2"></i>
-                      <strong>Note:</strong> Backups are stored in: <code className="bg-white px-2 py-1 rounded">./backups/</code>
+                  <div className="p-4 bg-secondary/10 border border-secondary/30 rounded-lg">
+                    <p className="text-sm text-text">
+                      <i className="fas fa-info-circle mr-2 text-secondary"></i>
+                      <strong>Note:</strong> Backups are stored in: <code className="bg-hover px-2 py-1 rounded font-mono text-xs">./backups/</code>
                     </p>
                   </div>
                 </div>

@@ -224,6 +224,7 @@ select option {
   font-size: 0.875rem;
   line-height: 1.5;
   overflow: hidden;
+  word-break: break-word;
 }
 
 .markdown-preview p,
