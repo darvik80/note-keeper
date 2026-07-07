@@ -28,9 +28,12 @@ app:
     data-dir: ${app.storage.base-dir}
     db-path: ${app.storage.data-dir}/notekeeper.db
   encryption:
-    # AES-256 key (Base64 encoded). Generate with: EncryptionService.generateKey()
-    # WARNING: If not set, a random key is generated on each startup (encrypted data will be lost)
-    key: yjySH54/8L2nhkSZEOvL8JcOV3ViYSIeKunaQnNlmZk=
+    # AES-256 key (Base64 encoded). Set APP_ENCRYPTION_KEY in production.
+    key: ${APP_ENCRYPTION_KEY:}
+
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRY_MS:86400000}
 
 # Common configuration (applies to all profiles)
 mybatis:

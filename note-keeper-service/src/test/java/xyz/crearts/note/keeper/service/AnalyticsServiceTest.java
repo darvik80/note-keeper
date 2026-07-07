@@ -28,13 +28,13 @@ class AnalyticsServiceTest {
 
     @Test
     void getAnalytics_week_shouldReturn7DaysActivity() {
-        when(noteMapper.countByDateRange(anyString(), anyString())).thenReturn(5);
-        when(todoMapper.countByDateRange(anyString(), anyString())).thenReturn(3);
-        when(todoMapper.countCompletedByDateRange(anyString(), anyString())).thenReturn(2);
-        when(noteMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(1);
-        when(todoMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(0);
+        when(noteMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(5);
+        when(todoMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(3);
+        when(todoMapper.countCompletedByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(2);
+        when(noteMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(1);
+        when(todoMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(0);
 
-        AnalyticsResponse response = analyticsService.getAnalytics("week");
+        AnalyticsResponse response = analyticsService.getAnalytics("week", "owner-1");
 
         assertNotNull(response);
         assertEquals(5, response.getNotesCreated());
@@ -47,80 +47,80 @@ class AnalyticsServiceTest {
 
     @Test
     void getAnalytics_month_shouldReturn30DaysActivity() {
-        when(noteMapper.countByDateRange(anyString(), anyString())).thenReturn(10);
-        when(todoMapper.countByDateRange(anyString(), anyString())).thenReturn(8);
-        when(todoMapper.countCompletedByDateRange(anyString(), anyString())).thenReturn(4);
-        when(noteMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(0);
-        when(todoMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(0);
+        when(noteMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(10);
+        when(todoMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(8);
+        when(todoMapper.countCompletedByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(4);
+        when(noteMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(todoMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(0);
 
-        AnalyticsResponse response = analyticsService.getAnalytics("month");
+        AnalyticsResponse response = analyticsService.getAnalytics("month", "owner-1");
 
         assertEquals(30, response.getDailyActivity().size());
     }
 
     @Test
     void getAnalytics_year_shouldReturn365DaysActivity() {
-        when(noteMapper.countByDateRange(anyString(), anyString())).thenReturn(100);
-        when(todoMapper.countByDateRange(anyString(), anyString())).thenReturn(50);
-        when(todoMapper.countCompletedByDateRange(anyString(), anyString())).thenReturn(25);
-        when(noteMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(0);
-        when(todoMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(0);
+        when(noteMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(100);
+        when(todoMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(50);
+        when(todoMapper.countCompletedByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(25);
+        when(noteMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(todoMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(0);
 
-        AnalyticsResponse response = analyticsService.getAnalytics("year");
+        AnalyticsResponse response = analyticsService.getAnalytics("year", "owner-1");
 
         assertEquals(365, response.getDailyActivity().size());
     }
 
     @Test
     void getAnalytics_nullTimeRange_shouldDefaultToWeek() {
-        when(noteMapper.countByDateRange(anyString(), anyString())).thenReturn(0);
-        when(todoMapper.countByDateRange(anyString(), anyString())).thenReturn(0);
-        when(todoMapper.countCompletedByDateRange(anyString(), anyString())).thenReturn(0);
-        when(noteMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(0);
-        when(todoMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(0);
+        when(noteMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(todoMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(todoMapper.countCompletedByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(noteMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(todoMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(0);
 
-        AnalyticsResponse response = analyticsService.getAnalytics(null);
+        AnalyticsResponse response = analyticsService.getAnalytics(null, "owner-1");
 
         assertEquals(7, response.getDailyActivity().size());
     }
 
     @Test
     void getAnalytics_completionRate_shouldCalculateCorrectly() {
-        when(noteMapper.countByDateRange(anyString(), anyString())).thenReturn(0);
-        when(todoMapper.countByDateRange(anyString(), anyString())).thenReturn(10);
-        when(todoMapper.countCompletedByDateRange(anyString(), anyString())).thenReturn(5);
-        when(noteMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(0);
-        when(todoMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(0);
+        when(noteMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(todoMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(10);
+        when(todoMapper.countCompletedByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(5);
+        when(noteMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(todoMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(0);
 
-        AnalyticsResponse response = analyticsService.getAnalytics("week");
+        AnalyticsResponse response = analyticsService.getAnalytics("week", "owner-1");
 
         assertEquals(50.0, response.getCompletionRate());
     }
 
     @Test
     void getAnalytics_zeroTodos_completionRateShouldBeZero() {
-        when(noteMapper.countByDateRange(anyString(), anyString())).thenReturn(0);
-        when(todoMapper.countByDateRange(anyString(), anyString())).thenReturn(0);
-        when(todoMapper.countCompletedByDateRange(anyString(), anyString())).thenReturn(0);
-        when(noteMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(0);
-        when(todoMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(0);
+        when(noteMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(todoMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(todoMapper.countCompletedByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(noteMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(todoMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(0);
 
-        AnalyticsResponse response = analyticsService.getAnalytics("week");
+        AnalyticsResponse response = analyticsService.getAnalytics("week", "owner-1");
 
         assertEquals(0.0, response.getCompletionRate());
     }
 
     @Test
     void getAnalytics_shouldIncludePriorityDistribution() {
-        when(noteMapper.countByDateRange(anyString(), anyString())).thenReturn(0);
-        when(todoMapper.countByDateRange(anyString(), anyString())).thenReturn(0);
-        when(todoMapper.countCompletedByDateRange(anyString(), anyString())).thenReturn(0);
-        when(noteMapper.countByPriority(eq("high"), anyString(), anyString())).thenReturn(3);
-        when(noteMapper.countByPriority(eq("medium"), anyString(), anyString())).thenReturn(5);
-        when(noteMapper.countByPriority(eq("low"), anyString(), anyString())).thenReturn(2);
-        when(todoMapper.countByPriority(anyString(), anyString(), anyString())).thenReturn(1);
+        when(noteMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(todoMapper.countByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(todoMapper.countCompletedByDateRange(anyString(), anyString(), eq("owner-1"))).thenReturn(0);
+        when(noteMapper.countByPriority(eq("high"), anyString(), anyString(), eq("owner-1"))).thenReturn(3);
+        when(noteMapper.countByPriority(eq("medium"), anyString(), anyString(), eq("owner-1"))).thenReturn(5);
+        when(noteMapper.countByPriority(eq("low"), anyString(), anyString(), eq("owner-1"))).thenReturn(2);
+        when(todoMapper.countByPriority(anyString(), anyString(), anyString(), eq("owner-1"))).thenReturn(1);
 
-        AnalyticsResponse response = analyticsService.getAnalytics("week");
+        AnalyticsResponse response = analyticsService.getAnalytics("week", "owner-1");
 
         assertEquals(4, response.getPriorityDistribution().get("high"));   // 3 notes + 1 todo
         assertEquals(6, response.getPriorityDistribution().get("medium")); // 5 notes + 1 todo

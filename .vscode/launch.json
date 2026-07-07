@@ -8,7 +8,11 @@
       "mainClass": "xyz.crearts.note.keeper.NotekeeperApplication",
       "projectName": "note-keeper-service",
       "cwd": "${workspaceFolder}/note-keeper-service",
-      "vmArgs": "--enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow -Dio.netty.tryReflectionSetAccessible=true"
+      "vmArgs": "--enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow -Dio.netty.tryReflectionSetAccessible=true",
+      "env": {
+        "JWT_SECRET": "dev-only-change-me-use-at-least-32-characters-long",
+        "APP_ENCRYPTION_KEY": "yjySH54/8L2nhkSZEOvL8JcOV3ViYSIeKunaQnNlmZk="
+      }
     }
   ]
 }

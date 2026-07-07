@@ -11,6 +11,7 @@ import xyz.crearts.note.keeper.service.BackupService;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
 /**
@@ -41,16 +42,16 @@ public class BackupScheduler {
     public void updateSchedule() {
         try {
             // Check if backup settings columns exist
-            Boolean enabled = checkColumnExists("backup_auto_enabled") 
+            Boolean enabled = checkColumnExists("backup_auto_enabled")
                 ? jdbcTemplate.queryForObject(
-                    "SELECT backup_auto_enabled FROM user_settings WHERE id = 'default'",
+                    "SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END FROM user_settings WHERE backup_auto_enabled = 1",
                     Boolean.class
                 )
                 : false;
-            
+
             String cron = checkColumnExists("backup_cron")
                 ? jdbcTemplate.queryForObject(
-                    "SELECT backup_cron FROM user_settings WHERE id = 'default'",
+                    "SELECT backup_cron FROM user_settings WHERE backup_auto_enabled = 1 LIMIT 1",
                     String.class
                 )
                 : "0 0 2 * * *";
@@ -100,8 +101,14 @@ public class BackupScheduler {
     private void executeBackup() {
         log.info("Starting scheduled automatic backup...");
         try {
-            Path backupFile = backupService.exportData();
-            log.info("Scheduled backup completed: {}", backupFile.getFileName());
+            List<String> userIds = jdbcTemplate.queryForList(
+                "SELECT id FROM user_settings WHERE backup_auto_enabled = 1",
+                String.class
+            );
+            for (String userId : userIds) {
+                Path backupFile = backupService.exportData(userId);
+                log.info("Scheduled backup completed for user {}: {}", userId, backupFile.getFileName());
+            }
         } catch (IOException e) {
             log.error("Scheduled backup failed: {}", e.getMessage(), e);
         }

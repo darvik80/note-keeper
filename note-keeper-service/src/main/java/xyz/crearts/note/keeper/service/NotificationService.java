@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 /**
- * Publishes real-time CRUD events over WebSocket to /topic/updates.
+ * Publishes real-time CRUD events over WebSocket to /topic/updates/{ownerId}.
  */
 @Slf4j
 @Service
@@ -44,7 +44,7 @@ public class NotificationService {
     private void sendEvent(String type, Map<String, String> payload) {
         try {
             Map<String, Object> message = Map.of("type", type, "data", payload);
-            messagingTemplate.convertAndSend("/topic/updates", message);
+            messagingTemplate.convertAndSend("/topic/updates/" + payload.get("ownerId"), message);
             log.debug("WS event sent: {}", type);
         } catch (Exception e) {
             log.warn("Failed to send WS event {}: {}", type, e.getMessage());

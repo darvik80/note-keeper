@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import xyz.crearts.note.keeper.dto.NoteInput;
+import xyz.crearts.note.keeper.exception.AccessDeniedException;
 import xyz.crearts.note.keeper.exception.ResourceNotFoundException;
 import xyz.crearts.note.keeper.mapper.AttachmentMapper;
 import xyz.crearts.note.keeper.mapper.NoteHistoryMapper;
@@ -32,11 +33,12 @@ class NoteServiceTest {
     @Mock private TagSyncService tagSyncService;
 
     private NoteService noteService;
+    private final ResourceAccessService resourceAccess = new ResourceAccessService();
 
     @BeforeEach
     void setUp() {
         noteService = new NoteService(noteMapper, historyMapper, attachmentMapper,
-                encryptionService, notificationService, tagSyncService);
+                encryptionService, notificationService, tagSyncService, resourceAccess);
     }
 
     private Note buildNote(String id, String ownerId) {
@@ -59,7 +61,7 @@ class NoteServiceTest {
         Note note = buildNote("note-1", "owner-1");
         when(noteMapper.findById("note-1")).thenReturn(note);
 
-        Note result = noteService.findById("note-1");
+        Note result = noteService.findById("note-1", "owner-1");
 
         assertNotNull(result);
         assertEquals("note-1", result.getId());
@@ -69,7 +71,7 @@ class NoteServiceTest {
     void findById_nonExistentNote_shouldThrowException() {
         when(noteMapper.findById("missing")).thenReturn(null);
 
-        assertThrows(ResourceNotFoundException.class, () -> noteService.findById("missing"));
+        assertThrows(ResourceNotFoundException.class, () -> noteService.findById("missing", "owner-1"));
     }
 
     @Test
@@ -80,7 +82,7 @@ class NoteServiceTest {
         when(noteMapper.findById("note-1")).thenReturn(note);
         when(encryptionService.decrypt("encrypted-content")).thenReturn("decrypted-content");
 
-        Note result = noteService.findById("note-1");
+        Note result = noteService.findById("note-1", "owner-1");
 
         assertEquals("decrypted-content", result.getContent());
     }
@@ -144,7 +146,7 @@ class NoteServiceTest {
         input.setTitle("Updated Title");
         input.setContent("Updated content");
 
-        Note result = noteService.update("note-1", input);
+        Note result = noteService.update("note-1", input, "owner-1");
 
         assertNotNull(result);
         verify(noteMapper).update(any(Note.class));
@@ -156,7 +158,7 @@ class NoteServiceTest {
         Note note = buildNote("note-1", "owner-1");
         when(noteMapper.findById("note-1")).thenReturn(note);
 
-        noteService.delete("note-1", false);
+        noteService.delete("note-1", false, "owner-1");
 
         verify(noteMapper).softDelete(eq("note-1"), any(LocalDateTime.class));
         verify(noteMapper, never()).permanentDelete(any());
@@ -168,7 +170,7 @@ class NoteServiceTest {
         Note note = buildNote("note-1", "owner-1");
         when(noteMapper.findById("note-1")).thenReturn(note);
 
-        noteService.delete("note-1", true);
+        noteService.delete("note-1", true, "owner-1");
 
         verify(noteMapper).permanentDelete("note-1");
         verify(attachmentMapper).deleteByParent("note-1", "note");
@@ -179,7 +181,7 @@ class NoteServiceTest {
     void delete_nonExistentNote_shouldThrowException() {
         when(noteMapper.findById("missing")).thenReturn(null);
 
-        assertThrows(ResourceNotFoundException.class, () -> noteService.delete("missing", false));
+        assertThrows(ResourceNotFoundException.class, () -> noteService.delete("missing", false, "owner-1"));
     }
 
     @Test
@@ -187,7 +189,7 @@ class NoteServiceTest {
         Note note = buildNote("note-1", "owner-1");
         when(noteMapper.findById("note-1")).thenReturn(note);
 
-        noteService.archive("note-1");
+        noteService.archive("note-1", "owner-1");
 
         verify(noteMapper).archive("note-1");
     }
@@ -197,7 +199,7 @@ class NoteServiceTest {
         Note note = buildNote("note-1", "owner-1");
         when(noteMapper.findById("note-1")).thenReturn(note);
 
-        noteService.restore("note-1");
+        noteService.restore("note-1", "owner-1");
 
         verify(noteMapper).restore("note-1");
     }
@@ -208,7 +210,7 @@ class NoteServiceTest {
         when(noteMapper.findById("note-1")).thenReturn(note);
         when(historyMapper.findByNoteId("note-1")).thenReturn(Collections.emptyList());
 
-        var history = noteService.getHistory("note-1");
+        var history = noteService.getHistory("note-1", "owner-1");
 
         assertNotNull(history);
         verify(historyMapper).findByNoteId("note-1");
@@ -229,7 +231,7 @@ class NoteServiceTest {
         Note note = buildNote("note-1", "owner-1");
         when(noteMapper.findById("note-1")).thenReturn(note);
 
-        assertThrows(RuntimeException.class,
+        assertThrows(AccessDeniedException.class,
                 () -> noteService.shareWithUser("note-1", "user-2", "not-owner"));
     }
 
@@ -249,7 +251,7 @@ class NoteServiceTest {
         Note note = buildNote("note-1", "owner-1");
         when(noteMapper.findById("note-1")).thenReturn(note);
 
-        assertThrows(RuntimeException.class,
+        assertThrows(AccessDeniedException.class,
                 () -> noteService.unshareWithUser("note-1", "user-2", "not-owner"));
     }
 

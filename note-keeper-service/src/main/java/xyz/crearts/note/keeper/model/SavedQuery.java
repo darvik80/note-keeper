@@ -9,6 +9,7 @@ import java.util.List;
 @Data
 public class SavedQuery {
     private String id;
+    private String ownerId;
     private String name;
     private String query;
     private Filters filters;

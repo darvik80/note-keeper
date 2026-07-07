@@ -9,7 +9,7 @@ import java.util.List;
 @Mapper
 public interface TemplateMapper {
 
-    List<NoteTemplate> findAll(@Param("category") String category);
+    List<NoteTemplate> findAll(@Param("category") String category, @Param("ownerId") String ownerId);
 
     NoteTemplate findById(@Param("id") String id);
 

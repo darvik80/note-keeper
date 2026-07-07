@@ -25,7 +25,7 @@ public class AnalyticsService {
         this.todoMapper = todoMapper;
     }
 
-    public AnalyticsResponse getAnalytics(String timeRange) {
+    public AnalyticsResponse getAnalytics(String timeRange, String ownerId) {
         LocalDate now = LocalDate.now();
         LocalDate startDate;
         int days;
@@ -39,15 +39,15 @@ public class AnalyticsService {
         String start = startDate.atStartOfDay().toString();
         String end = now.atTime(LocalTime.MAX).toString();
 
-        int notesCreated = noteMapper.countByDateRange(start, end);
-        int todosCreated = todoMapper.countByDateRange(start, end);
-        int todosCompleted = todoMapper.countCompletedByDateRange(start, end);
+        int notesCreated = noteMapper.countByDateRange(start, end, ownerId);
+        int todosCreated = todoMapper.countByDateRange(start, end, ownerId);
+        int todosCompleted = todoMapper.countCompletedByDateRange(start, end, ownerId);
         double completionRate = todosCreated > 0 ? (double) todosCompleted / todosCreated * 100.0 : 0.0;
 
         Map<String, Integer> priorityDistribution = new HashMap<>();
         for (String p : List.of("high", "medium", "low")) {
-            int noteCount = noteMapper.countByPriority(p, start, end);
-            int todoCount = todoMapper.countByPriority(p, start, end);
+            int noteCount = noteMapper.countByPriority(p, start, end, ownerId);
+            int todoCount = todoMapper.countByPriority(p, start, end, ownerId);
             priorityDistribution.put(p, noteCount + todoCount);
         }
 
@@ -56,8 +56,8 @@ public class AnalyticsService {
             LocalDate day = now.minusDays(i);
             String dayStart = day.atStartOfDay().toString();
             String dayEnd = day.atTime(LocalTime.MAX).toString();
-            int noteCount = noteMapper.countByDateRange(dayStart, dayEnd);
-            int todoCount = todoMapper.countByDateRange(dayStart, dayEnd);
+            int noteCount = noteMapper.countByDateRange(dayStart, dayEnd, ownerId);
+            int todoCount = todoMapper.countByDateRange(dayStart, dayEnd, ownerId);
             dailyActivity.add(noteCount + todoCount);
         }
 

@@ -55,36 +55,38 @@ public class NoteController {
     }
 
     @GetMapping("/{id}")
-    public Note getNoteById(@PathVariable String id) {
-        return noteService.findById(id);
+    public Note getNoteById(@PathVariable String id, @AuthenticationPrincipal String ownerId) {
+        return noteService.findById(id, ownerId);
     }
 
     @PutMapping("/{id}")
-    public Note updateNote(@PathVariable String id, @Valid @RequestBody NoteInput input) {
-        return noteService.update(id, input);
+    public Note updateNote(@PathVariable String id, @Valid @RequestBody NoteInput input,
+                           @AuthenticationPrincipal String ownerId) {
+        return noteService.update(id, input, ownerId);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteNote(
             @PathVariable String id,
-            @RequestParam(defaultValue = "false") boolean permanent) {
-        noteService.delete(id, permanent);
+            @RequestParam(defaultValue = "false") boolean permanent,
+            @AuthenticationPrincipal String ownerId) {
+        noteService.delete(id, permanent, ownerId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/archive")
-    public Note archiveNote(@PathVariable String id) {
-        return noteService.archive(id);
+    public Note archiveNote(@PathVariable String id, @AuthenticationPrincipal String ownerId) {
+        return noteService.archive(id, ownerId);
     }
 
     @PostMapping("/{id}/restore")
-    public Note restoreNote(@PathVariable String id) {
-        return noteService.restore(id);
+    public Note restoreNote(@PathVariable String id, @AuthenticationPrincipal String ownerId) {
+        return noteService.restore(id, ownerId);
     }
 
     @GetMapping("/{id}/history")
-    public List<NoteHistory> getNoteHistory(@PathVariable String id) {
-        return noteService.getHistory(id);
+    public List<NoteHistory> getNoteHistory(@PathVariable String id, @AuthenticationPrincipal String ownerId) {
+        return noteService.getHistory(id, ownerId);
     }
 
     @PostMapping("/import")

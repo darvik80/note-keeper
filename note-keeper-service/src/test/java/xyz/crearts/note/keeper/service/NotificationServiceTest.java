@@ -30,7 +30,7 @@ class NotificationServiceTest {
 
     private Map<String, Object> captureMessage(String methodName) {
         verify(messagingTemplate).convertAndSend(destinationCaptor.capture(), messageCaptor.capture());
-        assertEquals("/topic/updates", destinationCaptor.getValue());
+        assertEquals("/topic/updates/owner-1", destinationCaptor.getValue());
         @SuppressWarnings("unchecked")
         Map<String, Object> message = (Map<String, Object>) messageCaptor.getValue();
         return message;

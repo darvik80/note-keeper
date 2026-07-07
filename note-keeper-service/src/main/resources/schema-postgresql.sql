@@ -116,11 +116,13 @@ CREATE TABLE IF NOT EXISTS note_template (
     content TEXT NOT NULL,
     tags TEXT DEFAULT '[]',
     category VARCHAR(255) NOT NULL,
+    owner_id VARCHAR(255) REFERENCES users(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS saved_query (
     id VARCHAR(255) PRIMARY KEY,
+    owner_id VARCHAR(255) REFERENCES users(id),
     name VARCHAR(255) NOT NULL,
     query TEXT NOT NULL,
     filter_type VARCHAR(255),

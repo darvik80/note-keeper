@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import xyz.crearts.note.keeper.model.*;
+import xyz.crearts.note.keeper.exception.AccessDeniedException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -19,10 +19,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-/**
- * Service for database backup and restore operations.
- * Supports export to JSON and import from JSON.
- */
 @Slf4j
 @Service
 public class BackupService {
@@ -39,59 +35,44 @@ public class BackupService {
         this.backupDirPath = Path.of(backupsDir);
     }
 
-    /**
-     * Export all data to JSON file.
-     * @return Path to the backup file
-     */
     @Transactional(readOnly = true)
-    public Path exportData() throws IOException {
-        log.info("Starting database export...");
-        
-        // Create backup directory if not exists
-        if (!Files.exists(backupDirPath)) {
-            Files.createDirectories(backupDirPath);
-        }
+    public Path exportData(String userId) throws IOException {
+        log.info("Starting database export for user {}", userId);
 
-        // Generate filename with timestamp
+        Path userBackupDir = backupDirPath.resolve(userId);
+        Files.createDirectories(userBackupDir);
+
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        Path backupFile = backupDirPath.resolve("backup_" + timestamp + ".json");
+        Path backupFile = userBackupDir.resolve("backup_" + timestamp + ".json");
 
-        // Export all tables
         Map<String, Object> backup = new LinkedHashMap<>();
         backup.put("exportedAt", LocalDateTime.now().toString());
-        backup.put("version", "1.0");
+        backup.put("version", "1.1");
+        backup.put("ownerId", userId);
+        backup.put("note", exportTableWhere("note", "owner_id = ?", userId));
+        backup.put("note_history", exportNoteHistory(userId));
+        backup.put("todo", exportTableWhere("todo", "owner_id = ?", userId));
+        backup.put("attachment", exportAttachments(userId));
+        backup.put("saved_query", exportTableWhere("saved_query", "owner_id = ?", userId));
+        backup.put("note_template", exportTableWhere("note_template", "owner_id = ?", userId));
+        backup.put("user_settings", exportTableWhere("user_settings", "id = ?", userId));
 
-        // Export tables
-        backup.put("users", exportTable("users"));
-        backup.put("user_credentials", exportTable("user_credentials"));
-        backup.put("note", exportTable("note"));
-        backup.put("note_history", exportTable("note_history"));
-        backup.put("todo", exportTable("todo"));
-        backup.put("attachment", exportTable("attachment"));
-        backup.put("note_template", exportTable("note_template"));
-        backup.put("saved_query", exportTable("saved_query"));
-        backup.put("user_settings", exportTable("user_settings"));
-
-        // Write to file
         String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(backup);
         Files.writeString(backupFile, json, StandardCharsets.UTF_8);
 
-        // Also backup attachment files
-        backupAttachmentFiles(backupDirPath.resolve("backup_" + timestamp + "_files"));
+        backupUserAttachmentFiles(userId, userBackupDir.resolve("backup_" + timestamp + "_files"));
 
-        log.info("Export completed: {}", backupFile);
+        log.info("Export completed for user {}: {}", userId, backupFile);
         return backupFile;
     }
 
-    /**
-     * Export a single table to list of maps.
-     */
-    private List<Map<String, Object>> exportTable(String tableName) {
-        log.debug("Exporting table: {}", tableName);
+    private List<Map<String, Object>> exportTableWhere(String tableName, String whereClause, Object... args) {
+        log.debug("Exporting table {} for user scope", tableName);
         try {
             return jdbcTemplate.query(
-                "SELECT * FROM " + tableName,
-                (rs, rowNum) -> extractRow(rs)
+                "SELECT * FROM " + tableName + " WHERE " + whereClause,
+                (rs, rowNum) -> extractRow(rs),
+                args
             );
         } catch (Exception e) {
             log.error("Failed to export table {}: {}", tableName, e.getMessage());
@@ -99,72 +80,95 @@ public class BackupService {
         }
     }
 
-    /**
-     * Extract row data from ResultSet.
-     */
+    private List<Map<String, Object>> exportNoteHistory(String userId) {
+        return jdbcTemplate.query(
+            "SELECT nh.* FROM note_history nh INNER JOIN note n ON nh.note_id = n.id WHERE n.owner_id = ?",
+            (rs, rowNum) -> extractRow(rs),
+            userId
+        );
+    }
+
+    private List<Map<String, Object>> exportAttachments(String userId) {
+        return jdbcTemplate.query(
+            """
+            SELECT a.* FROM attachment a
+            WHERE (a.parent_type = 'note' AND a.parent_id IN (SELECT id FROM note WHERE owner_id = ?))
+               OR (a.parent_type = 'todo' AND a.parent_id IN (SELECT id FROM todo WHERE owner_id = ?))
+            """,
+            (rs, rowNum) -> extractRow(rs),
+            userId, userId
+        );
+    }
+
     private Map<String, Object> extractRow(ResultSet rs) throws SQLException {
         Map<String, Object> row = new LinkedHashMap<>();
         int columnCount = rs.getMetaData().getColumnCount();
         for (int i = 1; i <= columnCount; i++) {
-            String columnName = rs.getMetaData().getColumnName(i);
-            Object value = rs.getObject(i);
-            row.put(columnName, value);
+            row.put(rs.getMetaData().getColumnName(i), rs.getObject(i));
         }
         return row;
     }
 
-    /**
-     * Import data from JSON file.
-     * @param backupFile Path to backup file
-     */
     @Transactional
-    public void importData(Path backupFile) throws IOException {
-        log.info("Starting database import from: {}", backupFile);
-        
+    public void importData(String userId, Path backupFile) throws IOException {
+        log.info("Starting database import for user {} from: {}", userId, backupFile);
+
         if (!Files.exists(backupFile)) {
             throw new IOException("Backup file not found: " + backupFile);
         }
 
         String json = Files.readString(backupFile, StandardCharsets.UTF_8);
+        @SuppressWarnings("unchecked")
         Map<String, Object> backup = objectMapper.readValue(json, Map.class);
 
-        log.info("Importing data from backup exported at: {}", backup.get("exportedAt"));
+        Object backupOwner = backup.get("ownerId");
+        if (backupOwner != null && !userId.equals(String.valueOf(backupOwner))) {
+            throw new AccessDeniedException("Backup belongs to another user");
+        }
 
-        // Import tables in correct order (respecting foreign keys)
-        importTable("user_settings", (List<Map<String, Object>>) backup.get("user_settings"));
-        importTable("note_template", (List<Map<String, Object>>) backup.get("note_template"));
-        importTable("saved_query", (List<Map<String, Object>>) backup.get("saved_query"));
-        importTable("users", (List<Map<String, Object>>) backup.get("users"));
-        importTable("user_credentials", (List<Map<String, Object>>) backup.get("user_credentials"));
-        importTable("note", (List<Map<String, Object>>) backup.get("note"));
-        importTable("note_history", (List<Map<String, Object>>) backup.get("note_history"));
-        importTable("todo", (List<Map<String, Object>>) backup.get("todo"));
-        importTable("attachment", (List<Map<String, Object>>) backup.get("attachment"));
+        log.info("Importing user-scoped data from backup exported at: {}", backup.get("exportedAt"));
 
-        log.info("Import completed successfully");
+        importUserTable("user_settings", castRows(backup.get("user_settings")), userId, "id");
+        importUserTable("saved_query", castRows(backup.get("saved_query")), userId, "owner_id");
+        importUserTable("note_template", castRows(backup.get("note_template")), userId, "owner_id");
+        importUserTable("note", castRows(backup.get("note")), userId, "owner_id");
+        importUserTable("note_history", castRows(backup.get("note_history")), userId, null);
+        importUserTable("todo", castRows(backup.get("todo")), userId, "owner_id");
+        importUserTable("attachment", castRows(backup.get("attachment")), userId, null);
+
+        log.info("Import completed successfully for user {}", userId);
     }
 
-    /**
-     * Import data into a single table.
-     */
     @SuppressWarnings("unchecked")
-    private void importTable(String tableName, List<Map<String, Object>> rows) {
+    private List<Map<String, Object>> castRows(Object rows) {
+        if (rows instanceof List<?> list) {
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> map) {
+                    result.add((Map<String, Object>) map);
+                }
+            }
+            return result;
+        }
+        return List.of();
+    }
+
+    private void importUserTable(String tableName, List<Map<String, Object>> rows, String userId, String ownerField) {
         if (rows == null || rows.isEmpty()) {
-            log.debug("No data to import for table: {}", tableName);
             return;
         }
 
-        log.info("Importing {} rows into table: {}", rows.size(), tableName);
-        
-        // Disable foreign key checks for import (SQLite only)
+        log.info("Importing {} rows into table {} for user {}", rows.size(), tableName, userId);
+
         try {
             jdbcTemplate.execute("PRAGMA foreign_keys=OFF");
-        } catch (Exception e) {
-            // Ignore if not supported (PostgreSQL)
-            log.debug("Could not disable foreign keys: {}", e.getMessage());
+        } catch (Exception ignored) {
         }
 
         for (Map<String, Object> row : rows) {
+            if (ownerField != null) {
+                row.put(ownerField, userId);
+            }
             try {
                 insertRow(tableName, row);
             } catch (Exception e) {
@@ -172,18 +176,12 @@ public class BackupService {
             }
         }
 
-        // Re-enable foreign key checks (SQLite only)
         try {
             jdbcTemplate.execute("PRAGMA foreign_keys=ON");
-        } catch (Exception e) {
-            // Ignore if not supported (PostgreSQL)
-            log.debug("Could not re-enable foreign keys: {}", e.getMessage());
+        } catch (Exception ignored) {
         }
     }
 
-    /**
-     * Insert a single row into table.
-     */
     private void insertRow(String tableName, Map<String, Object> row) {
         if (row.isEmpty()) return;
 
@@ -202,25 +200,21 @@ public class BackupService {
         }
 
         String sql = "INSERT INTO " + tableName + " (" + columns + ") VALUES (" + placeholders + ")";
-        
         try {
             jdbcTemplate.update(sql, values.toArray());
         } catch (Exception e) {
-            // Skip duplicate keys
             log.debug("Skipping duplicate row in {}: {}", tableName, e.getMessage());
         }
     }
 
-    /**
-     * Get list of available backups.
-     */
-    public List<Map<String, String>> listBackups() {
-        if (!Files.exists(backupDirPath)) {
+    public List<Map<String, String>> listBackups(String userId) {
+        Path userBackupDir = backupDirPath.resolve(userId);
+        if (!Files.exists(userBackupDir)) {
             return new ArrayList<>();
         }
 
         try {
-            return Files.list(backupDirPath)
+            return Files.list(userBackupDir)
                 .filter(path -> path.toString().endsWith(".json"))
                 .map(path -> {
                     Map<String, String> info = new HashMap<>();
@@ -229,65 +223,53 @@ public class BackupService {
                     try {
                         info.put("size", Files.size(path) + " bytes");
                         info.put("modified", Files.getLastModifiedTime(path).toString());
-                    } catch (IOException e) {
-                        // Ignore
+                    } catch (IOException ignored) {
                     }
                     return info;
                 })
                 .sorted((a, b) -> b.get("filename").compareTo(a.get("filename")))
                 .toList();
         } catch (IOException e) {
-            log.error("Failed to list backups: {}", e.getMessage());
+            log.error("Failed to list backups for user {}: {}", userId, e.getMessage());
             return new ArrayList<>();
         }
     }
 
-    /**
-     * Delete a backup file.
-     */
-    public boolean deleteBackup(String filename) {
-        Path backupFile = backupDirPath.resolve(filename);
+    public boolean deleteBackup(String userId, String filename) {
+        Path backupFile = resolveUserBackupFile(userId, filename);
         try {
             if (Files.exists(backupFile)) {
                 Files.delete(backupFile);
-                log.info("Deleted backup: {}", filename);
+                log.info("Deleted backup for user {}: {}", userId, filename);
                 return true;
             }
             return false;
         } catch (IOException e) {
-            log.error("Failed to delete backup {}: {}", filename, e.getMessage());
+            log.error("Failed to delete backup {} for user {}: {}", filename, userId, e.getMessage());
             return false;
         }
     }
 
-    /**
-     * Backup attachment files to a separate directory.
-     * Copies all files from ./var/attachments/ to backup directory.
-     */
-    private void backupAttachmentFiles(Path backupFilesDir) throws IOException {
-        String attachmentsDir = System.getProperty("user.dir") + "/var/attachments";
-        Path sourceDir = Path.of(attachmentsDir);
-        
+    public Path resolveUserBackupFile(String userId, String filename) {
+        if (filename == null || filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+            throw new IllegalArgumentException("Invalid backup filename");
+        }
+        return backupDirPath.resolve(userId).resolve(filename).normalize();
+    }
+
+    private void backupUserAttachmentFiles(String userId, Path backupFilesDir) throws IOException {
+        Path sourceDir = Path.of(System.getProperty("user.dir")).resolve("var/attachments").resolve(userId);
         if (!Files.exists(sourceDir)) {
-            log.info("No attachments directory found, skipping file backup");
+            log.info("No attachment files for user {}, skipping file backup", userId);
             return;
         }
 
-        log.info("Backing up attachment files to: {}", backupFilesDir);
         Files.createDirectories(backupFilesDir);
-
-        // Copy entire attachments directory structure
         copyDirectory(sourceDir, backupFilesDir);
-        
-        log.info("Attachment files backup completed");
     }
 
-    /**
-     * Recursively copy a directory.
-     */
     private void copyDirectory(Path source, Path target) throws IOException {
         Files.createDirectories(target);
-        
         Files.list(source).forEach(path -> {
             Path targetPath = target.resolve(source.relativize(path));
             try {
@@ -295,7 +277,6 @@ public class BackupService {
                     copyDirectory(path, targetPath);
                 } else {
                     Files.copy(path, targetPath);
-                    log.debug("Copied file: {}", targetPath);
                 }
             } catch (IOException e) {
                 log.error("Failed to copy file: {}", path, e);

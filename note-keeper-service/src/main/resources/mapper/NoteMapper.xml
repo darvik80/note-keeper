@@ -99,11 +99,13 @@
     <select id="countByDateRange" resultType="int">
         SELECT COUNT(*) FROM note
         WHERE created_at >= #{start} AND created_at &lt;= #{end}
+          AND owner_id = #{ownerId}
     </select>
 
     <select id="search" resultMap="noteWithCollectionsMap">
         SELECT * FROM note
         WHERE is_deleted = 0
+          AND (owner_id = #{ownerId} OR shared_with LIKE '%' || #{ownerId} || '%')
           AND (title LIKE '%' || #{query} || '%' OR content LIKE '%' || #{query} || '%')
         <if test="tags != null">AND tags LIKE '%' || #{tags} || '%'</if>
         <if test="priority != null">AND priority = #{priority}</if>
@@ -114,6 +116,7 @@
         SELECT COUNT(*) FROM note
         WHERE priority = #{priority}
           AND created_at >= #{start} AND created_at &lt;= #{end}
+          AND owner_id = #{ownerId}
     </select>
 
     <select id="findSharedWithMe" resultMap="noteWithCollectionsMap" parameterType="String">

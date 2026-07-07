@@ -31,6 +31,10 @@ app:
   encryption:
     key: {{ app_encryption_key }}
 
+jwt:
+  secret: {{ jwt_secret }}
+  expiration: 86400000
+
 mybatis:
   mapper-locations: classpath*:mapper/*.xml
   type-aliases-package: xyz.crearts.note.keeper.model

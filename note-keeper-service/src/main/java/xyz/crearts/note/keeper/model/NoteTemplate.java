@@ -13,5 +13,6 @@ public class NoteTemplate {
     private String content;
     private List<String> tags = new ArrayList<>();
     private String category;
+    private String ownerId;
     private LocalDateTime createdAt;
 }

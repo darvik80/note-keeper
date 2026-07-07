@@ -5,6 +5,7 @@
 
     <resultMap id="savedQueryResultMap" type="xyz.crearts.note.keeper.model.SavedQuery">
         <id property="id" column="id"/>
+        <result property="ownerId" column="owner_id"/>
         <result property="name" column="name"/>
         <result property="query" column="query"/>
         <result property="createdAt" column="created_at"/>
@@ -17,14 +18,21 @@
         </association>
     </resultMap>
 
-    <select id="findAll" resultMap="savedQueryResultMap">
-        SELECT * FROM saved_query ORDER BY created_at DESC
+    <select id="findAllByOwner" resultMap="savedQueryResultMap">
+        SELECT * FROM saved_query
+        WHERE owner_id = #{ownerId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findByIdAndOwner" resultMap="savedQueryResultMap">
+        SELECT * FROM saved_query
+        WHERE id = #{id} AND owner_id = #{ownerId}
     </select>
 
     <insert id="insert" parameterType="xyz.crearts.note.keeper.model.SavedQuery">
-        INSERT INTO saved_query (id, name, query, filter_type, filter_tags,
+        INSERT INTO saved_query (id, owner_id, name, query, filter_type, filter_tags,
             filter_priority, filter_folder, created_at)
-        VALUES (#{id}, #{name}, #{query},
+        VALUES (#{id}, #{ownerId}, #{name}, #{query},
             #{filters.type, jdbcType=VARCHAR},
             #{filters.tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler, jdbcType=VARCHAR},
             #{filters.priority, jdbcType=VARCHAR},

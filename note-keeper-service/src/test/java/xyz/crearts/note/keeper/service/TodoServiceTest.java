@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import xyz.crearts.note.keeper.dto.TodoInput;
+import xyz.crearts.note.keeper.exception.AccessDeniedException;
 import xyz.crearts.note.keeper.exception.ResourceNotFoundException;
 import xyz.crearts.note.keeper.mapper.AttachmentMapper;
 import xyz.crearts.note.keeper.mapper.TodoMapper;
@@ -29,10 +30,11 @@ class TodoServiceTest {
     @Mock private TagSyncService tagSyncService;
 
     private TodoService todoService;
+    private final ResourceAccessService resourceAccess = new ResourceAccessService();
 
     @BeforeEach
     void setUp() {
-        todoService = new TodoService(todoMapper, attachmentMapper, notificationService, tagSyncService);
+        todoService = new TodoService(todoMapper, attachmentMapper, notificationService, tagSyncService, resourceAccess);
     }
 
     private Todo buildTodo(String id, String ownerId) {
@@ -54,7 +56,7 @@ class TodoServiceTest {
         Todo todo = buildTodo("todo-1", "owner-1");
         when(todoMapper.findById("todo-1")).thenReturn(todo);
 
-        Todo result = todoService.findById("todo-1");
+        Todo result = todoService.findById("todo-1", "owner-1");
 
         assertNotNull(result);
         assertEquals("todo-1", result.getId());
@@ -64,7 +66,7 @@ class TodoServiceTest {
     void findById_nonExistent_shouldThrowException() {
         when(todoMapper.findById("missing")).thenReturn(null);
 
-        assertThrows(ResourceNotFoundException.class, () -> todoService.findById("missing"));
+        assertThrows(ResourceNotFoundException.class, () -> todoService.findById("missing", "owner-1"));
     }
 
     @Test
@@ -136,7 +138,7 @@ class TodoServiceTest {
         input.setTitle("Updated Todo");
         input.setTags(List.of("updated"));
 
-        todoService.update("todo-1", input);
+        todoService.update("todo-1", input, "owner-1");
 
         verify(todoMapper).update(any(Todo.class));
         verify(tagSyncService).updateTags(eq("owner-1"), anyList(), anyList());
@@ -148,7 +150,7 @@ class TodoServiceTest {
         Todo todo = buildTodo("todo-1", "owner-1");
         when(todoMapper.findById("todo-1")).thenReturn(todo);
 
-        todoService.delete("todo-1", false);
+        todoService.delete("todo-1", false, "owner-1");
 
         verify(todoMapper).softDelete(eq("todo-1"), any(LocalDateTime.class));
         verify(todoMapper, never()).permanentDelete(any());
@@ -159,7 +161,7 @@ class TodoServiceTest {
         Todo todo = buildTodo("todo-1", "owner-1");
         when(todoMapper.findById("todo-1")).thenReturn(todo);
 
-        todoService.delete("todo-1", true);
+        todoService.delete("todo-1", true, "owner-1");
 
         verify(todoMapper).permanentDelete("todo-1");
         verify(attachmentMapper).deleteByParent("todo-1", "todo");
@@ -169,7 +171,7 @@ class TodoServiceTest {
     void delete_nonExistent_shouldThrowException() {
         when(todoMapper.findById("missing")).thenReturn(null);
 
-        assertThrows(ResourceNotFoundException.class, () -> todoService.delete("missing", false));
+        assertThrows(ResourceNotFoundException.class, () -> todoService.delete("missing", false, "owner-1"));
     }
 
     @Test
@@ -177,7 +179,7 @@ class TodoServiceTest {
         Todo todo = buildTodo("todo-1", "owner-1");
         when(todoMapper.findById("todo-1")).thenReturn(todo);
 
-        todoService.archive("todo-1");
+        todoService.archive("todo-1", "owner-1");
 
         verify(todoMapper).archive("todo-1");
     }
@@ -187,7 +189,7 @@ class TodoServiceTest {
         Todo todo = buildTodo("todo-1", "owner-1");
         when(todoMapper.findById("todo-1")).thenReturn(todo);
 
-        todoService.restore("todo-1");
+        todoService.restore("todo-1", "owner-1");
 
         verify(todoMapper).restore("todo-1");
     }
@@ -207,7 +209,7 @@ class TodoServiceTest {
         Todo todo = buildTodo("todo-1", "owner-1");
         when(todoMapper.findById("todo-1")).thenReturn(todo);
 
-        assertThrows(RuntimeException.class,
+        assertThrows(AccessDeniedException.class,
                 () -> todoService.shareWithUser("todo-1", "user-2", "not-owner"));
     }
 

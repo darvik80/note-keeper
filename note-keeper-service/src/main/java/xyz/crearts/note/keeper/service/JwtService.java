@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.service;
 
+import jakarta.annotation.PostConstruct;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -8,32 +9,36 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
 
-/**
- * JWT token service for authentication.
- */
 @Slf4j
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret:note-keeper-secret-key-for-jwt-token-generation-2026}")
+    @Value("${jwt.secret:}")
     private String jwtSecret;
 
     @Value("${jwt.expiration:86400000}")
-    private long jwtExpiration; // 24 hours in milliseconds
+    private long jwtExpiration;
+
+    @PostConstruct
+    void validateConfiguration() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT secret is not configured. Set the JWT_SECRET environment variable.");
+        }
+        if (jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("JWT secret must be at least 32 bytes.");
+        }
+    }
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    /**
-     * Generate JWT token for user.
-     */
     public String generateToken(String userId, String email) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpiration);
+        var now = new java.util.Date();
+        var expiryDate = new java.util.Date(now.getTime() + jwtExpiration);
 
         return Jwts.builder()
                 .subject(userId)
@@ -44,9 +49,6 @@ public class JwtService {
                 .compact();
     }
 
-    /**
-     * Validate JWT token and return user ID.
-     */
     public String validateToken(String token) {
         try {
             Claims claims = Jwts.parser()
@@ -62,9 +64,6 @@ public class JwtService {
         }
     }
 
-    /**
-     * Get user ID from token without validation.
-     */
     public String getUserIdFromToken(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())

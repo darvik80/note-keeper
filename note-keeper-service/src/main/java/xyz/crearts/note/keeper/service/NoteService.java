@@ -15,7 +15,6 @@ import xyz.crearts.note.keeper.model.NoteHistory;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,16 +29,19 @@ public class NoteService {
     private final EncryptionService encryptionService;
     private final NotificationService notificationService;
     private final TagSyncService tagSyncService;
+    private final ResourceAccessService resourceAccess;
 
     public NoteService(NoteMapper noteMapper, NoteHistoryMapper historyMapper, 
                       AttachmentMapper attachmentMapper, EncryptionService encryptionService,
-                      NotificationService notificationService, TagSyncService tagSyncService) {
+                      NotificationService notificationService, TagSyncService tagSyncService,
+                      ResourceAccessService resourceAccess) {
         this.noteMapper = noteMapper;
         this.historyMapper = historyMapper;
         this.attachmentMapper = attachmentMapper;
         this.encryptionService = encryptionService;
         this.notificationService = notificationService;
         this.tagSyncService = tagSyncService;
+        this.resourceAccess = resourceAccess;
     }
 
     public List<Note> findAll(String folder, String tag, String priority,
@@ -60,23 +62,31 @@ public class NoteService {
         return notes;
     }
 
-    public Note findById(String id) {
+    public Note findById(String id, String userId) {
+        Note note = loadNote(id);
+        resourceAccess.requireNoteRead(note, userId);
+        return note;
+    }
+
+    private Note loadNote(String id) {
         Note note = noteMapper.findById(id);
         if (note == null) {
             throw new ResourceNotFoundException("Note not found: " + id);
         }
-        // Decrypt content if encrypted
+        decryptNoteContent(note);
+        log.info("Loaded note {} with {} attachments", id, note.getAttachments() != null ? note.getAttachments().size() : 0);
+        return note;
+    }
+
+    private void decryptNoteContent(Note note) {
         if (note.isEncrypted() && note.getContent() != null && !note.getContent().isEmpty()) {
             try {
                 note.setContent(encryptionService.decrypt(note.getContent()));
             } catch (Exception e) {
-                log.error("Failed to decrypt note {}: {}", id, e.getMessage());
+                log.error("Failed to decrypt note {}: {}", note.getId(), e.getMessage());
                 note.setContent("[Decryption failed - content may be corrupted]");
             }
         }
-        // MyBatis автоматически загружает attachments и history через noteWithCollectionsMap
-        log.info("Loaded note {} with {} attachments", id, note.getAttachments() != null ? note.getAttachments().size() : 0);
-        return note;
     }
 
     @Transactional
@@ -135,12 +145,13 @@ public class NoteService {
 
         tagSyncService.addTags(ownerId, note.getTags());
         notificationService.notifyNoteCreated(note.getId(), ownerId);
-        return findById(note.getId());
+        return findById(note.getId(), ownerId);
     }
 
     @Transactional
-    public Note update(String id, NoteInput input) {
-        Note existing = findById(id);
+    public Note update(String id, NoteInput input, String userId) {
+        Note existing = loadNote(id);
+        resourceAccess.requireNoteOwner(existing, userId);
         List<String> oldTags = existing.getTags() != null ? new ArrayList<>(existing.getTags()) : new ArrayList<>();
 
         existing.setTitle(input.getTitle());
@@ -201,15 +212,13 @@ public class NoteService {
 
         tagSyncService.updateTags(existing.getOwnerId(), oldTags, existing.getTags());
         notificationService.notifyNoteUpdated(id, existing.getOwnerId());
-        return findById(id);
+        return findById(id, userId);
     }
 
     @Transactional
-    public void delete(String id, boolean permanent) {
-        Note note = noteMapper.findById(id);
-        if (note == null) {
-            throw new ResourceNotFoundException("Note not found: " + id);
-        }
+    public void delete(String id, boolean permanent, String userId) {
+        Note note = loadNote(id);
+        resourceAccess.requireNoteOwner(note, userId);
         String ownerId = note.getOwnerId();
         List<String> tags = note.getTags();
         if (permanent) {
@@ -222,20 +231,22 @@ public class NoteService {
         notificationService.notifyNoteDeleted(id, ownerId);
     }
 
-    public Note archive(String id) {
-        findById(id);
+    public Note archive(String id, String userId) {
+        Note note = loadNote(id);
+        resourceAccess.requireNoteOwner(note, userId);
         noteMapper.archive(id);
-        return findById(id);
+        return findById(id, userId);
     }
 
-    public Note restore(String id) {
-        findById(id);
+    public Note restore(String id, String userId) {
+        Note note = loadNote(id);
+        resourceAccess.requireNoteOwner(note, userId);
         noteMapper.restore(id);
-        return findById(id);
+        return findById(id, userId);
     }
 
-    public List<NoteHistory> getHistory(String id) {
-        findById(id);
+    public List<NoteHistory> getHistory(String id, String userId) {
+        findById(id, userId);
         return historyMapper.findByNoteId(id);
     }
 
@@ -257,18 +268,10 @@ public class NoteService {
 
     @Transactional
     public Note shareWithUser(String noteId, String userIdToAdd, String currentOwnerId) {
-        Note note = findById(noteId);
-        if (note.getOwnerId() == null) {
-            throw new RuntimeException("Note ownerId is null - data corruption");
-        }
-        if (currentOwnerId == null) {
-            throw new RuntimeException("Current ownerId is null - authentication issue");
-        }
-        if (!note.getOwnerId().equals(currentOwnerId)) {
-            throw new RuntimeException("Only owner can share this note (note owner: " + note.getOwnerId() + ", current user: " + currentOwnerId + ")");
-        }
+        Note note = loadNote(noteId);
+        resourceAccess.requireNoteOwner(note, currentOwnerId);
 
-        List<String> sharedUsers = parseSharedWith(note.getSharedWith());
+        List<String> sharedUsers = resourceAccess.parseSharedWith(note.getSharedWith());
         if (!sharedUsers.contains(userIdToAdd)) {
             sharedUsers.add(userIdToAdd);
             String newSharedWith = toJsonArray(sharedUsers);
@@ -276,41 +279,21 @@ public class NoteService {
             noteMapper.shareWithUser(noteId, newSharedWith);
         }
 
-        return findById(noteId);
+        return findById(noteId, currentOwnerId);
     }
 
     @Transactional
     public Note unshareWithUser(String noteId, String userIdToRemove, String currentOwnerId) {
-        Note note = findById(noteId);
-        if (!note.getOwnerId().equals(currentOwnerId)) {
-            throw new RuntimeException("Only owner can unshare this note");
-        }
+        Note note = loadNote(noteId);
+        resourceAccess.requireNoteOwner(note, currentOwnerId);
 
-        List<String> sharedUsers = parseSharedWith(note.getSharedWith());
+        List<String> sharedUsers = resourceAccess.parseSharedWith(note.getSharedWith());
         sharedUsers.remove(userIdToRemove);
         String newSharedWith = toJsonArray(sharedUsers);
         note.setSharedWith(newSharedWith);
         noteMapper.shareWithUser(noteId, newSharedWith);
 
-        return findById(noteId);
-    }
-
-    private List<String> parseSharedWith(String sharedWith) {
-        if (sharedWith == null || sharedWith.equals("[]")) {
-            return new ArrayList<>();
-        }
-        try {
-            String json = sharedWith.replace("[", "").replace("]", "").replace("\"", "");
-            if (json.trim().isEmpty()) {
-                return new ArrayList<>();
-            }
-            return Arrays.stream(json.split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
+        return findById(noteId, currentOwnerId);
     }
 
     private String toJsonArray(List<String> list) {

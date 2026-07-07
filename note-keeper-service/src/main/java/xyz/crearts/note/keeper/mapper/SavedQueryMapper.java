@@ -9,7 +9,9 @@ import java.util.List;
 @Mapper
 public interface SavedQueryMapper {
 
-    List<SavedQuery> findAll();
+    List<SavedQuery> findAllByOwner(@Param("ownerId") String ownerId);
+
+    SavedQuery findByIdAndOwner(@Param("id") String id, @Param("ownerId") String ownerId);
 
     void insert(SavedQuery query);
 

@@ -1,0 +1,7 @@
+jwt:
+  secret: test-secret-key-for-jwt-that-is-at-least-256-bits-long-for-hs256
+  expiration: 86400000
+
+app:
+  encryption:
+    key: yjySH54/8L2nhkSZEOvL8JcOV3ViYSIeKunaQnNlmZk=

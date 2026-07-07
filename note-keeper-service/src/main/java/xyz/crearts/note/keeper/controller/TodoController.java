@@ -50,31 +50,33 @@ public class TodoController {
     }
 
     @GetMapping("/{id}")
-    public Todo getTodoById(@PathVariable String id) {
-        return todoService.findById(id);
+    public Todo getTodoById(@PathVariable String id, @AuthenticationPrincipal String ownerId) {
+        return todoService.findById(id, ownerId);
     }
 
     @PutMapping("/{id}")
-    public Todo updateTodo(@PathVariable String id, @Valid @RequestBody TodoInput input) {
-        return todoService.update(id, input);
+    public Todo updateTodo(@PathVariable String id, @Valid @RequestBody TodoInput input,
+                           @AuthenticationPrincipal String ownerId) {
+        return todoService.update(id, input, ownerId);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTodo(
             @PathVariable String id,
-            @RequestParam(defaultValue = "false") boolean permanent) {
-        todoService.delete(id, permanent);
+            @RequestParam(defaultValue = "false") boolean permanent,
+            @AuthenticationPrincipal String ownerId) {
+        todoService.delete(id, permanent, ownerId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/archive")
-    public Todo archiveTodo(@PathVariable String id) {
-        return todoService.archive(id);
+    public Todo archiveTodo(@PathVariable String id, @AuthenticationPrincipal String ownerId) {
+        return todoService.archive(id, ownerId);
     }
 
     @PostMapping("/{id}/restore")
-    public Todo restoreTodo(@PathVariable String id) {
-        return todoService.restore(id);
+    public Todo restoreTodo(@PathVariable String id, @AuthenticationPrincipal String ownerId) {
+        return todoService.restore(id, ownerId);
     }
 
     @GetMapping("/shared-with-me")

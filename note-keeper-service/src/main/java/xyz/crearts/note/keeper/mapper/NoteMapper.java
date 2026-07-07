@@ -33,15 +33,17 @@ public interface NoteMapper {
 
     void restore(@Param("id") String id);
 
-    int countByDateRange(@Param("start") String start, @Param("end") String end);
+    int countByDateRange(@Param("start") String start, @Param("end") String end, @Param("ownerId") String ownerId);
 
     List<Note> search(@Param("query") String query,
                       @Param("tags") String tags,
-                      @Param("priority") String priority);
+                      @Param("priority") String priority,
+                      @Param("ownerId") String ownerId);
 
     int countByPriority(@Param("priority") String priority,
                         @Param("start") String start,
-                        @Param("end") String end);
+                        @Param("end") String end,
+                        @Param("ownerId") String ownerId);
 
     List<Note> findSharedWithMe(@Param("userId") String userId);
 

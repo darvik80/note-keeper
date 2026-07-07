@@ -87,11 +87,13 @@ CREATE TABLE IF NOT EXISTS note_template (
     content TEXT NOT NULL,
     tags TEXT DEFAULT '[]',
     category TEXT NOT NULL,
+    owner_id TEXT REFERENCES users(id),
     created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS saved_query (
     id TEXT PRIMARY KEY,
+    owner_id TEXT REFERENCES users(id),
     name TEXT NOT NULL,
     query TEXT NOT NULL,
     filter_type TEXT,
@@ -136,6 +138,8 @@ CREATE TABLE IF NOT EXISTS user_credentials (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE INDEX IF NOT EXISTS idx_note_template_owner ON note_template(owner_id);
+CREATE INDEX IF NOT EXISTS idx_saved_query_owner ON saved_query(owner_id);
 CREATE INDEX IF NOT EXISTS idx_note_owner ON note(owner_id);
 CREATE INDEX IF NOT EXISTS idx_todo_owner ON todo(owner_id);
 

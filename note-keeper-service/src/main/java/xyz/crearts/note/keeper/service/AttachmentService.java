@@ -4,8 +4,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import xyz.crearts.note.keeper.exception.ResourceNotFoundException;
 import xyz.crearts.note.keeper.mapper.AttachmentMapper;
+import xyz.crearts.note.keeper.mapper.NoteMapper;
+import xyz.crearts.note.keeper.mapper.TodoMapper;
 import xyz.crearts.note.keeper.model.Attachment;
+import xyz.crearts.note.keeper.model.Note;
+import xyz.crearts.note.keeper.model.Todo;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,28 +18,32 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
-/**
- * Service for managing file attachments.
- * Handles file upload, storage, and deletion.
- */
 @Slf4j
 @Service
 public class AttachmentService {
 
     private final AttachmentMapper attachmentMapper;
+    private final NoteMapper noteMapper;
+    private final TodoMapper todoMapper;
+    private final ResourceAccessService resourceAccess;
     private final String baseDir;
 
     public AttachmentService(
             AttachmentMapper attachmentMapper,
+            NoteMapper noteMapper,
+            TodoMapper todoMapper,
+            ResourceAccessService resourceAccess,
             @Value("${app.storage.attachments-dir}") String attachmentsDir) {
         this.attachmentMapper = attachmentMapper;
+        this.noteMapper = noteMapper;
+        this.todoMapper = todoMapper;
+        this.resourceAccess = resourceAccess;
         this.baseDir = attachmentsDir;
-        // Create base directory if it doesn't exist
         try {
             Files.createDirectories(Paths.get(baseDir));
             log.info("Attachments base directory: {}", baseDir);
@@ -43,40 +52,34 @@ public class AttachmentService {
         }
     }
 
-    /**
-     * Upload a single file and create attachment record.
-     */
-    public Attachment uploadFile(MultipartFile file, String parentId, String parentType, String ownerId) throws IOException {
+    public Attachment uploadFile(MultipartFile file, String parentId, String parentType, String userId) throws IOException {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("File is empty");
         }
-
-        // Validate parent type
         if (!"note".equals(parentType) && !"todo".equals(parentType)) {
             throw new IllegalArgumentException("Invalid parentType: " + parentType);
         }
 
-        // Create directory: ./attachments/{ownerId}/{parentId}/
-        String dirPath = baseDir + "/" + ownerId + "/" + parentId;
+        String parentOwnerId = requireParentWriteAccess(parentId, parentType, userId);
+
+        String dirPath = baseDir + "/" + parentOwnerId + "/" + parentId;
         Files.createDirectories(Paths.get(dirPath));
 
-        // Generate unique filename to avoid conflicts
         String originalFilename = file.getOriginalFilename();
-        String extension = originalFilename != null && originalFilename.contains(".") 
-                ? originalFilename.substring(originalFilename.lastIndexOf(".")) 
+        String extension = originalFilename != null && originalFilename.contains(".")
+                ? originalFilename.substring(originalFilename.lastIndexOf("."))
                 : "";
-        String filename = UUID.randomUUID().toString() + extension;
 
-        // Save file to disk
-        Path filePath = Paths.get(dirPath, filename);
-        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-        // Create attachment record
         Attachment attachment = new Attachment();
         attachment.setId(UUID.randomUUID().toString());
+        String storedFilename = attachment.getId() + extension;
+
+        Path filePath = Paths.get(dirPath, storedFilename);
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
         attachment.setParentId(parentId);
         attachment.setParentType(parentType);
-        attachment.setName(originalFilename != null ? originalFilename : filename);
+        attachment.setName(originalFilename != null ? originalFilename : storedFilename);
         attachment.setSize(file.getSize());
         attachment.setType(file.getContentType() != null ? file.getContentType() : "application/octet-stream");
         attachment.setUrl("/api/v1/attachments/" + attachment.getId() + "/download");
@@ -88,84 +91,133 @@ public class AttachmentService {
         return attachment;
     }
 
-    /**
-     * Upload multiple files at once.
-     */
-    public List<Attachment> uploadFiles(MultipartFile[] files, String parentId, String parentType, String ownerId) throws IOException {
+    public List<Attachment> uploadFiles(MultipartFile[] files, String parentId, String parentType, String userId) throws IOException {
         List<Attachment> attachments = new ArrayList<>();
         for (MultipartFile file : files) {
             if (!file.isEmpty()) {
-                attachments.add(uploadFile(file, parentId, parentType, ownerId));
+                attachments.add(uploadFile(file, parentId, parentType, userId));
             }
         }
         return attachments;
     }
 
-    /**
-     * Delete an attachment and its file.
-     */
-    public void deleteAttachment(String attachmentId, String ownerId) {
+    public void deleteAttachment(String attachmentId, String userId) {
         Attachment attachment = attachmentMapper.findById(attachmentId);
         if (attachment == null) {
-            throw new RuntimeException("Attachment not found: " + attachmentId);
+            throw new ResourceNotFoundException("Attachment not found: " + attachmentId);
         }
 
-        // Verify ownership
-        if (!ownerId.equals(getOwnerIdForAttachment(attachment, ownerId))) {
-            throw new RuntimeException("Not authorized to delete this attachment");
-        }
+        requireAttachmentWriteAccess(attachment, userId);
 
-        // Delete file from disk
-        String filePath = baseDir + "/" + ownerId + "/" + attachment.getParentId() + "/" + getFilenameFromAttachment(attachment);
+        String parentOwnerId = resolveParentOwnerId(attachment);
         try {
-            Files.deleteIfExists(Paths.get(filePath));
+            Path filePath = resolveAttachmentPath(parentOwnerId, attachment);
+            Files.deleteIfExists(filePath);
             log.info("Deleted file: {}", filePath);
         } catch (IOException e) {
-            log.error("Failed to delete file: {}", filePath, e);
+            log.error("Failed to delete attachment file for {}", attachmentId, e);
         }
 
-        // Delete record from database
         attachmentMapper.deleteById(attachmentId);
         log.info("Deleted attachment: {}", attachmentId);
     }
 
-    /**
-     * Get file content for download.
-     */
-    public byte[] getFileContent(String attachmentId, String ownerId) throws IOException {
+    public byte[] getFileContent(String attachmentId, String userId) throws IOException {
         Attachment attachment = attachmentMapper.findById(attachmentId);
         if (attachment == null) {
-            throw new RuntimeException("Attachment not found: " + attachmentId);
+            throw new ResourceNotFoundException("Attachment not found: " + attachmentId);
         }
 
-        // Verify ownership (check if user owns the parent entity)
-        // For simplicity, we'll allow anyone with the attachment ID to download
-        // In production, you should verify ownership of the parent note/todo
+        requireAttachmentReadAccess(attachment, userId);
 
-        String filePath = baseDir + "/" + ownerId + "/" + attachment.getParentId() + "/" + getFilenameFromAttachment(attachment);
-        return Files.readAllBytes(Paths.get(filePath));
+        String parentOwnerId = resolveParentOwnerId(attachment);
+        Path filePath = resolveAttachmentPath(parentOwnerId, attachment);
+        return Files.readAllBytes(filePath);
     }
 
-    /**
-     * Get attachment by ID.
-     */
     public Attachment getAttachment(String attachmentId) {
         return attachmentMapper.findById(attachmentId);
     }
 
-    /**
-     * Get owner ID for attachment by looking up parent entity.
-     * For simplicity, we use the ownerId passed from the controller.
-     */
-    private String getOwnerIdForAttachment(Attachment attachment, String ownerId) {
-        return ownerId;
+    private String requireParentWriteAccess(String parentId, String parentType, String userId) {
+        if ("note".equals(parentType)) {
+            Note note = noteMapper.findById(parentId);
+            if (note == null) {
+                throw new ResourceNotFoundException("Note not found: " + parentId);
+            }
+            resourceAccess.requireNoteOwner(note, userId);
+            return note.getOwnerId();
+        }
+
+        Todo todo = todoMapper.findById(parentId);
+        if (todo == null) {
+            throw new ResourceNotFoundException("Todo not found: " + parentId);
+        }
+        resourceAccess.requireTodoOwner(todo, userId);
+        return todo.getOwnerId();
     }
 
-    /**
-     * Extract filename from attachment record.
-     * We store the original filename in the 'name' field.
-     */
-    private String getFilenameFromAttachment(Attachment attachment) {
-        return attachment.getName();
+    private void requireAttachmentReadAccess(Attachment attachment, String userId) {
+        if ("note".equals(attachment.getParentType())) {
+            Note note = noteMapper.findById(attachment.getParentId());
+            if (note == null) {
+                throw new ResourceNotFoundException("Note not found: " + attachment.getParentId());
+            }
+            resourceAccess.requireNoteRead(note, userId);
+            return;
+        }
+
+        Todo todo = todoMapper.findById(attachment.getParentId());
+        if (todo == null) {
+            throw new ResourceNotFoundException("Todo not found: " + attachment.getParentId());
+        }
+        resourceAccess.requireTodoRead(todo, userId);
+    }
+
+    private void requireAttachmentWriteAccess(Attachment attachment, String userId) {
+        if ("note".equals(attachment.getParentType())) {
+            Note note = noteMapper.findById(attachment.getParentId());
+            if (note == null) {
+                throw new ResourceNotFoundException("Note not found: " + attachment.getParentId());
+            }
+            resourceAccess.requireNoteOwner(note, userId);
+            return;
+        }
+
+        Todo todo = todoMapper.findById(attachment.getParentId());
+        if (todo == null) {
+            throw new ResourceNotFoundException("Todo not found: " + attachment.getParentId());
+        }
+        resourceAccess.requireTodoOwner(todo, userId);
+    }
+
+    private String resolveParentOwnerId(Attachment attachment) {
+        if ("note".equals(attachment.getParentType())) {
+            Note note = noteMapper.findById(attachment.getParentId());
+            if (note == null) {
+                throw new ResourceNotFoundException("Note not found: " + attachment.getParentId());
+            }
+            return note.getOwnerId();
+        }
+
+        Todo todo = todoMapper.findById(attachment.getParentId());
+        if (todo == null) {
+            throw new ResourceNotFoundException("Todo not found: " + attachment.getParentId());
+        }
+        return todo.getOwnerId();
+    }
+
+    private Path resolveAttachmentPath(String parentOwnerId, Attachment attachment) throws IOException {
+        Path dir = Paths.get(baseDir, parentOwnerId, attachment.getParentId());
+        if (!Files.exists(dir)) {
+            throw new ResourceNotFoundException("Attachment file not found");
+        }
+
+        try (Stream<Path> files = Files.list(dir)) {
+            return files
+                .filter(path -> path.getFileName().toString().startsWith(attachment.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Attachment file not found"));
+        }
     }
 }

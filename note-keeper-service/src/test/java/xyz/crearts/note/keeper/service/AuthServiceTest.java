@@ -12,10 +12,6 @@ import xyz.crearts.note.keeper.mapper.UserMapper;
 import xyz.crearts.note.keeper.model.User;
 import xyz.crearts.note.keeper.model.UserCredentials;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.Base64;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -27,11 +23,12 @@ class AuthServiceTest {
     @Mock private UserCredentialsMapper credentialsMapper;
     @Mock private JwtService jwtService;
 
+    private final PasswordService passwordService = new PasswordService();
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userMapper, credentialsMapper, jwtService);
+        authService = new AuthService(userMapper, credentialsMapper, jwtService, passwordService);
     }
 
     @Test
@@ -49,7 +46,8 @@ class AuthServiceTest {
         assertNotNull(response);
         assertEquals("jwt-token", response.getToken());
         verify(userMapper).insert(any(User.class));
-        verify(credentialsMapper).insert(any(UserCredentials.class));
+        verify(credentialsMapper).insert(argThat(credentials ->
+                passwordService.isBcryptHash(credentials.getPasswordHash())));
     }
 
     @Test
@@ -67,7 +65,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void loginWithEmail_validCredentials_shouldReturnToken() throws Exception {
+    void loginWithEmail_validCredentials_shouldReturnToken() {
         AuthRequest request = new AuthRequest();
         request.setEmail("user@test.com");
         request.setPassword("correct-password");
@@ -78,17 +76,10 @@ class AuthServiceTest {
         user.setProvider("local");
         when(userMapper.findByEmail("user@test.com")).thenReturn(user);
 
-        // Compute the expected hash to simulate a valid login
-        String salt = "test-salt";
-        MessageDigest md = MessageDigest.getInstance("SHA-256");
-        md.update(salt.getBytes(StandardCharsets.UTF_8));
-        byte[] hashedBytes = md.digest("correct-password".getBytes(StandardCharsets.UTF_8));
-        String expectedHash = Base64.getEncoder().encodeToString(hashedBytes);
-
         UserCredentials credentials = new UserCredentials();
         credentials.setUserId("user-id");
-        credentials.setSalt(salt);
-        credentials.setPasswordHash(expectedHash);
+        credentials.setSalt("");
+        credentials.setPasswordHash(passwordService.hashPassword("correct-password"));
         when(credentialsMapper.findByUserId("user-id")).thenReturn(credentials);
         when(jwtService.generateToken("user-id", "user@test.com")).thenReturn("jwt-token");
 
@@ -96,6 +87,39 @@ class AuthServiceTest {
 
         assertNotNull(response);
         assertEquals("jwt-token", response.getToken());
+    }
+
+    @Test
+    void loginWithEmail_legacySha256_shouldUpgradeHash() {
+        AuthRequest request = new AuthRequest();
+        request.setEmail("legacy@test.com");
+        request.setPassword("legacy-password");
+
+        User user = new User();
+        user.setId("legacy-user");
+        user.setEmail("legacy@test.com");
+        user.setProvider("local");
+        when(userMapper.findByEmail("legacy@test.com")).thenReturn(user);
+
+        UserCredentials credentials = new UserCredentials();
+        credentials.setUserId("legacy-user");
+        credentials.setSalt("legacy-salt");
+        try {
+            var md = java.security.MessageDigest.getInstance("SHA-256");
+            md.update("legacy-salt".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            credentials.setPasswordHash(java.util.Base64.getEncoder().encodeToString(
+                    md.digest("legacy-password".getBytes(java.nio.charset.StandardCharsets.UTF_8))));
+        } catch (Exception e) {
+            fail(e);
+        }
+
+        when(credentialsMapper.findByUserId("legacy-user")).thenReturn(credentials);
+        when(jwtService.generateToken("legacy-user", "legacy@test.com")).thenReturn("jwt-token");
+
+        authService.loginWithEmail(request);
+
+        verify(credentialsMapper).update(argThat(updated ->
+                passwordService.isBcryptHash(updated.getPasswordHash()) && "".equals(updated.getSalt())));
     }
 
     @Test

@@ -10,10 +10,7 @@ import xyz.crearts.note.keeper.model.User;
 import xyz.crearts.note.keeper.model.UserCredentials;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.UUID;
 
 /**
@@ -26,11 +23,14 @@ public class AuthService {
     private final UserMapper userMapper;
     private final UserCredentialsMapper credentialsMapper;
     private final JwtService jwtService;
+    private final PasswordService passwordService;
 
-    public AuthService(UserMapper userMapper, UserCredentialsMapper credentialsMapper, JwtService jwtService) {
+    public AuthService(UserMapper userMapper, UserCredentialsMapper credentialsMapper,
+                       JwtService jwtService, PasswordService passwordService) {
         this.userMapper = userMapper;
         this.credentialsMapper = credentialsMapper;
         this.jwtService = jwtService;
+        this.passwordService = passwordService;
     }
 
     /**
@@ -58,13 +58,12 @@ public class AuthService {
         userMapper.insert(user);
 
         // Create credentials
-        String salt = generateSalt();
-        String passwordHash = hashPassword(request.getPassword(), salt);
+        String passwordHash = passwordService.hashPassword(request.getPassword());
 
         UserCredentials credentials = new UserCredentials();
         credentials.setUserId(userId);
         credentials.setPasswordHash(passwordHash);
-        credentials.setSalt(salt);
+        credentials.setSalt("");
         credentials.setCreatedAt(LocalDateTime.now());
         credentials.setUpdatedAt(LocalDateTime.now());
 
@@ -94,10 +93,11 @@ public class AuthService {
             throw new RuntimeException("Invalid email or password");
         }
 
-        String inputHash = hashPassword(request.getPassword(), credentials.getSalt());
-        if (!inputHash.equals(credentials.getPasswordHash())) {
+        if (!passwordService.matches(request.getPassword(), credentials)) {
             throw new RuntimeException("Invalid email or password");
         }
+
+        upgradeLegacyPasswordIfNeeded(request.getPassword(), credentials);
 
         String token = jwtService.generateToken(user.getId(), user.getEmail());
         return new AuthResponse(token, user);
@@ -159,31 +159,20 @@ public class AuthService {
         return userMapper.findById(userId);
     }
 
-    private String generateSalt() {
-        SecureRandom random = new SecureRandom();
-        byte[] salt = new byte[16];
-        random.nextBytes(salt);
-        return Base64.getEncoder().encodeToString(salt);
-    }
-
-    private String hashPassword(String password, String salt) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            md.update(salt.getBytes(StandardCharsets.UTF_8));
-            byte[] hashedBytes = md.digest(password.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(hashedBytes);
-        } catch (Exception e) {
-            throw new RuntimeException("Error hashing password", e);
+    private void upgradeLegacyPasswordIfNeeded(String plainPassword, UserCredentials credentials) {
+        if (!passwordService.isLegacyHash(credentials)) {
+            return;
         }
+        credentials.setPasswordHash(passwordService.hashPassword(plainPassword));
+        credentials.setSalt("");
+        credentials.setUpdatedAt(LocalDateTime.now());
+        credentialsMapper.update(credentials);
+        log.info("Upgraded legacy password hash for user {}", credentials.getUserId());
     }
 
-    /**
-     * Generate deterministic avatar URL using DiceBear API based on email.
-     * Uses 'avataaars' style for friendly, unique avatars without external storage.
-     */
     private String generateAvatarUrl(String email) {
         String seed = email.toLowerCase().trim();
-        return "https://api.dicebear.com/7.x/avataaars/svg?seed=" + 
-               java.net.URLEncoder.encode(seed, StandardCharsets.UTF_8);
+        return "https://api.dicebear.com/7.x/avataaars/svg?seed="
+                + java.net.URLEncoder.encode(seed, StandardCharsets.UTF_8);
     }
 }

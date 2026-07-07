@@ -10,12 +10,14 @@
         <result property="tags" column="tags"
                 typeHandler="xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler"/>
         <result property="category" column="category"/>
+        <result property="ownerId" column="owner_id"/>
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
     <select id="findAll" resultMap="templateResultMap">
         SELECT * FROM note_template
         <where>
+            owner_id = #{ownerId}
             <if test="category != null">AND category = #{category}</if>
         </where>
         ORDER BY created_at DESC
@@ -26,10 +28,10 @@
     </select>
 
     <insert id="insert" parameterType="xyz.crearts.note.keeper.model.NoteTemplate">
-        INSERT INTO note_template (id, name, content, tags, category, created_at)
+        INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
         VALUES (#{id}, #{name}, #{content},
             #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
-            #{category}, #{createdAt})
+            #{category}, #{ownerId}, #{createdAt})
     </insert>
 
     <delete id="delete" parameterType="String">

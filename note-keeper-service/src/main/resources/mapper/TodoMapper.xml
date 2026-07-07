@@ -123,17 +123,20 @@
     <select id="countByDateRange" resultType="int">
         SELECT COUNT(*) FROM todo
         WHERE created_at >= #{start} AND created_at &lt;= #{end}
+          AND owner_id = #{ownerId}
     </select>
 
     <select id="countCompletedByDateRange" resultType="int">
         SELECT COUNT(*) FROM todo
         WHERE completed = 1
           AND updated_at >= #{start} AND updated_at &lt;= #{end}
+          AND owner_id = #{ownerId}
     </select>
 
     <select id="search" resultMap="todoResultMap">
         SELECT * FROM todo
         WHERE is_deleted = 0
+          AND (owner_id = #{ownerId} OR shared_with LIKE '%' || #{ownerId} || '%')
           AND (title LIKE '%' || #{query} || '%' OR description LIKE '%' || #{query} || '%')
         <if test="tags != null">AND tags LIKE '%' || #{tags} || '%'</if>
         <if test="priority != null">AND priority = #{priority}</if>
@@ -144,6 +147,7 @@
         SELECT COUNT(*) FROM todo
         WHERE priority = #{priority}
           AND created_at >= #{start} AND created_at &lt;= #{end}
+          AND owner_id = #{ownerId}
     </select>
 
     <!-- Find todos with reminder time due (reminder <= now) that haven't been notified yet -->

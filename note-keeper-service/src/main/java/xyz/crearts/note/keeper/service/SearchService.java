@@ -3,6 +3,8 @@ package xyz.crearts.note.keeper.service;
 import org.springframework.stereotype.Service;
 import xyz.crearts.note.keeper.dto.SavedQueryInput;
 import xyz.crearts.note.keeper.dto.SearchResult;
+import xyz.crearts.note.keeper.exception.AccessDeniedException;
+import xyz.crearts.note.keeper.exception.ResourceNotFoundException;
 import xyz.crearts.note.keeper.mapper.AttachmentMapper;
 import xyz.crearts.note.keeper.mapper.NoteHistoryMapper;
 import xyz.crearts.note.keeper.mapper.NoteMapper;
@@ -13,7 +15,6 @@ import xyz.crearts.note.keeper.model.SavedQuery;
 import xyz.crearts.note.keeper.model.Todo;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -37,19 +38,19 @@ public class SearchService {
         this.historyMapper = historyMapper;
     }
 
-    public SearchResult search(String query, String type, String tags, String priority) {
+    public SearchResult search(String query, String type, String tags, String priority, String ownerId) {
         List<Note> notes = Collections.emptyList();
         List<Todo> todos = Collections.emptyList();
 
         if (type == null || "all".equals(type) || "notes".equals(type)) {
-            notes = noteMapper.search(query, tags, priority);
+            notes = noteMapper.search(query, tags, priority, ownerId);
             for (Note note : notes) {
                 note.setAttachments(attachmentMapper.findByParent(note.getId(), "note"));
                 note.setHistory(historyMapper.findByNoteId(note.getId()));
             }
         }
         if (type == null || "all".equals(type) || "todos".equals(type)) {
-            todos = todoMapper.search(query, tags, priority);
+            todos = todoMapper.search(query, tags, priority, ownerId);
             for (Todo todo : todos) {
                 todo.setAttachments(attachmentMapper.findByParent(todo.getId(), "todo"));
             }
@@ -58,25 +59,28 @@ public class SearchService {
         return new SearchResult(notes, todos);
     }
 
-    public List<SavedQuery> getSavedQueries() {
-        return savedQueryMapper.findAll();
+    public List<SavedQuery> getSavedQueries(String ownerId) {
+        return savedQueryMapper.findAllByOwner(ownerId);
     }
 
-    public SavedQuery saveQuery(SavedQueryInput input) {
+    public SavedQuery saveQuery(SavedQueryInput input, String ownerId) {
         SavedQuery query = new SavedQuery();
         query.setId(UUID.randomUUID().toString());
+        query.setOwnerId(ownerId);
         query.setName(input.getName());
         query.setQuery(input.getQuery());
         query.setFilters(input.getFilters() != null ? input.getFilters() : new SavedQuery.Filters());
         query.setCreatedAt(LocalDateTime.now());
 
         savedQueryMapper.insert(query);
-
-        List<SavedQuery> all = savedQueryMapper.findAll();
-        return all.stream().filter(q -> q.getId().equals(query.getId())).findFirst().orElse(query);
+        return savedQueryMapper.findByIdAndOwner(query.getId(), ownerId);
     }
 
-    public void deleteQuery(String id) {
+    public void deleteQuery(String id, String ownerId) {
+        SavedQuery query = savedQueryMapper.findByIdAndOwner(id, ownerId);
+        if (query == null) {
+            throw new ResourceNotFoundException("Saved query not found: " + id);
+        }
         savedQueryMapper.delete(id);
     }
 }

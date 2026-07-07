@@ -14,11 +14,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Service for managing todos with owner support.
- * All todos are associated with an owner (user).
- */
-
 @Service
 public class TodoService {
 
@@ -26,32 +21,38 @@ public class TodoService {
     private final AttachmentMapper attachmentMapper;
     private final NotificationService notificationService;
     private final TagSyncService tagSyncService;
+    private final ResourceAccessService resourceAccess;
 
     public TodoService(TodoMapper todoMapper, AttachmentMapper attachmentMapper,
-                       NotificationService notificationService, TagSyncService tagSyncService) {
+                       NotificationService notificationService, TagSyncService tagSyncService,
+                       ResourceAccessService resourceAccess) {
         this.todoMapper = todoMapper;
         this.attachmentMapper = attachmentMapper;
         this.notificationService = notificationService;
         this.tagSyncService = tagSyncService;
+        this.resourceAccess = resourceAccess;
     }
 
     public List<Todo> findAll(Boolean completed, String tag, String priority,
                               Boolean isFavorite, Boolean isArchived, Boolean isDeleted, String ownerId) {
-        // MyBatis автоматически загружает attachments через collection в resultMap
         return todoMapper.findAll(completed, tag, priority, isFavorite, isArchived, isDeleted, ownerId);
     }
 
     public List<Todo> findSharedWithMe(String userId) {
-        // MyBatis автоматически загружает attachments через collection в resultMap
         return todoMapper.findSharedWithMe(userId);
     }
 
-    public Todo findById(String id) {
+    public Todo findById(String id, String userId) {
+        Todo todo = loadTodo(id);
+        resourceAccess.requireTodoRead(todo, userId);
+        return todo;
+    }
+
+    private Todo loadTodo(String id) {
         Todo todo = todoMapper.findById(id);
         if (todo == null) {
             throw new ResourceNotFoundException("Todo not found: " + id);
         }
-        // MyBatis автоматически загружает attachments через collection в resultMap
         return todo;
     }
 
@@ -93,19 +94,19 @@ public class TodoService {
 
         todoMapper.insert(todo);
 
-        // Save attachments if provided
         if (input.getAttachments() != null && !input.getAttachments().isEmpty()) {
             saveAttachments(todo.getId(), "todo", input.getAttachments());
         }
 
         tagSyncService.addTags(ownerId, todo.getTags());
         notificationService.notifyTodoCreated(todo.getId(), ownerId);
-        return findById(todo.getId());
+        return findById(todo.getId(), ownerId);
     }
 
     @Transactional
-    public Todo update(String id, TodoInput input) {
-        Todo existing = findById(id);
+    public Todo update(String id, TodoInput input, String userId) {
+        Todo existing = loadTodo(id);
+        resourceAccess.requireTodoOwner(existing, userId);
         List<String> oldTags = existing.getTags() != null ? new ArrayList<>(existing.getTags()) : new ArrayList<>();
 
         existing.setTitle(input.getTitle());
@@ -130,25 +131,20 @@ public class TodoService {
         existing.setUpdatedAt(LocalDateTime.now());
         todoMapper.update(existing);
 
-        // Update attachments if provided
         if (input.getAttachments() != null) {
-            // Delete existing attachments
             attachmentMapper.deleteByParent(id, "todo");
-            // Save new attachments
             saveAttachments(id, "todo", input.getAttachments());
         }
 
         tagSyncService.updateTags(existing.getOwnerId(), oldTags, existing.getTags());
         notificationService.notifyTodoUpdated(id, existing.getOwnerId());
-        return findById(id);
+        return findById(id, userId);
     }
 
     @Transactional
-    public void delete(String id, boolean permanent) {
-        Todo todo = todoMapper.findById(id);
-        if (todo == null) {
-            throw new ResourceNotFoundException("Todo not found: " + id);
-        }
+    public void delete(String id, boolean permanent, String userId) {
+        Todo todo = loadTodo(id);
+        resourceAccess.requireTodoOwner(todo, userId);
         String ownerId = todo.getOwnerId();
         List<String> tags = todo.getTags();
         if (permanent) {
@@ -161,35 +157,26 @@ public class TodoService {
         notificationService.notifyTodoDeleted(id, ownerId);
     }
 
-    public Todo archive(String id) {
-        findById(id);
+    public Todo archive(String id, String userId) {
+        Todo todo = loadTodo(id);
+        resourceAccess.requireTodoOwner(todo, userId);
         todoMapper.archive(id);
-        return findById(id);
+        return findById(id, userId);
     }
 
-    public Todo restore(String id) {
-        findById(id);
+    public Todo restore(String id, String userId) {
+        Todo todo = loadTodo(id);
+        resourceAccess.requireTodoOwner(todo, userId);
         todoMapper.restore(id);
-        return findById(id);
+        return findById(id, userId);
     }
 
     @Transactional
     public Todo shareWithUser(String todoId, String userIdToAdd, String currentOwnerId) {
-        Todo todo = findById(todoId);
-        System.out.println("[DEBUG] shareWithUser - todoId: " + todoId);
-        System.out.println("[DEBUG] shareWithUser - todo.getOwnerId(): " + todo.getOwnerId());
-        System.out.println("[DEBUG] shareWithUser - currentOwnerId (from JWT): " + currentOwnerId);
-        if (todo.getOwnerId() == null) {
-            throw new RuntimeException("Todo ownerId is null - data corruption");
-        }
-        if (currentOwnerId == null) {
-            throw new RuntimeException("Current ownerId is null - authentication issue");
-        }
-        if (!todo.getOwnerId().equals(currentOwnerId)) {
-            throw new RuntimeException("Only owner can share this todo (todo owner: " + todo.getOwnerId() + ", current user: " + currentOwnerId + ")");
-        }
+        Todo todo = loadTodo(todoId);
+        resourceAccess.requireTodoOwner(todo, currentOwnerId);
 
-        List<String> sharedUsers = parseSharedWith(todo.getSharedWith());
+        List<String> sharedUsers = resourceAccess.parseSharedWith(todo.getSharedWith());
         if (!sharedUsers.contains(userIdToAdd)) {
             sharedUsers.add(userIdToAdd);
             String newSharedWith = toJsonArray(sharedUsers);
@@ -197,41 +184,21 @@ public class TodoService {
             todoMapper.shareWithUser(todoId, newSharedWith);
         }
 
-        return findById(todoId);
+        return findById(todoId, currentOwnerId);
     }
 
     @Transactional
     public Todo unshareWithUser(String todoId, String userIdToRemove, String currentOwnerId) {
-        Todo todo = findById(todoId);
-        if (!todo.getOwnerId().equals(currentOwnerId)) {
-            throw new RuntimeException("Only owner can unshare this todo");
-        }
+        Todo todo = loadTodo(todoId);
+        resourceAccess.requireTodoOwner(todo, currentOwnerId);
 
-        List<String> sharedUsers = parseSharedWith(todo.getSharedWith());
+        List<String> sharedUsers = resourceAccess.parseSharedWith(todo.getSharedWith());
         sharedUsers.remove(userIdToRemove);
         String newSharedWith = toJsonArray(sharedUsers);
         todo.setSharedWith(newSharedWith);
         todoMapper.shareWithUser(todoId, newSharedWith);
 
-        return findById(todoId);
-    }
-
-    private List<String> parseSharedWith(String sharedWith) {
-        if (sharedWith == null || sharedWith.equals("[]")) {
-            return new ArrayList<>();
-        }
-        try {
-            String json = sharedWith.replace("[", "").replace("]", "").replace("\"", "");
-            if (json.trim().isEmpty()) {
-                return new ArrayList<>();
-            }
-            return Arrays.stream(json.split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
+        return findById(todoId, currentOwnerId);
     }
 
     private String toJsonArray(List<String> list) {
@@ -264,18 +231,14 @@ public class TodoService {
         if (endDate instanceof String) {
             String dateStr = (String) endDate;
             try {
-                // Try ISO instant format first (e.g. "2026-06-19T00:00:00.000Z")
                 schedule.setEndDate(java.time.Instant.parse(dateStr).atZone(java.time.ZoneOffset.UTC).toLocalDateTime());
             } catch (Exception e) {
                 try {
-                    // Fallback: ISO local date time without zone
                     schedule.setEndDate(LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                 } catch (Exception e2) {
                     try {
-                        // Fallback: date-only format (YYYY-MM-DD)
                         schedule.setEndDate(LocalDate.parse(dateStr).atStartOfDay());
                     } catch (Exception ignored) {
-                        // Ignore invalid date
                     }
                 }
             }
@@ -286,19 +249,15 @@ public class TodoService {
     private LocalDateTime parseDate(String dateStr) {
         if (dateStr == null || dateStr.isEmpty()) return null;
         try {
-            // Parse ISO UTC format (with 'Z') from frontend — store as UTC LocalDateTime
             java.time.Instant instant = java.time.Instant.parse(dateStr);
             return LocalDateTime.ofInstant(instant, java.time.ZoneOffset.UTC);
         } catch (Exception e1) {
             try {
-                // Try ISO local date-time format (treat as UTC for consistency)
                 return LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             } catch (Exception e2) {
                 try {
-                    // Try "yyyy-MM-dd" format
                     return LocalDate.parse(dateStr).atStartOfDay();
                 } catch (Exception e3) {
-                    // Ignore invalid date
                     return null;
                 }
             }
@@ -316,17 +275,17 @@ public class TodoService {
             attachment.setId(UUID.randomUUID().toString());
             attachment.setParentId(parentId);
             attachment.setParentType(parentType);
-            
+
             Object name = attachmentData.get("name");
             Object size = attachmentData.get("size");
             Object type = attachmentData.get("type");
             Object url = attachmentData.get("url");
-            
+
             if (name instanceof String) attachment.setName((String) name);
             if (size instanceof Number) attachment.setSize(((Number) size).longValue());
             if (type instanceof String) attachment.setType((String) type);
             if (url instanceof String) attachment.setUrl((String) url);
-            
+
             attachment.setUploadedAt(now);
             attachmentMapper.insert(attachment);
         }
