@@ -51,6 +51,12 @@ function getAuthHeaders(): Record<string, string> {
  */
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
+    // Redirect to login on auth failures
+    if (response.status === 401 || response.status === 403) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.hash = '#/login';
+    }
     const text = await response.text().catch(() => '');
     throw new Error(text || `HTTP ${response.status}`);
   }
