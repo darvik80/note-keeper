@@ -329,7 +329,7 @@ export const TodoEditor: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 sm:p-8 max-w-4xl mx-auto w-full min-h-0">
+      <div className="flex-1 overflow-auto p-4 sm:p-8 min-h-0">
         <input
           type="text"
           value={todo.title}
