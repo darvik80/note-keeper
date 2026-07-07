@@ -1,0 +1,4 @@
+{
+  "java.debug.settings.vmArgs": "--enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow -Dio.netty.tryReflectionSetAccessible=true",
+  "java.configuration.updateBuildConfiguration": "automatic"
+}

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useCallback } from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import SockJS from 'sockjs-client';
-import { Client, IMessage } from '@stomp/stompjs';
+import {Client, IMessage} from '@stomp/stompjs';
 
 export interface WsEvent {
   type: string;

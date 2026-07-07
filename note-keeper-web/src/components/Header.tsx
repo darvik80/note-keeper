@@ -8,8 +8,8 @@
  * read from `localStorage` (`"user"` key) and refreshed on cross-tab storage
  * events so the avatar updates immediately after login/logout in another tab.
  */
-import React, { useState, useEffect, useRef } from 'react';
-import { ThemeSelector } from './ThemeSelector';
+import React, {useEffect, useRef, useState} from 'react';
+import {ThemeSelector} from './ThemeSelector';
 
 /** Minimal user shape read from `localStorage`. */
 interface User {
@@ -93,9 +93,6 @@ export const Header: React.FC<HeaderProps> = ({ title, actions }) => {
         {actions && <div className="flex items-center gap-2 sm:gap-3 shrink-0">{actions}</div>}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <ThemeSelector />
-          <button className="p-2 hover:bg-hover rounded-lg transition-colors">
-            <i className="fas fa-bell text-text-secondary"></i>
-          </button>
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}

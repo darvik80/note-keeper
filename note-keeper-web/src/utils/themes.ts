@@ -8,7 +8,7 @@
  * (`text-primary`, `bg-surface`, etc.) resolve to these custom properties via
  * `tailwind.config.js`.
  */
-import { Theme } from '../types';
+import {Theme} from '../types';
 
 /**
  * Map of all supported themes to their metadata and colour values.
@@ -233,6 +233,9 @@ export const applyTheme = (theme: Theme) => {
   root.style.setProperty('--color-text-secondary', themeColors.textSecondary);
   root.style.setProperty('--color-border', themeColors.border);
   root.style.setProperty('--color-hover', themeColors.hover);
+
+  const isDark = theme === 'dark' || theme === 'darcula';
+  root.style.colorScheme = isDark ? 'dark' : 'light';
 
   document.body.style.background = themeColors.background;
   document.body.style.color = themeColors.text;

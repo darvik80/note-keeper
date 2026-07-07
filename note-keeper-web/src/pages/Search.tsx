@@ -3,15 +3,19 @@
  * @category Pages
  * @description Full-text search page with saved queries.
  */
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Header } from '../components/Header';
-import { api } from '../utils/api';
-import { Note, Todo, SavedQuery, SavedQueryInput } from '../types';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {Header} from '../components/Header';
+import {PageShell} from '../components/PageShell';
+import {Modal} from '../components/Modal';
+import {useToast} from '../contexts/ToastContext';
+import {api} from '../utils/api';
+import {Note, SavedQuery, SavedQueryInput, Todo} from '../types';
 
 /** Search page with full-text query input, result display, and saved query management. */
 export const Search: React.FC = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [query, setQuery] = useState('');
   const [searchType, setSearchType] = useState<'all' | 'notes' | 'todos'>('all');
   const [results, setResults] = useState<{ notes: Note[]; todos: Todo[] }>({ notes: [], todos: [] });
@@ -63,6 +67,7 @@ export const Search: React.FC = () => {
       setSavedQueries(prev => [saved, ...prev]);
       setShowSaveDialog(false);
       setQueryName('');
+      toast.success('Query saved');
     } catch (err) {
       setError((err as any)?.message || 'Failed to save query');
     }
@@ -84,16 +89,7 @@ export const Search: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50">
-      {error && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
-          <i className="fas fa-circle-exclamation shrink-0"></i>
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-      )}
+    <PageShell error={error} onDismissError={() => setError(null)}>
       <Header title="Search" />
 
       <div className="flex-1 overflow-auto p-8">
@@ -256,34 +252,37 @@ export const Search: React.FC = () => {
       </div>
 
       {showSaveDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-96">
-            <h3 className="text-lg font-bold mb-4">Save Query</h3>
-            <input
-              type="text"
-              value={queryName}
-              onChange={(e) => setQueryName(e.target.value)}
-              placeholder="Query name"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4"
-              autoFocus
-            />
-            <div className="flex gap-3">
+        <Modal
+          isOpen={showSaveDialog}
+          onClose={() => setShowSaveDialog(false)}
+          title="Save Query"
+          footer={
+            <>
+              <button
+                onClick={() => setShowSaveDialog(false)}
+                className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-hover transition-colors text-text"
+              >
+                Cancel
+              </button>
               <button
                 onClick={saveQuery}
                 className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
               >
                 Save
               </button>
-              <button
-                onClick={() => setShowSaveDialog(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        >
+          <input
+            type="text"
+            value={queryName}
+            onChange={(e) => setQueryName(e.target.value)}
+            placeholder="Query name"
+            className="input-field"
+            autoFocus
+          />
+        </Modal>
       )}
-    </div>
+    </PageShell>
   );
 };

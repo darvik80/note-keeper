@@ -23,10 +23,10 @@ jobs:
           cache: maven
 
       - name: Install web module (builds frontend)
-        run: mvn install -pl note-keeper-web -DskipTests -B
+        run: ./mvnw install -pl note-keeper-web -DskipTests -B
 
       - name: Run service unit tests
-        run: mvn test -pl note-keeper-service -B
+        run: ./mvnw test -pl note-keeper-service -B
 
       - name: Upload test results
         if: always()

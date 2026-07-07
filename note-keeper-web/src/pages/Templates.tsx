@@ -3,17 +3,23 @@
  * @category Pages
  * @description Note templates page — browse, create, and apply templates.
  */
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Header } from '../components/Header';
-import { api } from '../utils/api';
-import { NoteTemplate, NoteInput, NoteTemplateInput } from '../types';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {Header} from '../components/Header';
+import {PageShell} from '../components/PageShell';
+import {ConfirmDialog} from '../components/ConfirmDialog';
+import {useToast} from '../contexts/ToastContext';
+import {api} from '../utils/api';
+import {NoteInput, NoteTemplate, NoteTemplateInput} from '../types';
 
 /** Templates page for managing reusable note templates. */
 export const Templates: React.FC = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [templates, setTemplates] = useState<NoteTemplate[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newTemplate, setNewTemplate] = useState({
     name: '',
@@ -71,28 +77,23 @@ export const Templates: React.FC = () => {
     }
   };
 
-  const deleteTemplate = async (id: string) => {
-    if (confirm('Delete this template?')) {
-      try {
-        await api.templates.delete(id);
-        setTemplates(prev => prev.filter(t => t.id !== id));
-      } catch (err) {
-        setError((err as any)?.message || 'Failed to delete template');
-      }
+  const confirmDeleteTemplate = async () => {
+    if (!deleteId) return;
+    setDeleteLoading(true);
+    try {
+      await api.templates.delete(deleteId);
+      setTemplates(prev => prev.filter(t => t.id !== deleteId));
+      toast.success('Template deleted');
+    } catch (err) {
+      setError((err as any)?.message || 'Failed to delete template');
+    } finally {
+      setDeleteLoading(false);
+      setDeleteId(null);
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50">
-      {error && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
-          <i className="fas fa-circle-exclamation shrink-0"></i>
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-      )}
+    <PageShell error={error} onDismissError={() => setError(null)}>
       <Header
         title="Templates"
         actions={
@@ -166,7 +167,7 @@ export const Templates: React.FC = () => {
                   </span>
                 </div>
                 <button
-                  onClick={() => deleteTemplate(template.id)}
+                  onClick={() => setDeleteId(template.id)}
                   className="text-red-500 hover:text-red-700 p-1"
                 >
                   <i className="fas fa-trash"></i>
@@ -204,6 +205,17 @@ export const Templates: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+
+      <ConfirmDialog
+        isOpen={deleteId !== null}
+        onClose={() => setDeleteId(null)}
+        onConfirm={confirmDeleteTemplate}
+        title="Delete template"
+        message="Are you sure you want to delete this template? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteLoading}
+      />
+    </PageShell>
   );
 };

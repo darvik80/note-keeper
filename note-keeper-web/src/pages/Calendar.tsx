@@ -3,12 +3,13 @@
  * @category Pages
  * @description Calendar page — todos with due dates displayed in a monthly calendar grid.
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Header } from '../components/Header';
-import { api } from '../utils/api';
-import { Todo, Note } from '../types';
-import { useWebSocket } from '../hooks/useWebSocket';
+import React, {useCallback, useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {Header} from '../components/Header';
+import {PageShell} from '../components/PageShell';
+import {PriorityBadge} from '../components/PriorityBadge';
+import {api} from '../utils/api';
+import {useWebSocket} from '../hooks/useWebSocket';
 
 type CalendarItem = {
   id: string;
@@ -195,16 +196,7 @@ export const Calendar: React.FC = () => {
   const selectedDateItems = selectedDate ? getItemsForDate(selectedDate) : [];
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50 min-h-0">
-      {error && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
-          <i className="fas fa-circle-exclamation shrink-0"></i>
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-      )}
+    <PageShell error={error} onDismissError={() => setError(null)}>
       <Header title="Calendar" />
 
       <div className="flex-1 overflow-auto p-4 sm:p-6">
@@ -324,13 +316,7 @@ export const Calendar: React.FC = () => {
                     </div>
                     {item.description && <p className="text-sm text-gray-600 mb-2">{item.description}</p>}
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        item.priority === 'high' ? 'bg-red-100 text-red-700' :
-                        item.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {item.priority}
-                      </span>
+                      <PriorityBadge priority={item.priority} />
                       {item.tags.slice(0, 3).map(tag => (
                         <span key={tag} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
                           #{tag}
@@ -344,6 +330,6 @@ export const Calendar: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };

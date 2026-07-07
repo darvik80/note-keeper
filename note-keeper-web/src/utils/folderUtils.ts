@@ -5,7 +5,7 @@
  * hierarchical {@link FolderStructure} tree and for round-tripping between
  * path strings and `{ folder, subfolder }` pairs.
  */
-import { FolderStructure, Note } from '../types';
+import {FolderStructure, Note} from '../types';
 
 /**
  * Build a hierarchical folder tree from a flat list of notes.

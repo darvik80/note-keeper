@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { api } from '../utils/api';
+import React, {useEffect, useRef, useState} from 'react';
+import {api} from '../utils/api';
 
 interface TagInputProps {
   tags: string[];

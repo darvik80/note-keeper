@@ -17,10 +17,10 @@
  * Wrap the router with {@link ShortcutProvider} and access the context via
  * {@link useShortcuts}.
  */
-import React, { createContext, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { storage } from '../utils/storage';
-import { api } from '../utils/api';
+import React, {createContext, useContext, useEffect} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {storage} from '../utils/storage';
+import {api} from '../utils/api';
 
 /**
  * Shape of the value exposed by {@link ShortcutContext}.

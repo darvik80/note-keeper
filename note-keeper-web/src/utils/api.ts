@@ -16,10 +16,22 @@
  * ```
  */
 import {
-  Note, Todo, NoteTemplate, SavedQuery, NoteHistory,
-  NoteInput, TodoInput, NoteTemplateInput, SavedQueryInput,
-  SearchResult, AnalyticsResponse, IntegrationRequest, IntegrationResponse,
-  AuthRequest, AuthResponse, User
+    AnalyticsResponse,
+    AuthRequest,
+    AuthResponse,
+    IntegrationRequest,
+    IntegrationResponse,
+    Note,
+    NoteHistory,
+    NoteInput,
+    NoteTemplate,
+    NoteTemplateInput,
+    SavedQuery,
+    SavedQueryInput,
+    SearchResult,
+    Todo,
+    TodoInput,
+    User
 } from '../types';
 
 const API_BASE = '/api/v1';

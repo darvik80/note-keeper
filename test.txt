@@ -1,0 +1,1 @@
+docker run -d -p 808:8080 --volume .env:/app/.env:ro --name kee[er localhost/keeper:latest

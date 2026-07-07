@@ -3,10 +3,11 @@
  * @category Pages
  * @description Analytics page — usage statistics over a selected time range.
  */
-import React, { useState, useEffect } from 'react';
-import { Header } from '../components/Header';
-import { api } from '../utils/api';
-import { Note, Todo } from '../types';
+import React, {useEffect, useState} from 'react';
+import {Header} from '../components/Header';
+import {PageShell} from '../components/PageShell';
+import {api} from '../utils/api';
+import {Note, Todo} from '../types';
 
 /** Analytics page showing note/todo creation counts, completion rate, top tags, priority distribution, and daily activity. */
 export const Analytics: React.FC = () => {
@@ -90,7 +91,7 @@ export const Analytics: React.FC = () => {
   const maxActivity = Math.max(...dailyActivity, 1);
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50">
+    <PageShell>
       <Header title="Analytics" />
 
       <div className="flex-1 overflow-auto p-8">
@@ -226,6 +227,6 @@ export const Analytics: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };

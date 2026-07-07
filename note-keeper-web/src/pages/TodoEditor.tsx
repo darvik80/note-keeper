@@ -3,15 +3,15 @@
  * @category Pages
  * @description Todo editor page — edit title, description, tags, schedule, location, and attachments.
  */
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '../utils/api';
-import { MarkdownRenderer } from '../components/MarkdownRenderer';
-import { ShareModal } from '../components/ShareModal';
-import { TagInput } from '../components/TagInput';
-import { Todo, Attachment, TodoInput } from '../types';
-import { storage } from '../utils/storage';
-import { IntegrationRequest, IntegrationResponse } from '../types';
+import React, {useEffect, useState} from 'react';
+import {useNavigate, useParams} from 'react-router-dom';
+import {api} from '../utils/api';
+import {PageShell} from '../components/PageShell';
+import {MarkdownRenderer} from '../components/MarkdownRenderer';
+import {ShareModal} from '../components/ShareModal';
+import {TagInput} from '../components/TagInput';
+import {Attachment, IntegrationRequest, IntegrationResponse, Todo, TodoInput} from '../types';
+import {storage} from '../utils/storage';
 
 const emptyTodo = (): Todo => ({
   id: 'new',
@@ -247,20 +247,11 @@ export const TodoEditor: React.FC = () => {
   );
 
   return (
-    <div className="flex-1 flex flex-col bg-white min-h-0 overflow-hidden">
-      {error && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
-          <i className="fas fa-circle-exclamation shrink-0"></i>
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-      )}
-      <div className="border-b border-gray-200 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
+    <PageShell error={error} onDismissError={() => setError(null)} className="overflow-hidden">
+      <div className="border-b border-border px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
         <button
           onClick={() => navigate('/todos')}
-          className="text-gray-600 hover:text-gray-800 shrink-0 flex items-center gap-1"
+          className="text-text-secondary hover:text-text shrink-0 flex items-center gap-1"
         >
           <i className="fas fa-arrow-left"></i>
           <span className="hidden sm:inline ml-1">Back</span>
@@ -547,6 +538,6 @@ export const TodoEditor: React.FC = () => {
           }
         }}
       />
-    </div>
+    </PageShell>
   );
 };

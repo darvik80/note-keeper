@@ -10,8 +10,8 @@
  * The sidebar also listens for the `"toggle-sidebar"` custom event dispatched
  * by {@link ShortcutProvider} when the user presses `Ctrl+B`.
  */
-import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, {useEffect} from 'react';
+import {useLocation, useNavigate} from 'react-router-dom';
 
 /** Props for {@link Sidebar}. */
 interface SidebarProps {

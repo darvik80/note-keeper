@@ -9,7 +9,7 @@
  * - Code blocks with syntax highlighting classes
  * - Mermaid diagrams via ` ```mermaid ``` ` fenced blocks
  */
-import React, { useEffect, useRef } from 'react';
+import React, {useEffect, useRef} from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import mermaid from 'mermaid';

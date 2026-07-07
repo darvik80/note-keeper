@@ -7,7 +7,7 @@ Type=simple
 User={{ service_user }}
 Group={{ service_user }}
 WorkingDirectory={{ app_dir }}
-ExecStart=java -jar {{ bin_dir }}/{{ jar_name }} --spring.config.location=file:{{ etc_dir }}/application.yml
+ExecStart=java --enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow -Dio.netty.tryReflectionSetAccessible=true -jar {{ bin_dir }}/{{ jar_name }} --spring.config.location=file:{{ etc_dir }}/application.yml
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal

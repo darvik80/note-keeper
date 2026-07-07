@@ -6,7 +6,7 @@
  *
  * All reads are null-safe: missing or corrupted keys return sensible defaults.
  */
-import { Settings, Theme } from '../types';
+import {Settings, Theme} from '../types';
 
 /** `localStorage` key for the full {@link Settings} object. */
 const SETTINGS_KEY = 'notekeeper_settings';

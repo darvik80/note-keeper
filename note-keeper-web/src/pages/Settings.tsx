@@ -3,18 +3,22 @@
  * @category Pages
  * @description User settings page — integration config, keyboard shortcuts, theme, and backup.
  */
-import React, { useState, useEffect } from 'react';
-import { Header } from '../components/Header';
-import { storage } from '../utils/storage';
-import { Settings as SettingsType } from '../types';
-import { api } from '../utils/api';
-import { IntegrationRequest, IntegrationResponse } from '../types';
+import React, {useEffect, useState} from 'react';
+import {Header} from '../components/Header';
+import {PageShell} from '../components/PageShell';
+import {SettingsTabBar, SettingsTab} from '../components/settings/SettingsTabBar';
+import {ApiTab} from '../components/settings/ApiTab';
+import {useToast} from '../contexts/ToastContext';
+import {storage} from '../utils/storage';
+import {IntegrationRequest, IntegrationResponse, Settings as SettingsType} from '../types';
+import {api} from '../utils/api';
 
 /** Settings page for configuring Telegram, DingTalk, email integrations, keyboard shortcuts, and backup. */
 export const Settings: React.FC = () => {
+  const { toast } = useToast();
   const [settings, setSettings] = useState<SettingsType>(storage.getSettings());
   const [saved, setSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<'integrations' | 'shortcuts' | 'api' | 'backup'>('integrations');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('integrations');
   const [telegramTestStatus, setTelegramTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [dingtalkTestStatus, setDingtalkTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +106,7 @@ export const Settings: React.FC = () => {
     // Save non-sensitive settings locally
     storage.saveSettings(settings);
     setSaved(true);
+    toast.success('Settings saved');
     setTimeout(() => setSaved(false), 2000);
   };
 
@@ -271,16 +276,7 @@ export const Settings: React.FC = () => {
   }, [activeTab]);
 
   return (
-    <div className="flex-1 flex flex-col bg-background min-h-0 overflow-hidden">
-      {error && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
-          <i className="fas fa-circle-exclamation shrink-0"></i>
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-      )}
+    <PageShell error={error} onDismissError={() => setError(null)} className="overflow-hidden">
       <Header
         title="Settings"
         actions={
@@ -298,52 +294,7 @@ export const Settings: React.FC = () => {
 
       <div className="flex-1 overflow-auto p-8 min-h-0">
         <div className="max-w-5xl mx-auto">
-          <div className="flex gap-4 mb-8 border-b border-border">
-            <button
-              onClick={() => setActiveTab('integrations')}
-              className={`px-6 py-3 font-medium transition-colors ${
-                activeTab === 'integrations'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-text-secondary hover:text-text'
-              }`}
-            >
-              <i className="fas fa-plug mr-2"></i>
-              Integrations
-            </button>
-            <button
-              onClick={() => setActiveTab('shortcuts')}
-              className={`px-6 py-3 font-medium transition-colors ${
-                activeTab === 'shortcuts'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-text-secondary hover:text-text'
-              }`}
-            >
-              <i className="fas fa-keyboard mr-2"></i>
-              Shortcuts
-            </button>
-            <button
-              onClick={() => setActiveTab('api')}
-              className={`px-6 py-3 font-medium transition-colors ${
-                activeTab === 'api'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-text-secondary hover:text-text'
-              }`}
-            >
-              <i className="fas fa-code mr-2"></i>
-              API Documentation
-            </button>
-            <button
-              onClick={() => setActiveTab('backup')}
-              className={`px-6 py-3 font-medium transition-colors ${
-                activeTab === 'backup'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-text-secondary hover:text-text'
-              }`}
-            >
-              <i className="fas fa-database mr-2"></i>
-              Backup
-            </button>
-          </div>
+          <SettingsTabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
           {activeTab === 'integrations' && (
             <div className="space-y-8">
@@ -654,130 +605,7 @@ export const Settings: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'api' && (
-            <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-text mb-2">REST API Documentation</h3>
-                <p className="text-text-secondary">
-                  Complete OpenAPI 3.0 specification for NoteKeeper REST API
-                </p>
-              </div>
-
-              <div className="bg-background rounded-lg p-6 mb-6">
-                <h4 className="text-lg font-bold text-text mb-4">API Endpoints</h4>
-                <div className="space-y-4">
-                  <div className="border-l-4 border-primary pl-4">
-                    <h5 className="font-bold text-text mb-2">Notes API</h5>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded font-mono text-xs">GET</span>
-                        <code className="text-text-secondary">/api/v1/notes</code>
-                        <span className="text-text-secondary">- Get all notes</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded font-mono text-xs">POST</span>
-                        <code className="text-text-secondary">/api/v1/notes</code>
-                        <span className="text-text-secondary">- Create note</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded font-mono text-xs">GET</span>
-                        <code className="text-text-secondary">/api/v1/notes/:id</code>
-                        <span className="text-text-secondary">- Get note by ID</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-mono text-xs">PUT</span>
-                        <code className="text-text-secondary">/api/v1/notes/:id</code>
-                        <span className="text-text-secondary">- Update note</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded font-mono text-xs">DELETE</span>
-                        <code className="text-text-secondary">/api/v1/notes/:id</code>
-                        <span className="text-text-secondary">- Delete note</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded font-mono text-xs">POST</span>
-                        <code className="text-text-secondary">/api/v1/notes/import</code>
-                        <span className="text-text-secondary">- Import from file</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border-l-4 border-secondary pl-4">
-                    <h5 className="font-bold text-text mb-2">Todos API</h5>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded font-mono text-xs">GET</span>
-                        <code className="text-text-secondary">/api/v1/todos</code>
-                        <span className="text-text-secondary">- Get all todos</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded font-mono text-xs">POST</span>
-                        <code className="text-text-secondary">/api/v1/todos</code>
-                        <span className="text-text-secondary">- Create todo</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded font-mono text-xs">GET</span>
-                        <code className="text-text-secondary">/api/v1/todos/:id</code>
-                        <span className="text-text-secondary">- Get todo by ID</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-mono text-xs">PUT</span>
-                        <code className="text-text-secondary">/api/v1/todos/:id</code>
-                        <span className="text-text-secondary">- Update todo</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded font-mono text-xs">DELETE</span>
-                        <code className="text-text-secondary">/api/v1/todos/:id</code>
-                        <span className="text-text-secondary">- Delete todo</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border-l-4 border-purple-500 pl-4">
-                    <h5 className="font-bold text-text mb-2">Integrations API</h5>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded font-mono text-xs">POST</span>
-                        <code className="text-text-secondary">/api/v1/integrations/telegram</code>
-                        <span className="text-text-secondary">- Send to Telegram</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded font-mono text-xs">POST</span>
-                        <code className="text-text-secondary">/api/v1/integrations/dingtalk</code>
-                        <span className="text-text-secondary">- Send to DingTalk</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-background rounded-lg p-6">
-                <h4 className="text-lg font-bold text-text mb-4">Full Swagger Specification</h4>
-                <p className="text-text-secondary mb-4">
-                  The complete OpenAPI 3.0 specification is available in the project root:
-                </p>
-                <div className="bg-surface border border-border rounded-lg p-4 flex items-center justify-between">
-                  <code className="text-primary font-mono text-sm">swagger.yaml</code>
-                  <a
-                    href="/swagger.yaml"
-                    download="swagger.yaml"
-                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm"
-                  >
-                    <i className="fas fa-download mr-2"></i>
-                    Download
-                  </a>
-                </div>
-                <p className="text-text-secondary mt-4 text-sm">
-                  You can view and test the API using:
-                </p>
-                <ul className="list-disc list-inside text-text-secondary text-sm mt-2 space-y-1">
-                  <li>Swagger Editor: <a href="https://editor.swagger.io/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">editor.swagger.io</a></li>
-                  <li>Swagger UI: <a href="https://swagger.io/tools/swagger-ui/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">swagger.io/tools/swagger-ui</a></li>
-                  <li>Postman: Import the swagger.yaml file</li>
-                </ul>
-              </div>
-            </div>
-          )}
+          {activeTab === 'api' && <ApiTab />}
 
           {activeTab === 'backup' && (
             <div className="space-y-8">
@@ -976,6 +804,6 @@ export const Settings: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };

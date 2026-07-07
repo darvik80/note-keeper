@@ -9,10 +9,10 @@
  *
  * Delegates theme persistence and CSS application to {@link useTheme}.
  */
-import React, { useState, useRef, useEffect } from 'react';
-import { Theme } from '../types';
-import { themes } from '../utils/themes';
-import { useTheme } from '../contexts/ThemeContext';
+import React, {useEffect, useRef, useState} from 'react';
+import {Theme} from '../types';
+import {themes} from '../utils/themes';
+import {useTheme} from '../contexts/ThemeContext';
 
 /**
  * Theme picker dropdown.  No props required — reads and updates via {@link useTheme}.

@@ -3,13 +3,16 @@
  * @category Pages
  * @description Note editor page — edit title, Markdown content, tags, folder, reminder, and attachments.
  */
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '../utils/api';
-import { MarkdownRenderer } from '../components/MarkdownRenderer';
-import { ShareModal } from '../components/ShareModal';
-import { TagInput } from '../components/TagInput';
-import { Note, Attachment, NoteInput } from '../types';
+import React, {useEffect, useState} from 'react';
+import {useNavigate, useParams} from 'react-router-dom';
+import {api} from '../utils/api';
+import {PageShell} from '../components/PageShell';
+import {ConfirmDialog} from '../components/ConfirmDialog';
+import {useToast} from '../contexts/ToastContext';
+import {MarkdownRenderer} from '../components/MarkdownRenderer';
+import {ShareModal} from '../components/ShareModal';
+import {TagInput} from '../components/TagInput';
+import {Attachment, Note, NoteInput} from '../types';
 
 /** Note editor page. Loads an existing note by route param `id`, supports Markdown preview, tag management, attachments, history restore, and sharing. */
 export const NoteEditor: React.FC = () => {
@@ -22,6 +25,8 @@ export const NoteEditor: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [restoreContent, setRestoreContent] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Keep ref in sync with state so saveNote/addTag always see latest note
   noteRef.current = note;
@@ -172,20 +177,11 @@ export const NoteEditor: React.FC = () => {
   );
 
   return (
-    <div className="flex-1 flex flex-col bg-white min-h-0 overflow-hidden">
-      {error && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-b border-red-200 text-red-700 text-sm">
-          <i className="fas fa-circle-exclamation shrink-0"></i>
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="shrink-0 hover:text-red-900">
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-      )}
-      <div className="border-b border-gray-200 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
+    <PageShell error={error} onDismissError={() => setError(null)} className="overflow-hidden">
+      <div className="border-b border-border px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
         <button
           onClick={() => navigate('/notes')}
-          className="text-gray-600 hover:text-gray-800 shrink-0 flex items-center gap-1"
+          className="text-text-secondary hover:text-text shrink-0 flex items-center gap-1"
         >
           <i className="fas fa-arrow-left"></i>
           <span className="hidden sm:inline ml-1">Back</span>
@@ -268,12 +264,7 @@ export const NoteEditor: React.FC = () => {
                     </span>
                   </div>
                   <button
-                    onClick={() => {
-                      if (confirm('Restore this version?')) {
-                        const c = entry.content;
-                        setNote(prev => prev ? { ...prev, content: c } : prev);
-                      }
-                    }}
+                    onClick={() => setRestoreContent(entry.content)}
                     className="text-xs px-3 py-1 text-primary hover:bg-primary/10 rounded"
                   >
                     <i className="fas fa-rotate-left mr-1"></i>
@@ -416,6 +407,20 @@ export const NoteEditor: React.FC = () => {
           }
         }}
       />
-    </div>
+      <ConfirmDialog
+        isOpen={restoreContent !== null}
+        onClose={() => setRestoreContent(null)}
+        onConfirm={() => {
+          if (restoreContent !== null) {
+            setNote(prev => prev ? { ...prev, content: restoreContent } : prev);
+            toast.success('Version restored');
+            setRestoreContent(null);
+          }
+        }}
+        title="Restore version"
+        message="Replace current content with this historical version?"
+        confirmLabel="Restore"
+      />
+    </PageShell>
   );
 };

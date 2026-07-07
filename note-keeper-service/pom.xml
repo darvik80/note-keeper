@@ -109,6 +109,7 @@
 				<configuration>
 					<jvmArguments>
 						--enable-native-access=ALL-UNNAMED
+						--sun-misc-unsafe-memory-access=allow
 						-Dio.netty.tryReflectionSetAccessible=true
 					</jvmArguments>
 				</configuration>

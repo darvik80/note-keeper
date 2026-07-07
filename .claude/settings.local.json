@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /d/Projects/java/note-keeper -type f \\\\\\(-name *.html -o -name *.css -o -name *.js -o -name *.jsp -o -name *.thymeleaf \\\\\\))",
+      "Bash(wc -l /d/Projects/java/note-keeper/note-keeper-web/src/pages/*.tsx)"
+    ]
+  }
+}

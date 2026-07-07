@@ -10,10 +10,10 @@
  * via {@link storage.getTheme} and applies it to the DOM immediately via
  * {@link applyTheme}.
  */
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Theme } from '../types';
-import { storage } from '../utils/storage';
-import { applyTheme } from '../utils/themes';
+import React, {createContext, useContext, useEffect, useState} from 'react';
+import {Theme} from '../types';
+import {storage} from '../utils/storage';
+import {applyTheme} from '../utils/themes';
 
 /**
  * Shape of the value exposed by {@link ThemeContext}.

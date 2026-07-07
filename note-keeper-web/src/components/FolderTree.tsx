@@ -9,8 +9,8 @@
  * - New folders are created by typing a name and pressing `Enter` or blurring
  *   the input; `Escape` cancels.
  */
-import React, { useState } from 'react';
-import { FolderStructure } from '../types';
+import React, {useState} from 'react';
+import {FolderStructure} from '../types';
 
 /** Props for {@link FolderTree}. */
 interface FolderTreeProps {
@@ -116,7 +116,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
               type="text"
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCreateFolder(folder.path);
                 if (e.key === 'Escape') setCreatingFolder(null);
               }}
