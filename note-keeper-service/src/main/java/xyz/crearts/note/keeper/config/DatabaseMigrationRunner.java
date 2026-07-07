@@ -7,7 +7,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Slf4j
-@Component
+//@Component
 @Order(0)
 public class DatabaseMigrationRunner implements ApplicationRunner {
 
