@@ -2,13 +2,30 @@
 http_timeout = "2m"
 
 [tools]
-java = "graalvm-community-25"
+java = "temurin-26"
 maven = "3.9.15"
 ansible = "latest"
+node = "22"
 
 [env]
 _.file = ".env"
 
-[tasks]
-build = "./mvnw package -DskipTests"
-ansible = { run = "ansible-playbook -i ansible/inventory.ini ansible/deploy.yml", depends = ["build"] }
+[tasks.build]
+run = "mvn package -DskipTests -B"
+description = "Full build (backend + frontend), skip tests"
+
+[tasks.compile]
+run = "mvn compile -B"
+description = "Compile backend only (no frontend build, no tests)"
+
+[tasks."test"]
+run = ["mvn install -pl note-keeper-web -DskipTests -B", "mvn test -pl note-keeper-service -B"]
+description = "Run service unit tests (installs web module first)"
+
+[tasks."test:watch"]
+run = "mvn test -pl note-keeper-service -B"
+description = "Run service tests only (web module must be already installed)"
+
+[tasks.ansible]
+run = "ansible-playbook -i ansible/inventory.ini ansible/deploy.yml"
+depends = ["build"]
