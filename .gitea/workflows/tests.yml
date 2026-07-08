@@ -22,11 +22,8 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Install web module (builds frontend)
-        run: ./mvnw install -pl note-keeper-web -DskipTests -B
-
       - name: Run service unit tests
-        run: ./mvnw test -pl note-keeper-service -B
+        run: ./mvnw test
 
       - name: Upload test results
         if: always()
