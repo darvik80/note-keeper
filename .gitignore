@@ -39,3 +39,5 @@ build/
 
 application-local.yml
 .env
+
+var/notekeeper.db

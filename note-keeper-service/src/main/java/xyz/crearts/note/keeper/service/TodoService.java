@@ -116,7 +116,13 @@ public class TodoService {
         if (input.getPriority() != null) existing.setPriority(input.getPriority());
         if (input.getIsFavorite() != null) existing.setFavorite(input.getIsFavorite());
         existing.setDueDate(parseDate(input.getDueDate()));
-        existing.setReminder(parseDate(input.getReminder()));
+        LocalDateTime newReminder = parseDate(input.getReminder());
+        // Reminder change must clear notified_at, else findWithDueReminders never fires again
+        // (condition: notified_at IS NULL OR notified_at < reminder).
+        if (!Objects.equals(existing.getReminder(), newReminder)) {
+            existing.setNotifiedAt(null);
+        }
+        existing.setReminder(newReminder);
         if (input.getNotificationChannels() != null) {
             existing.setNotificationChannels(input.getNotificationChannels());
         }

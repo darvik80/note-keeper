@@ -146,6 +146,43 @@ class TodoServiceTest {
     }
 
     @Test
+    void update_reminderChange_shouldClearNotifiedAt() {
+        Todo existing = buildTodo("todo-1", "owner-1");
+        existing.setReminder(LocalDateTime.of(2026, 7, 7, 15, 30));
+        existing.setNotifiedAt(LocalDateTime.of(2026, 7, 7, 15, 31));
+        when(todoMapper.findById("todo-1")).thenReturn(existing);
+
+        TodoInput input = new TodoInput();
+        input.setTitle("Updated Todo");
+        input.setReminder("2026-07-25T15:30:00");
+
+        todoService.update("todo-1", input, "owner-1");
+
+        verify(todoMapper).update(argThat(todo ->
+                todo.getNotifiedAt() == null &&
+                todo.getReminder() != null &&
+                todo.getReminder().getDayOfMonth() == 25));
+    }
+
+    @Test
+    void update_sameReminder_shouldKeepNotifiedAt() {
+        LocalDateTime reminder = LocalDateTime.of(2026, 7, 25, 15, 30);
+        LocalDateTime notified = LocalDateTime.of(2026, 7, 24, 15, 31);
+        Todo existing = buildTodo("todo-1", "owner-1");
+        existing.setReminder(reminder);
+        existing.setNotifiedAt(notified);
+        when(todoMapper.findById("todo-1")).thenReturn(existing);
+
+        TodoInput input = new TodoInput();
+        input.setTitle("Updated Todo");
+        input.setReminder("2026-07-25T15:30:00");
+
+        todoService.update("todo-1", input, "owner-1");
+
+        verify(todoMapper).update(argThat(todo -> notified.equals(todo.getNotifiedAt())));
+    }
+
+    @Test
     void delete_softDelete_shouldCallSoftDelete() {
         Todo todo = buildTodo("todo-1", "owner-1");
         when(todoMapper.findById("todo-1")).thenReturn(todo);

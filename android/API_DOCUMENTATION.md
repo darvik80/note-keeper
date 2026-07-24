@@ -278,12 +278,15 @@ The `notificationChannels` field in Todo specifies which channels to send remind
 
 **How it works:**
 1. Set `reminder` field to schedule a notification time
-2. Set `notificationChannels` to specify where to send the notification
-3. The server checks for due reminders every minute
+2. Set `notificationChannels` to specify where to send the notification (`telegram`, `dingtalk`, or both)
+3. The server checks for due reminders every minute (`ReminderService`)
 4. Notifications are sent via configured Telegram/DingTalk credentials (set in Settings UI)
-5. After notification is sent, `notifiedAt` field is updated
+5. After notification is sent, `notifiedAt` is updated
+6. For recurring todos (`schedule.repeat` = `daily`/`weekly`/`monthly`), `reminder` (and `dueDate` if set) advances to the next occurrence and `completed` resets to `false`
+7. Changing `reminder` via update clears `notifiedAt` so the new time can fire
 
 **Note:** Telegram and DingTalk credentials must be configured in Settings > Integrations for notifications to work.
+Note `reminder` fields are display-only — only todos are dispatched by `ReminderService`.
 
 ### Get Todo by ID
 

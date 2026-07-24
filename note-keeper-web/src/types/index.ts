@@ -108,6 +108,8 @@ export interface Todo {
   dueDate?: Date;
   /** Optional reminder datetime. */
   reminder?: Date;
+  /** When the last reminder notification was sent (server-managed). */
+  notifiedAt?: Date;
   /** Optional physical location associated with the task. */
   location?: {
     /** Latitude in decimal degrees. */
@@ -140,7 +142,7 @@ export interface Todo {
    */
   sharedWith: string;
   /**
-   * Comma-separated list of notification channels to alert on due date.
+   * Comma-separated list of notification channels for reminders.
    * @example "telegram,dingtalk"
    */
   notificationChannels?: string;

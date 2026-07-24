@@ -90,6 +90,7 @@
             is_favorite = #{favorite},
             due_date = #{dueDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             reminder = #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            notified_at = #{notifiedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             notification_channels = #{notificationChannels, jdbcType=VARCHAR},
             location_lat = #{location.lat, jdbcType=REAL},
             location_lng = #{location.lng, jdbcType=REAL},
@@ -150,7 +151,8 @@
           AND owner_id = #{ownerId}
     </select>
 
-    <!-- Find todos with reminder time due (reminder <= now) that haven't been notified yet -->
+    <!-- Find todos with reminder time due (reminder <= now) that haven't been notified yet.
+         Skip completed one-shot todos; recurring still fire (completed resets on advance). -->
     <select id="findWithDueReminders" resultMap="todoResultMap">
         SELECT * FROM todo
         WHERE reminder IS NOT NULL
@@ -158,12 +160,36 @@
           AND (notified_at IS NULL OR notified_at &lt; reminder)
           AND is_deleted = 0
           AND is_archived = 0
+          AND (completed = 0 OR schedule_repeat IN ('daily', 'weekly', 'monthly'))
         ORDER BY reminder ASC
     </select>
 
     <!-- Mark todo reminder as notified -->
     <update id="markReminderNotified">
         UPDATE todo SET notified_at = #{notifiedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, updated_at = #{notifiedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+        WHERE id = #{id}
+    </update>
+
+    <!-- Recurring todos stuck after first notify (reminder never advanced) -->
+    <select id="findStuckRecurringReminders" resultMap="todoResultMap">
+        SELECT * FROM todo
+        WHERE reminder IS NOT NULL
+          AND reminder &lt;= #{now, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+          AND notified_at IS NOT NULL
+          AND notified_at &gt;= reminder
+          AND schedule_repeat IN ('daily', 'weekly', 'monthly')
+          AND is_deleted = 0
+          AND is_archived = 0
+        ORDER BY reminder ASC
+    </select>
+
+    <!-- Advance reminder/due date for recurring todo; reset completed for next cycle -->
+    <update id="advanceRecurringReminder">
+        UPDATE todo SET
+            reminder = #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            due_date = #{dueDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            completed = 0,
+            updated_at = #{updatedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
         WHERE id = #{id}
     </update>
 
