@@ -1,0 +1,39 @@
+---
+description: Todo reminder + recurrence rules (Telegram/DingTalk scheduler)
+globs:
+  - "**/ReminderService.java"
+  - "**/TodoService.java"
+  - "**/TodoMapper.*"
+  - "**/Todo.java"
+  - "**/TodoEditor.tsx"
+alwaysApply: false
+---
+
+# Todo reminders & recurrence
+
+## Flow
+1. `ReminderService.checkReminders` (@Scheduled 60s)
+2. Due = `reminder <= now` AND (`notified_at` null OR `< reminder`)
+3. Send channels → set `notified_at`
+4. If `schedule_repeat` in `daily|weekly|monthly` → advance `reminder`/`due_date` past `now`, reset `completed=0`
+5. Stuck repair via `findStuckRecurringReminders` (notified once, never advanced)
+
+## Invariants
+- After notify on recurring todo, **always** advance reminder. Never leave `notified_at >= reminder` with past reminder.
+- Reminder change in `TodoService.update` **must** clear `notified_at`.
+- Empty `notificationChannels` → default `telegram` only (not both).
+- Skip completed **one-shot** todos; recurring still notify.
+- `note.reminder` = UI/calendar only — no `ReminderService` path.
+
+## Do not
+```java
+// BAD — one-shot forever for daily todos
+todoMapper.markReminderNotified(id, now);
+// missing advanceRecurringIfNeeded
+```
+
+```java
+// GOOD
+todoMapper.markReminderNotified(id, now);
+advanceRecurringIfNeeded(todo, now);
+```
