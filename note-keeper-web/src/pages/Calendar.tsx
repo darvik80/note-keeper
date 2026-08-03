@@ -119,6 +119,8 @@ export const Calendar: React.FC = () => {
     const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
     return items.filter(item => {
+      // Hide completed todos — they should not occupy calendar slots
+      if (item.type === 'todo' && item.completed) return false;
       // Check dueDate match
       if (item.dueDate) {
         const dueDate = parseLocalDate(item.dueDate);
