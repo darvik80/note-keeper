@@ -45,7 +45,7 @@ public class ReminderService {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
         for (Todo todo : todoMapper.findWithDueReminders(now)) {
-            if (todo.getReminder() != null && !todo.isDeleted() && !todo.isArchived()) {
+            if (todo.getReminder() != null && !todo.isDeleted() && !todo.isArchived() && !todo.isCompleted()) {
                 sendReminderNotification(todo, now);
             }
         }
@@ -71,7 +71,7 @@ public class ReminderService {
      * Notify once for the most recent missed occurrence, then jump reminder to next future slot.
      */
     private void catchUpStuckRecurring(Todo todo, LocalDateTime now) {
-        if (!isRecurring(todo) || todo.getReminder() == null) {
+        if (!isRecurring(todo) || todo.getReminder() == null || todo.isCompleted()) {
             return;
         }
 
@@ -112,7 +112,7 @@ public class ReminderService {
      * After notify, move reminder (and due date) to the next future occurrence.
      */
     void advanceRecurringIfNeeded(Todo todo, LocalDateTime now) {
-        if (!isRecurring(todo) || todo.getReminder() == null) {
+        if (!isRecurring(todo) || todo.getReminder() == null || todo.isCompleted()) {
             return;
         }
 

@@ -152,7 +152,7 @@
     </select>
 
     <!-- Find todos with reminder time due (reminder <= now) that haven't been notified yet.
-         Skip completed one-shot todos; recurring still fire (completed resets on advance). -->
+         Completed todos are always excluded — marking a recurring todo as done stops reminders. -->
     <select id="findWithDueReminders" resultMap="todoResultMap">
         SELECT * FROM todo
         WHERE reminder IS NOT NULL
@@ -160,7 +160,7 @@
           AND (notified_at IS NULL OR notified_at &lt; reminder)
           AND is_deleted = 0
           AND is_archived = 0
-          AND (completed = 0 OR schedule_repeat IN ('daily', 'weekly', 'monthly'))
+          AND completed = 0
         ORDER BY reminder ASC
     </select>
 
@@ -170,7 +170,8 @@
         WHERE id = #{id}
     </update>
 
-    <!-- Recurring todos stuck after first notify (reminder never advanced) -->
+    <!-- Recurring todos stuck after first notify (reminder never advanced).
+         Exclude completed todos — user marking done should stop the recurrence. -->
     <select id="findStuckRecurringReminders" resultMap="todoResultMap">
         SELECT * FROM todo
         WHERE reminder IS NOT NULL
@@ -180,6 +181,7 @@
           AND schedule_repeat IN ('daily', 'weekly', 'monthly')
           AND is_deleted = 0
           AND is_archived = 0
+          AND completed = 0
         ORDER BY reminder ASC
     </select>
 
