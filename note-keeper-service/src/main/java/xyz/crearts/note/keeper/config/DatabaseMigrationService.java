@@ -32,6 +32,7 @@ public class DatabaseMigrationService {
         apply("004_saved_query_owner", this::addSavedQueryOwnerColumn);
         apply("005_template_owner", this::addTemplateOwnerColumn);
         apply("006_assign_orphan_records", this::assignOrphanRecordsToDefaultOwner);
+        apply("007_telegram_webhook_secret", this::addTelegramWebhookSecretColumn);
     }
 
     private void apply(String id, Runnable migration) {
@@ -174,6 +175,11 @@ public class DatabaseMigrationService {
                 "Assigned {} template(s) and {} saved query/queries to {}",
                 templates, queries, DEFAULT_OWNER_EMAIL
         );
+    }
+
+    private void addTelegramWebhookSecretColumn() {
+        addColumnIfMissing("user_settings", "telegram_webhook_secret",
+                "ALTER TABLE user_settings ADD COLUMN telegram_webhook_secret TEXT");
     }
 
     private void addColumnIfMissing(String table, String column, String ddl) {

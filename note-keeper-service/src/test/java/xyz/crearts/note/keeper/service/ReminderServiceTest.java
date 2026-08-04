@@ -8,7 +8,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import xyz.crearts.note.keeper.client.DingTalkClient;
 import xyz.crearts.note.keeper.client.TelegramClient;
+import xyz.crearts.note.keeper.client.TelegramMarkdownUtil;
 import xyz.crearts.note.keeper.mapper.TodoMapper;
+import xyz.crearts.note.keeper.mapper.UserSettingsMapper;
 import xyz.crearts.note.keeper.model.Todo;
 import xyz.crearts.note.keeper.model.UserSettings;
 
@@ -28,12 +30,13 @@ class ReminderServiceTest {
     @Mock private TelegramClient telegramClient;
     @Mock private DingTalkClient dingTalkClient;
     @Mock private UserSettingsService userSettingsService;
+    @Mock private UserSettingsMapper userSettingsMapper;
 
     private ReminderService reminderService;
 
     @BeforeEach
     void setUp() {
-        reminderService = new ReminderService(todoMapper, telegramClient, dingTalkClient, userSettingsService);
+        reminderService = new ReminderService(todoMapper, telegramClient, dingTalkClient, userSettingsService, userSettingsMapper);
     }
 
     private Todo dailyTodo(String id, LocalDateTime reminder, LocalDateTime notifiedAt) {
@@ -54,8 +57,9 @@ class ReminderServiceTest {
         UserSettings settings = new UserSettings();
         settings.setTelegramBotToken("token");
         settings.setTelegramChatId("chat");
+        settings.setTelegramWebhookSecret("webhook-secret");
         when(userSettingsService.getDecryptedSettings("user-1")).thenReturn(settings);
-        when(telegramClient.sendMessage(anyString(), anyString(), anyString())).thenReturn(true);
+        when(telegramClient.sendMessage(anyString(), anyString(), anyString(), anyString(), any())).thenReturn(true);
     }
 
     @Test
@@ -113,14 +117,13 @@ class ReminderServiceTest {
 
         reminderService.checkReminders();
 
-        verify(telegramClient).sendMessage(eq("token"), eq("chat"), contains("Daily task"));
+        verify(telegramClient).sendMessage(eq("token"), eq("chat"), contains("Daily task"), eq("MarkdownV2"), any());
         verify(todoMapper).markReminderNotified(eq("t1"), any());
         verify(todoMapper).advanceRecurringReminder(eq("t1"), any(), isNull(), any());
     }
 
     @Test
     void checkReminders_catchUpStuckDaily_notifiesOnceAndJumpsAhead() {
-        // Real bug case from notekeeper.db: daily todo notified once in early July, never advanced
         LocalDateTime reminder = LocalDateTime.of(2026, 7, 7, 15, 30);
         LocalDateTime notifiedAt = LocalDateTime.of(2026, 7, 7, 15, 30, 6);
         Todo todo = dailyTodo("stuck-1", reminder, notifiedAt);
@@ -131,7 +134,7 @@ class ReminderServiceTest {
 
         reminderService.checkReminders();
 
-        verify(telegramClient, times(1)).sendMessage(eq("token"), eq("chat"), contains("Daily task"));
+        verify(telegramClient, times(1)).sendMessage(eq("token"), eq("chat"), contains("Daily task"), eq("MarkdownV2"), any());
         verify(todoMapper).markReminderNotified(eq("stuck-1"), any());
 
         ArgumentCaptor<LocalDateTime> nextCap = ArgumentCaptor.forClass(LocalDateTime.class);
@@ -172,7 +175,55 @@ class ReminderServiceTest {
 
         reminderService.checkReminders();
 
-        verify(telegramClient, times(1)).sendMessage(anyString(), anyString(), anyString());
+        verify(telegramClient, times(1)).sendMessage(anyString(), anyString(), anyString(), anyString(), any());
         verify(dingTalkClient, never()).sendMessage(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void escapeMarkdownV2_escapesSpecialChars() {
+        assertEquals("hello\\.", TelegramMarkdownUtil.escapeMarkdownV2("hello."));
+        assertEquals("\\*bold\\*", TelegramMarkdownUtil.escapeMarkdownV2("*bold*"));
+        assertEquals("no escape here", TelegramMarkdownUtil.escapeMarkdownV2("no escape here"));
+        assertEquals("\\(paren\\)", TelegramMarkdownUtil.escapeMarkdownV2("(paren)"));
+        assertEquals("a\\-b", TelegramMarkdownUtil.escapeMarkdownV2("a-b"));
+        assertEquals("", TelegramMarkdownUtil.escapeMarkdownV2(null));
+    }
+
+    @Test
+    void bold_wrapsEscapedTextInAsterisks() {
+        assertEquals("*hello*", TelegramMarkdownUtil.bold("hello"));
+        assertEquals("*a\\.b*", TelegramMarkdownUtil.bold("a.b"));
+        assertEquals("*\\*x\\**", TelegramMarkdownUtil.bold("*x*"));
+        assertEquals("**", TelegramMarkdownUtil.bold(null));
+    }
+
+    @Test
+    void field_buildsEmojiLabelValueLine() {
+        assertEquals("📅 *Due:* 04 Aug", TelegramMarkdownUtil.field("📅", "Due:", "04 Aug"));
+        assertEquals("🔁 *Repeat:* daily", TelegramMarkdownUtil.field("🔁", "Repeat:", "daily"));
+        assertEquals(" *Priority:* high", TelegramMarkdownUtil.field("", "Priority:", "high"));
+        // value with special chars is escaped
+        assertEquals("📅 *Due:* a\\.b", TelegramMarkdownUtil.field("📅", "Due:", "a.b"));
+    }
+
+    @Test
+    void buildReminderMessageMarkdownV2_containsBoldAndEscaping() {
+        Todo todo = new Todo();
+        todo.setId("t1");
+        todo.setTitle("Test task");
+        todo.setPriority("high");
+        todo.setDueDate(LocalDateTime.of(2026, 8, 4, 15, 0));
+        Todo.Schedule schedule = new Todo.Schedule();
+        schedule.setRepeat("daily");
+        todo.setSchedule(schedule);
+
+        String msg = reminderService.buildReminderMessageMarkdownV2(todo);
+
+        assertTrue(msg.contains("*Reminder*"));
+        assertTrue(msg.contains("*Test task*"));
+        assertTrue(msg.contains("🔴"));
+        assertTrue(msg.contains("*Priority:*"));
+        assertTrue(msg.contains("*Due:*"));
+        assertTrue(msg.contains("*Repeat:*"));
     }
 }

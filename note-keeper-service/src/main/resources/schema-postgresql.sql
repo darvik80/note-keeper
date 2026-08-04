@@ -136,6 +136,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
     id VARCHAR(255) PRIMARY KEY DEFAULT 'default',
     telegram_bot_token TEXT,
     telegram_chat_id TEXT,
+    telegram_webhook_secret TEXT,
     dingtalk_webhook TEXT,
     dingtalk_secret TEXT,
     backup_auto_enabled BOOLEAN NOT NULL DEFAULT false,

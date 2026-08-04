@@ -52,11 +52,27 @@ public class UserSettingsService {
         return getSettings(userId);
     }
 
+    /**
+     * Find user settings by Telegram webhook secret.
+     * Used to identify the user when processing Telegram callback queries.
+     */
+    public UserSettings findByTelegramWebhookSecret(String secret) {
+        if (secret == null || secret.isEmpty()) {
+            return null;
+        }
+        UserSettings settings = userSettingsMapper.findByTelegramWebhookSecret(secret);
+        if (settings == null) {
+            return null;
+        }
+        return decryptSettings(settings);
+    }
+
     private UserSettings encryptSettings(UserSettings settings) {
         UserSettings encrypted = new UserSettings();
         encrypted.setId(settings.getId());
         encrypted.setTelegramBotToken(encryptSafe(settings.getTelegramBotToken()));
         encrypted.setTelegramChatId(encryptSafe(settings.getTelegramChatId()));
+        encrypted.setTelegramWebhookSecret(encryptSafe(settings.getTelegramWebhookSecret()));
         encrypted.setDingtalkWebhook(encryptSafe(settings.getDingtalkWebhook()));
         encrypted.setDingtalkSecret(encryptSafe(settings.getDingtalkSecret()));
         encrypted.setUpdatedAt(settings.getUpdatedAt());
@@ -68,6 +84,7 @@ public class UserSettingsService {
         decrypted.setId(settings.getId());
         decrypted.setTelegramBotToken(decryptSafe(settings.getTelegramBotToken()));
         decrypted.setTelegramChatId(decryptSafe(settings.getTelegramChatId()));
+        decrypted.setTelegramWebhookSecret(decryptSafe(settings.getTelegramWebhookSecret()));
         decrypted.setDingtalkWebhook(decryptSafe(settings.getDingtalkWebhook()));
         decrypted.setDingtalkSecret(decryptSafe(settings.getDingtalkSecret()));
         decrypted.setUpdatedAt(settings.getUpdatedAt());

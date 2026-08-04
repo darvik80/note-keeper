@@ -9,6 +9,8 @@ public interface UserSettingsMapper {
 
     UserSettings findById(@Param("id") String id);
 
+    UserSettings findByTelegramWebhookSecret(@Param("secret") String secret);
+
     void insert(UserSettings settings);
 
     void update(UserSettings settings);

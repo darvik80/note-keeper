@@ -56,6 +56,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/api/v1/config").permitAll()
+                .requestMatchers("/api/v1/telegram/webhook/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()

@@ -617,6 +617,18 @@ export const api = {
     },
 
     /**
+     * Send a test todo reminder with MarkdownV2 formatting and inline "Mark as Done" keyboard.
+     * Uses the user's stored Telegram credentials.
+     */
+    sendTestTodoTelegram: async (): Promise<IntegrationResponse> => {
+      const res = await fetch(`${API_BASE}/integrations/telegram/test-todo`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders() }
+      });
+      return handleResponse(res);
+    },
+
+    /**
      * Send a message via DingTalk webhook.
      * @param request - Must include `webhook`; `secret` is optional.
      */

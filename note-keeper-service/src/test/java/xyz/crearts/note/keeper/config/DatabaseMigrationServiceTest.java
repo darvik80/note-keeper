@@ -64,7 +64,7 @@ class DatabaseMigrationServiceTest {
                 matches("(?s).*UPDATE saved_query SET owner_id = \\? WHERE owner_id IS NULL.*"),
                 eq("user-darvik")
         );
-        verify(jdbcTemplate, times(6)).update(
+        verify(jdbcTemplate, times(7)).update(
                 matches("INSERT INTO schema_migration.*"),
                 anyString(),
                 anyString()
