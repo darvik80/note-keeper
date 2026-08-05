@@ -119,4 +119,28 @@ class UserSettingsServiceTest {
 
         assertNull(result);
     }
+
+    @Test
+    void findByTelegramWebhookSecret_shouldEncryptBeforeQuery() {
+        UserSettings settings = new UserSettings();
+        settings.setId("user-1");
+        settings.setTelegramWebhookSecret("encrypted-secret");
+
+        when(encryptionService.encrypt("plain-secret")).thenReturn("encrypted-secret");
+        when(userSettingsMapper.findByTelegramWebhookSecret("encrypted-secret")).thenReturn(settings);
+        when(encryptionService.decrypt("encrypted-secret")).thenReturn("plain-secret");
+
+        UserSettings result = userSettingsService.findByTelegramWebhookSecret("plain-secret");
+
+        assertNotNull(result);
+        assertEquals("plain-secret", result.getTelegramWebhookSecret());
+        verify(encryptionService).encrypt("plain-secret");
+        verify(userSettingsMapper).findByTelegramWebhookSecret("encrypted-secret");
+    }
+
+    @Test
+    void findByTelegramWebhookSecret_nullSecret_shouldReturnNull() {
+        assertNull(userSettingsService.findByTelegramWebhookSecret(null));
+        verifyNoInteractions(userSettingsMapper);
+    }
 }

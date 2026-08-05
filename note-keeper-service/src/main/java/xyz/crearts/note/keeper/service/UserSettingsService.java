@@ -60,7 +60,9 @@ public class UserSettingsService {
         if (secret == null || secret.isEmpty()) {
             return null;
         }
-        UserSettings settings = userSettingsMapper.findByTelegramWebhookSecret(secret);
+        // Encrypt the secret before querying, since it's stored encrypted in the DB
+        String encryptedSecret = encryptSafe(secret);
+        UserSettings settings = userSettingsMapper.findByTelegramWebhookSecret(encryptedSecret);
         if (settings == null) {
             return null;
         }
