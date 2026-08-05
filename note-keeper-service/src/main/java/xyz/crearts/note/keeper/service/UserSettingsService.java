@@ -26,13 +26,16 @@ public class UserSettingsService {
 
     /**
      * Get user settings with decrypted sensitive fields.
+     * Also migrates telegramWebhookSecret from encrypted to plain text if needed.
      */
     public UserSettings getSettings(String userId) {
         UserSettings settings = userSettingsMapper.findById(userId);
         if (settings == null) {
             return null;
         }
-        return decryptSettings(settings);
+        UserSettings decrypted = decryptSettings(settings);
+        migrateWebhookSecretIfNeeded(settings, decrypted);
+        return decrypted;
     }
 
     /**
@@ -54,15 +57,13 @@ public class UserSettingsService {
 
     /**
      * Find user settings by Telegram webhook secret.
-     * Used to identify the user when processing Telegram callback queries.
+     * The webhook secret is stored as plain text (it's a public token in the webhook URL).
      */
     public UserSettings findByTelegramWebhookSecret(String secret) {
         if (secret == null || secret.isEmpty()) {
             return null;
         }
-        // Encrypt the secret before querying, since it's stored encrypted in the DB
-        String encryptedSecret = encryptSafe(secret);
-        UserSettings settings = userSettingsMapper.findByTelegramWebhookSecret(encryptedSecret);
+        UserSettings settings = userSettingsMapper.findByTelegramWebhookSecret(secret);
         if (settings == null) {
             return null;
         }
@@ -74,7 +75,8 @@ public class UserSettingsService {
         encrypted.setId(settings.getId());
         encrypted.setTelegramBotToken(encryptSafe(settings.getTelegramBotToken()));
         encrypted.setTelegramChatId(encryptSafe(settings.getTelegramChatId()));
-        encrypted.setTelegramWebhookSecret(encryptSafe(settings.getTelegramWebhookSecret()));
+        // Webhook secret is NOT encrypted — it's a public token in the webhook URL
+        encrypted.setTelegramWebhookSecret(settings.getTelegramWebhookSecret());
         encrypted.setDingtalkWebhook(encryptSafe(settings.getDingtalkWebhook()));
         encrypted.setDingtalkSecret(encryptSafe(settings.getDingtalkSecret()));
         encrypted.setUpdatedAt(settings.getUpdatedAt());
@@ -86,11 +88,34 @@ public class UserSettingsService {
         decrypted.setId(settings.getId());
         decrypted.setTelegramBotToken(decryptSafe(settings.getTelegramBotToken()));
         decrypted.setTelegramChatId(decryptSafe(settings.getTelegramChatId()));
-        decrypted.setTelegramWebhookSecret(decryptSafe(settings.getTelegramWebhookSecret()));
+        // Webhook secret is stored as plain text, no decryption needed
+        decrypted.setTelegramWebhookSecret(settings.getTelegramWebhookSecret());
         decrypted.setDingtalkWebhook(decryptSafe(settings.getDingtalkWebhook()));
         decrypted.setDingtalkSecret(decryptSafe(settings.getDingtalkSecret()));
         decrypted.setUpdatedAt(settings.getUpdatedAt());
         return decrypted;
+    }
+
+    /**
+     * Migration: if the webhook secret is still encrypted in the DB (from before the fix),
+     * decrypt it and re-save as plain text so SQL lookup works.
+     */
+    private void migrateWebhookSecretIfNeeded(UserSettings raw, UserSettings decrypted) {
+        String rawSecret = raw.getTelegramWebhookSecret();
+        if (rawSecret == null || rawSecret.isEmpty()) {
+            return;
+        }
+        // Try to decrypt — if it succeeds, the value was still encrypted (legacy)
+        try {
+            String decryptedSecret = encryptionService.decrypt(rawSecret);
+            // It was encrypted — re-save as plain text
+            raw.setTelegramWebhookSecret(decryptedSecret);
+            userSettingsMapper.upsert(raw);
+            decrypted.setTelegramWebhookSecret(decryptedSecret);
+            log.info("Migrated telegramWebhookSecret from encrypted to plain text for user: {}", raw.getId());
+        } catch (Exception e) {
+            // Already plain text — nothing to migrate
+        }
     }
 
     private String encryptSafe(String value) {
