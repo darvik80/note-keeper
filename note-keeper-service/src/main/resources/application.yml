@@ -68,6 +68,7 @@ spring:
     init:
       mode: always
       schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
 
 # PostgreSQL profile
 ---
@@ -87,6 +88,7 @@ spring:
     init:
       mode: always
       platform: postgresql
+      data-locations: classpath:data-postgresql.sql
 
 logging:
   level:

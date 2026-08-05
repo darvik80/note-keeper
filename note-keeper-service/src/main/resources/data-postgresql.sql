@@ -1,15 +1,16 @@
 -- ============================================================
 -- System user (owner of default templates, not a real account)
 -- ============================================================
-INSERT OR IGNORE INTO users (id, email, name, avatar_url, provider, google_id, is_active, created_at, updated_at)
-VALUES ('system', 'system@notekeeper.local', 'System', NULL, 'local', NULL, 0, datetime('now'), datetime('now'));
+INSERT INTO users (id, email, name, avatar_url, provider, google_id, is_active, created_at, updated_at)
+VALUES ('system', 'system@notekeeper.local', 'System', NULL, 'local', NULL, false, NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
 -- System default templates (visible to all users, owner_id = 'system')
 -- ============================================================
 
 -- Work: Meeting Notes
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_meeting', 'Meeting Notes',
 '# Meeting Notes
 
@@ -27,10 +28,11 @@ VALUES ('tmpl_sys_meeting', 'Meeting Notes',
 
 ## Next Steps
 - [ ]',
-'["meeting","work"]', 'Work', 'system', datetime('now'));
+'["meeting","work"]', 'Work', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Work: Project Plan
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_project', 'Project Plan',
 '# Project Plan
 
@@ -54,10 +56,11 @@ VALUES ('tmpl_sys_project', 'Project Plan',
 
 ## Success Criteria
 - [ ]',
-'["project","planning"]', 'Work', 'system', datetime('now'));
+'["project","planning"]', 'Work', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Work: Weekly Report
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_weekly_report', 'Weekly Report',
 '# Weekly Report
 
@@ -78,10 +81,11 @@ VALUES ('tmpl_sys_weekly_report', 'Weekly Report',
 
 ## Notes
 ',
-'["report","weekly","work"]', 'Work', 'system', datetime('now'));
+'["report","weekly","work"]', 'Work', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Work: Bug Report
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_bug_report', 'Bug Report',
 '# Bug Report
 
@@ -113,10 +117,11 @@ VALUES ('tmpl_sys_bug_report', 'Bug Report',
 
 ## Possible Fix
 ',
-'["bug","work"]', 'Work', 'system', datetime('now'));
+'["bug","work"]', 'Work', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Work: Decision Log
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_decision', 'Decision Log',
 '# Decision Log
 
@@ -142,10 +147,11 @@ VALUES ('tmpl_sys_decision', 'Decision Log',
 
 ## Consequences
 ',
-'["decision","work"]', 'Work', 'system', datetime('now'));
+'["decision","work"]', 'Work', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Work: Retrospective
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_retro', 'Retrospective',
 '# Retrospective
 
@@ -166,10 +172,11 @@ VALUES ('tmpl_sys_retro', 'Retrospective',
 
 ## Improvements for Next Time
 ',
-'["retrospective","work"]', 'Work', 'system', datetime('now'));
+'["retrospective","work"]', 'Work', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Development: Code Review
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_code_review', 'Code Review',
 '# Code Review
 
@@ -200,10 +207,11 @@ VALUES ('tmpl_sys_code_review', 'Code Review',
 - [ ] Approve
 - [ ] Request Changes
 - [ ] Needs Discussion',
-'["code-review","development"]', 'Development', 'system', datetime('now'));
+'["code-review","development"]', 'Development', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Development: Technical Design / RFC
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_rfc', 'Technical Design (RFC)',
 '# Technical Design
 
@@ -237,10 +245,11 @@ VALUES ('tmpl_sys_rfc', 'Technical Design (RFC)',
 
 ## Open Questions
 - [ ]',
-'["rfc","design","development"]', 'Development', 'system', datetime('now'));
+'["rfc","design","development"]', 'Development', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Development: Incident Postmortem
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_postmortem', 'Incident Postmortem',
 '# Incident Postmortem
 
@@ -272,10 +281,11 @@ VALUES ('tmpl_sys_postmortem', 'Incident Postmortem',
 
 ## Lessons Learned
 ',
-'["postmortem","incident","development"]', 'Development', 'system', datetime('now'));
+'["postmortem","incident","development"]', 'Development', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Development: API Design
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_api_design', 'API Design',
 '# API Design
 
@@ -313,10 +323,11 @@ VALUES ('tmpl_sys_api_design', 'API Design',
 
 ## Notes
 ',
-'["api","design","development"]', 'Development', 'system', datetime('now'));
+'["api","design","development"]', 'Development', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Personal: Daily Journal
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_journal', 'Daily Journal',
 '# Daily Journal
 
@@ -333,10 +344,11 @@ VALUES ('tmpl_sys_journal', 'Daily Journal',
 
 ## Plans for tomorrow
 - [ ]',
-'["journal","personal"]', 'Personal', 'system', datetime('now'));
+'["journal","personal"]', 'Personal', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Personal: Goal Setting
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_goalsals', 'Goal Setting',
 '# Goal Setting
 
@@ -362,10 +374,11 @@ VALUES ('tmpl_sys_goalsals', 'Goal Setting',
 
 ## Review Notes
 ',
-'["goals","personal","planning"]', 'Personal', 'system', datetime('now'));
+'["goals","personal","planning"]', 'Personal', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Personal: Book Notes
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_book_notes', 'Book Notes',
 '# Book Notes
 
@@ -387,10 +400,11 @@ VALUES ('tmpl_sys_book_notes', 'Book Notes',
 
 ## How I can apply this
 ',
-'["book","notes","personal"]', 'Personal', 'system', datetime('now'));
+'["book","notes","personal"]', 'Personal', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Personal: Travel Plan
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_travel', 'Travel Plan',
 '# Travel Plan
 
@@ -424,10 +438,11 @@ VALUES ('tmpl_sys_travel', 'Travel Plan',
 |------|------|
 | | |
 | **Total** | **0** |',
-'["travel","personal"]', 'Personal', 'system', datetime('now'));
+'["travel","personal"]', 'Personal', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Study: Lecture Notes
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_lecture', 'Lecture Notes',
 '# Lecture Notes
 
@@ -449,10 +464,11 @@ VALUES ('tmpl_sys_lecture', 'Lecture Notes',
 
 ## Further Reading
 ',
-'["study","lecture"]', 'Study', 'system', datetime('now'));
+'["study","lecture"]', 'Study', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Study: Research Notes
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_research', 'Research Notes',
 '# Research Notes
 
@@ -476,10 +492,11 @@ VALUES ('tmpl_sys_research', 'Research Notes',
 
 ## Next Steps
 - [ ]',
-'["research","study"]', 'Study', 'system', datetime('now'));
+'["research","study"]', 'Study', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;
 
 -- Finance: Budget
-INSERT OR IGNORE INTO note_template (id, name, content, tags, category, owner_id, created_at)
+INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
 VALUES ('tmpl_sys_budget', 'Monthly Budget',
 '# Monthly Budget
 
@@ -505,13 +522,5 @@ VALUES ('tmpl_sys_budget', 'Monthly Budget',
 
 ## Notes
 ',
-'["budget","finance"]', 'Finance', 'system', datetime('now'));
-
--- ============================================================
--- Test user (for development only)
--- ============================================================
-INSERT OR IGNORE INTO users (id, email, name, avatar_url, provider, google_id, is_active, created_at, updated_at)
-VALUES ('test-user-001', 'test@example.com', 'Test User', NULL, 'local', NULL, 1, datetime('now'), datetime('now'));
-
-INSERT OR IGNORE INTO user_credentials (user_id, password_hash, salt, created_at, updated_at)
-VALUES ('test-user-001', '$2a$12$..rD.MSXulO7JEAmYdA31.rWcS6smUrv.Z0TpQ.YpGdvC8p1qNhGK', '', datetime('now'), datetime('now'));
+'["budget","finance"]', 'Finance', 'system', NOW())
+ON CONFLICT (id) DO NOTHING;

@@ -84,4 +84,28 @@ class TemplateServiceTest {
 
         assertThrows(ResourceNotFoundException.class, () -> templateService.delete("missing", "owner-1"));
     }
+
+    @Test
+    void findById_systemTemplate_shouldReturnForAnyUser() {
+        NoteTemplate template = new NoteTemplate();
+        template.setId("sys-tpl");
+        template.setOwnerId("system");
+        when(templateMapper.findById("sys-tpl")).thenReturn(template);
+
+        NoteTemplate result = templateService.findById("sys-tpl", "any-user");
+
+        assertEquals("sys-tpl", result.getId());
+        assertEquals("system", result.getOwnerId());
+    }
+
+    @Test
+    void delete_systemTemplate_shouldThrowAccessDenied() {
+        NoteTemplate template = new NoteTemplate();
+        template.setId("sys-tpl");
+        template.setOwnerId("system");
+        when(templateMapper.findById("sys-tpl")).thenReturn(template);
+
+        assertThrows(AccessDeniedException.class, () -> templateService.delete("sys-tpl", "any-user"));
+        verify(templateMapper, never()).delete(anyString());
+    }
 }
