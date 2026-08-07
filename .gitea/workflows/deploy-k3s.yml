@@ -1,4 +1,4 @@
-name: k3s
+name: Deploy on Kubernetes
 
 on:
   push:
@@ -25,19 +25,64 @@ jobs:
       - name: Configure SSH
         env:
           K3S_SSH_KEY: ${{ secrets.K3S_SSH_KEY }}
+          K3S_SSH_KEY_B64: ${{ secrets.K3S_SSH_KEY_B64 }}
         run: |
-          test -n "$K3S_SSH_KEY" || { echo "Missing secret K3S_SSH_KEY"; exit 1; }
+          set -euo pipefail
           mkdir -p ~/.ssh
-          printf '%s\n' "$K3S_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "$K3S_HOST" >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          KEY_FILE="$HOME/.ssh/k3s_deploy_key"
+
+          if [ -n "${K3S_SSH_KEY_B64:-}" ]; then
+            printf '%s' "$K3S_SSH_KEY_B64" | base64 -d > "$KEY_FILE"
+          elif [ -n "${K3S_SSH_KEY:-}" ]; then
+            # Prefer raw PEM; if secret was stored as one-line base64, decode it.
+            if printf '%s' "$K3S_SSH_KEY" | grep -q 'BEGIN .*PRIVATE KEY'; then
+              printf '%s\n' "$K3S_SSH_KEY" > "$KEY_FILE"
+            else
+              printf '%s' "$K3S_SSH_KEY" | base64 -d > "$KEY_FILE"
+            fi
+          else
+            echo "Missing secret K3S_SSH_KEY or K3S_SSH_KEY_B64"
+            exit 1
+          fi
+
+          # Normalize Windows CRLF from pasted secrets
+          sed -i 's/\r$//' "$KEY_FILE"
+          # Ensure trailing newline (required by OpenSSH)
+          [ -n "$(tail -c1 "$KEY_FILE")" ] && echo >> "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+
+          if ! ssh-keygen -y -f "$KEY_FILE" >/tmp/k3s_deploy_key.pub; then
+            echo "K3S SSH key is invalid (cannot read private key). Re-check secret contents."
+            exit 1
+          fi
+          echo "Deploy key fingerprint:"
+          ssh-keygen -lf /tmp/k3s_deploy_key.pub
+
+          ssh-keyscan -H "$K3S_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
           cat > ~/.ssh/config <<EOF
           Host k3s
             HostName ${K3S_HOST}
             User ${K3S_USER}
-            IdentityFile ~/.ssh/id_ed25519
-            StrictHostKeyChecking accept-new
+            IdentityFile ${KEY_FILE}
+            IdentitiesOnly yes
+            PreferredAuthentications publickey
+            PasswordAuthentication no
+            BatchMode yes
+            StrictHostKeyChecking yes
           EOF
+          chmod 600 ~/.ssh/config
+
+          echo "Testing SSH to ${K3S_USER}@${K3S_HOST}..."
+          if ! ssh -v k3s 'echo SSH_OK'; then
+            echo
+            echo "SSH publickey auth failed."
+            echo "1) Put the matching PUBLIC key into ${K3S_USER}@${K3S_HOST}:~/.ssh/authorized_keys"
+            echo "2) Prefer secret K3S_SSH_KEY_B64 = base64 -w0 < private_key"
+            echo "3) Public key fingerprint above must match the key on the server"
+            exit 1
+          fi
 
       - name: Import image into k3s
         run: |
