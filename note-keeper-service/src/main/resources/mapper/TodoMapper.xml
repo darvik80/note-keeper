@@ -21,6 +21,7 @@
         <result property="notificationChannels" column="notification_channels"/>
         <result property="ownerId" column="owner_id"/>
         <result property="sharedWith" column="shared_with"/>
+        <result property="lastCompletedAt" column="last_completed_at" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
         <association property="location" javaType="xyz.crearts.note.keeper.model.Todo$Location">
@@ -66,7 +67,7 @@
             notification_channels,
             location_lat, location_lng, location_address,
             schedule_repeat, schedule_end_date,
-            owner_id, shared_with,
+            owner_id, shared_with, last_completed_at,
             created_at, updated_at)
         VALUES (#{id}, #{title}, #{description}, #{completed},
             #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
@@ -76,7 +77,7 @@
             #{location.lat, jdbcType=REAL}, #{location.lng, jdbcType=REAL},
             #{location.address, jdbcType=VARCHAR},
             #{schedule.repeat, jdbcType=VARCHAR}, #{schedule.endDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
-            #{ownerId}, #{sharedWith},
+            #{ownerId}, #{sharedWith}, #{lastCompletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             #{createdAt}, #{updatedAt})
     </insert>
 
@@ -97,6 +98,7 @@
             location_address = #{location.address, jdbcType=VARCHAR},
             schedule_repeat = #{schedule.repeat, jdbcType=VARCHAR},
             schedule_end_date = #{schedule.endDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            last_completed_at = #{lastCompletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             updated_at = #{updatedAt}
         WHERE id = #{id}
     </update>
@@ -171,7 +173,7 @@
     </update>
 
     <!-- Recurring todos stuck after first notify (reminder never advanced).
-         Exclude completed todos — user marking done should stop the recurrence. -->
+         Includes completed recurring todos — they should still advance to next occurrence. -->
     <select id="findStuckRecurringReminders" resultMap="todoResultMap">
         SELECT * FROM todo
         WHERE reminder IS NOT NULL
@@ -181,7 +183,6 @@
           AND schedule_repeat IN ('daily', 'weekly', 'monthly')
           AND is_deleted = 0
           AND is_archived = 0
-          AND completed = 0
         ORDER BY reminder ASC
     </select>
 
@@ -200,6 +201,46 @@
         UPDATE todo SET
             shared_with = #{sharedWith},
             updated_at = datetime('now','localtime')
+        WHERE id = #{id}
+    </update>
+
+    <!-- Completion log for recurring todos -->
+    <resultMap id="completionLogResultMap" type="xyz.crearts.note.keeper.model.TodoCompletionLog">
+        <id property="id" column="id"/>
+        <result property="todoId" column="todo_id"/>
+        <result property="completedAt" column="completed_at" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="occurrenceReminder" column="occurrence_reminder" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="occurrenceDueDate" column="occurrence_due_date" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+    </resultMap>
+
+    <insert id="insertCompletionLog" parameterType="xyz.crearts.note.keeper.model.TodoCompletionLog">
+        INSERT INTO todo_completion_log (id, todo_id, completed_at, occurrence_reminder, occurrence_due_date)
+        VALUES (#{id}, #{todoId},
+            #{completedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            #{occurrenceReminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            #{occurrenceDueDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler})
+    </insert>
+
+    <select id="findCompletionLog" resultMap="completionLogResultMap">
+        SELECT * FROM todo_completion_log
+        WHERE todo_id = #{todoId}
+        ORDER BY completed_at DESC
+    </select>
+
+    <select id="findCompletionLogByDateRange" resultMap="completionLogResultMap">
+        SELECT cl.* FROM todo_completion_log cl
+        INNER JOIN todo t ON cl.todo_id = t.id
+        WHERE cl.completed_at &gt;= #{start, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+          AND cl.completed_at &lt;= #{end, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+          AND t.owner_id = #{ownerId}
+          AND t.is_deleted = 0
+        ORDER BY cl.completed_at DESC
+    </select>
+
+    <update id="updateLastCompletedAt">
+        UPDATE todo SET
+            last_completed_at = #{lastCompletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            updated_at = #{lastCompletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
         WHERE id = #{id}
     </update>
 

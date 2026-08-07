@@ -7,6 +7,7 @@ import xyz.crearts.note.keeper.exception.ResourceNotFoundException;
 import xyz.crearts.note.keeper.mapper.AttachmentMapper;
 import xyz.crearts.note.keeper.mapper.TodoMapper;
 import xyz.crearts.note.keeper.model.Todo;
+import xyz.crearts.note.keeper.model.TodoCompletionLog;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -205,6 +206,108 @@ public class TodoService {
         todoMapper.shareWithUser(todoId, newSharedWith);
 
         return findById(todoId, currentOwnerId);
+    }
+
+    /**
+     * Toggle completion status for a todo.
+     * For recurring todos: logs the completion, advances to next occurrence, resets completed=false.
+     * For non-recurring todos: simple toggle.
+     */
+    @Transactional
+    public Todo toggleComplete(String id, String userId) {
+        Todo todo = loadTodo(id);
+        resourceAccess.requireTodoRead(todo, userId);
+
+        if (isRecurring(todo) && !todo.isCompleted()) {
+            // Completing a recurring occurrence
+            return completeRecurringOccurrence(todo);
+        } else if (isRecurring(todo) && todo.isCompleted()) {
+            // Uncompleting a recurring todo (edge case: reset for current occurrence)
+            todo.setCompleted(false);
+            todo.setNotifiedAt(null);
+            todo.setUpdatedAt(LocalDateTime.now());
+            todoMapper.update(todo);
+            notificationService.notifyTodoUpdated(id, todo.getOwnerId());
+            return findById(id, userId);
+        } else {
+            // Non-recurring: simple toggle
+            todo.setCompleted(!todo.isCompleted());
+            todo.setUpdatedAt(LocalDateTime.now());
+            todoMapper.update(todo);
+            notificationService.notifyTodoUpdated(id, todo.getOwnerId());
+            return findById(id, userId);
+        }
+    }
+
+    /**
+     * Complete one occurrence of a recurring todo:
+     * 1. Log the completion for calendar history
+     * 2. Advance reminder/due_date to next occurrence
+     * 3. Reset completed=false so the todo stays visible
+     * 4. Clear notified_at so the next reminder fires
+     */
+    private Todo completeRecurringOccurrence(Todo todo) {
+        LocalDateTime now = LocalDateTime.now();
+        String repeat = todo.getSchedule().getRepeat();
+
+        // 1. Log the completion
+        TodoCompletionLog log = new TodoCompletionLog();
+        log.setId(UUID.randomUUID().toString());
+        log.setTodoId(todo.getId());
+        log.setCompletedAt(now);
+        log.setOccurrenceReminder(todo.getReminder());
+        log.setOccurrenceDueDate(todo.getDueDate());
+        todoMapper.insertCompletionLog(log);
+
+        // 2. Advance reminder to next occurrence
+        LocalDateTime nextReminder = ReminderService.advance(todo.getReminder(), repeat);
+        LocalDateTime nextDueDate = ReminderService.advanceDueDate(todo.getDueDate(), todo.getReminder(), nextReminder);
+
+        // Check endDate
+        LocalDateTime endDate = todo.getSchedule().getEndDate();
+        if (endDate != null && nextReminder != null && nextReminder.isAfter(endDate)) {
+            // Recurrence ended — mark as truly completed
+            todo.setCompleted(true);
+            todo.setLastCompletedAt(now);
+            todo.setUpdatedAt(now);
+            todoMapper.update(todo);
+            todoMapper.updateLastCompletedAt(todo.getId(), now);
+            notificationService.notifyTodoUpdated(todo.getId(), todo.getOwnerId());
+            return todo;
+        }
+
+        // 3. Reset for next occurrence
+        todo.setCompleted(false);
+        todo.setReminder(nextReminder);
+        todo.setDueDate(nextDueDate);
+        todo.setNotifiedAt(null);
+        todo.setLastCompletedAt(now);
+        todo.setUpdatedAt(now);
+        todoMapper.update(todo);
+        todoMapper.updateLastCompletedAt(todo.getId(), now);
+
+        notificationService.notifyTodoUpdated(todo.getId(), todo.getOwnerId());
+        return todo;
+    }
+
+    /**
+     * Get completion history for a recurring todo.
+     */
+    public List<TodoCompletionLog> getCompletionLog(String todoId, String userId) {
+        Todo todo = loadTodo(todoId);
+        resourceAccess.requireTodoRead(todo, userId);
+        return todoMapper.findCompletionLog(todoId);
+    }
+
+    /**
+     * Check if a todo has a recurring schedule.
+     */
+    static boolean isRecurring(Todo todo) {
+        if (todo.getSchedule() == null || todo.getSchedule().getRepeat() == null) {
+            return false;
+        }
+        String repeat = todo.getSchedule().getRepeat();
+        return "daily".equals(repeat) || "weekly".equals(repeat) || "monthly".equals(repeat);
     }
 
     private String toJsonArray(List<String> list) {

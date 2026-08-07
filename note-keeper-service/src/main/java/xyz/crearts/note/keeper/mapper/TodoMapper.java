@@ -3,6 +3,7 @@ package xyz.crearts.note.keeper.mapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import xyz.crearts.note.keeper.model.Todo;
+import xyz.crearts.note.keeper.model.TodoCompletionLog;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -78,4 +79,28 @@ public interface TodoMapper {
                                   @Param("updatedAt") LocalDateTime updatedAt);
 
     void shareWithUser(@Param("id") String id, @Param("sharedWith") String sharedWith);
+
+    // --- Completion log methods ---
+
+    /**
+     * Insert a completion log entry for a recurring todo.
+     */
+    void insertCompletionLog(TodoCompletionLog log);
+
+    /**
+     * Find all completion log entries for a todo, ordered by completed_at desc.
+     */
+    List<TodoCompletionLog> findCompletionLog(@Param("todoId") String todoId);
+
+    /**
+     * Find completion log entries within a date range (for calendar view).
+     */
+    List<TodoCompletionLog> findCompletionLogByDateRange(@Param("start") LocalDateTime start,
+                                                          @Param("end") LocalDateTime end,
+                                                          @Param("ownerId") String ownerId);
+
+    /**
+     * Update last_completed_at on the todo table.
+     */
+    void updateLastCompletedAt(@Param("id") String id, @Param("lastCompletedAt") LocalDateTime lastCompletedAt);
 }

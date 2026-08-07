@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 /**
  * Processes Telegram webhook callback queries.
  * Handles inline button actions such as marking a todo as done.
+ * For recurring todos, uses TodoService.toggleComplete to properly advance occurrences.
  */
 @Slf4j
 @Service
@@ -23,12 +24,14 @@ public class TelegramWebhookService {
     private final TodoMapper todoMapper;
     private final TelegramClient telegramClient;
     private final UserSettingsService userSettingsService;
+    private final TodoService todoService;
 
     public TelegramWebhookService(TodoMapper todoMapper, TelegramClient telegramClient,
-                                  UserSettingsService userSettingsService) {
+                                  UserSettingsService userSettingsService, TodoService todoService) {
         this.todoMapper = todoMapper;
         this.telegramClient = telegramClient;
         this.userSettingsService = userSettingsService;
+        this.todoService = todoService;
     }
 
     /**
@@ -86,19 +89,18 @@ public class TelegramWebhookService {
             return false;
         }
 
-        if (todo.isCompleted()) {
+        if (todo.isCompleted() && !TodoService.isRecurring(todo)) {
             log.info("Todo {} is already completed", todoId);
             telegramClient.answerCallbackQuery(botToken, callbackQueryId, "Already done!");
             return true;
         }
 
-        // Mark as completed
-        todo.setCompleted(true);
-        todo.setUpdatedAt(LocalDateTime.now());
-        todoMapper.update(todo);
+        // Use TodoService.toggleComplete for proper recurring handling
+        todoService.toggleComplete(todoId, userId);
 
         // Answer the callback query
-        telegramClient.answerCallbackQuery(botToken, callbackQueryId, "Done!");
+        String responseText = TodoService.isRecurring(todo) ? "Done! Next occurrence scheduled." : "Done!";
+        telegramClient.answerCallbackQuery(botToken, callbackQueryId, responseText);
 
         // Edit the message to remove the button and show completion
         if (chatId != null && messageId != null) {

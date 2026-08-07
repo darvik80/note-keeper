@@ -21,12 +21,13 @@ class TelegramWebhookServiceTest {
     @Mock private TodoMapper todoMapper;
     @Mock private TelegramClient telegramClient;
     @Mock private UserSettingsService userSettingsService;
+    @Mock private TodoService todoService;
 
     private TelegramWebhookService webhookService;
 
     @BeforeEach
     void setUp() {
-        webhookService = new TelegramWebhookService(todoMapper, telegramClient, userSettingsService);
+        webhookService = new TelegramWebhookService(todoMapper, telegramClient, userSettingsService, todoService);
     }
 
     private UserSettings mockSettings(String userId) {
@@ -54,6 +55,7 @@ class TelegramWebhookServiceTest {
 
         when(userSettingsService.findByTelegramWebhookSecret("my-secret")).thenReturn(settings);
         when(todoMapper.findById("todo-123")).thenReturn(todo);
+        when(todoService.toggleComplete("todo-123", "user-1")).thenReturn(todo);
         when(telegramClient.answerCallbackQuery(anyString(), anyString(), anyString())).thenReturn(true);
         when(telegramClient.editMessageText(anyString(), anyString(), anyLong(), anyString())).thenReturn(true);
 
@@ -61,8 +63,7 @@ class TelegramWebhookServiceTest {
                 "my-secret", "callback-1", "done:todo-123", "12345", 42L);
 
         assertTrue(result);
-        assertTrue(todo.isCompleted());
-        verify(todoMapper).update(todo);
+        verify(todoService).toggleComplete("todo-123", "user-1");
         verify(telegramClient).answerCallbackQuery("bot-token", "callback-1", "Done!");
         verify(telegramClient).editMessageText(eq("bot-token"), eq("12345"), eq(42L), contains("Done"));
     }
@@ -105,14 +106,15 @@ class TelegramWebhookServiceTest {
                 "my-secret", "cb-1", "done:todo-1", "123", 1L);
 
         assertFalse(result);
-        verify(todoMapper, never()).update(any());
+        verify(todoService, never()).toggleComplete(any(), any());
         verify(telegramClient).answerCallbackQuery("bot-token", "cb-1", "Not your todo");
     }
 
     @Test
-    void processCallbackQuery_alreadyCompleted_returnsTrue() {
+    void processCallbackQuery_alreadyCompletedNonRecurring_returnsTrue() {
         UserSettings settings = mockSettings("user-1");
         Todo todo = mockTodo("todo-1", "user-1", true);
+        // Non-recurring: no schedule set
 
         when(userSettingsService.findByTelegramWebhookSecret("my-secret")).thenReturn(settings);
         when(todoMapper.findById("todo-1")).thenReturn(todo);
@@ -122,7 +124,7 @@ class TelegramWebhookServiceTest {
                 "my-secret", "cb-1", "done:todo-1", "123", 1L);
 
         assertTrue(result);
-        verify(todoMapper, never()).update(any());
+        verify(todoService, never()).toggleComplete(any(), any());
         verify(telegramClient).answerCallbackQuery("bot-token", "cb-1", "Already done!");
     }
 

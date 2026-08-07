@@ -84,9 +84,10 @@ public class ReminderService {
     /**
      * Stuck recurring: reminder still in the past after notify.
      * Notify once for the most recent missed occurrence, then jump reminder to next future slot.
+     * Note: Does NOT check completed — recurring todos should always advance regardless.
      */
     private void catchUpStuckRecurring(Todo todo, LocalDateTime now) {
-        if (!isRecurring(todo) || todo.getReminder() == null || todo.isCompleted()) {
+        if (!isRecurring(todo) || todo.getReminder() == null) {
             return;
         }
 
@@ -126,9 +127,10 @@ public class ReminderService {
 
     /**
      * After notify, move reminder (and due date) to the next future occurrence.
+     * Note: Does NOT check completed — recurring todos should always advance.
      */
     void advanceRecurringIfNeeded(Todo todo, LocalDateTime now) {
-        if (!isRecurring(todo) || todo.getReminder() == null || todo.isCompleted()) {
+        if (!isRecurring(todo) || todo.getReminder() == null) {
             return;
         }
 

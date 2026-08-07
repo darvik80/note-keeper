@@ -30,6 +30,7 @@ import {
     SavedQueryInput,
     SearchResult,
     Todo,
+    TodoCompletionLog,
     TodoInput,
     User
 } from '../types';
@@ -403,6 +404,33 @@ export const api = {
     restore: async (id: string): Promise<Todo> => {
       const res = await fetch(`${API_BASE}/todos/${id}/restore`, {
         method: 'POST',
+        headers: getAuthHeaders()
+      });
+      return handleResponse(res);
+    },
+
+    /**
+     * Toggle completion status for a todo.
+     * For recurring todos: logs completion, advances to next occurrence, resets completed=false.
+     * For non-recurring todos: simple toggle.
+     * @param id - Todo UUID.
+     * @returns The updated {@link Todo}.
+     */
+    toggleComplete: async (id: string): Promise<Todo> => {
+      const res = await fetch(`${API_BASE}/todos/${id}/toggle-complete`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      return handleResponse(res);
+    },
+
+    /**
+     * Get completion history for a recurring todo.
+     * @param id - Todo UUID.
+     * @returns Array of {@link TodoCompletionLog} entries.
+     */
+    getCompletionLog: async (id: string): Promise<TodoCompletionLog[]> => {
+      const res = await fetch(`${API_BASE}/todos/${id}/completions`, {
         headers: getAuthHeaders()
       });
       return handleResponse(res);

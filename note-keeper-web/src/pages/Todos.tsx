@@ -92,12 +92,26 @@ export const Todos: React.FC = () => {
   const toggleComplete = async (id: string) => {
     const todo = todos.find(t => t.id === id);
     if (!todo) return;
-    const newVal = !todo.completed;
-    setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: newVal } : t));
+    // Optimistic update: for recurring todos, they stay visible (completed resets to false)
+    const isRecurring = todo.schedule && todo.schedule.repeat && todo.schedule.repeat !== 'none';
+    if (isRecurring) {
+      // For recurring: show a brief "done" state, then it will refresh from server
+      setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: true } : t));
+    } else {
+      const newVal = !todo.completed;
+      setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: newVal } : t));
+    }
     try {
-      await api.todos.update(id, buildUpdatePayload(todo, { completed: newVal }));
+      const updated = await api.todos.toggleComplete(id);
+      // Replace with server response (for recurring: completed=false, new reminder)
+      setTodos(prev => prev.map(t => t.id === id ? updated : t));
     } catch (err) {
-      setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !newVal } : t));
+      // Revert on error
+      if (isRecurring) {
+        setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: false } : t));
+      } else {
+        setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !todo.completed } : t));
+      }
       setError((err as any)?.message || 'Failed to toggle complete');
     }
   };
@@ -134,9 +148,12 @@ export const Todos: React.FC = () => {
   };
 
   const displayTodos = showSharedOnly ? sharedTodos : todos;
+  // Helper to check if a todo is recurring
+  const isRecurring = (t: Todo) => t.schedule && t.schedule.repeat && t.schedule.repeat !== 'none';
+  // Filter logic: recurring todos always show (they auto-reset after completion)
   const filteredTodos = showSharedOnly
-    ? (showCompleted ? displayTodos : displayTodos.filter(t => !t.completed))
-    : (showCompleted ? todos : todos.filter(t => !t.completed));
+    ? (showCompleted ? displayTodos : displayTodos.filter(t => !t.completed || isRecurring(t)))
+    : (showCompleted ? todos : todos.filter(t => !t.completed || isRecurring(t)));
 
   return (
     <PageShell error={error} onDismissError={() => setError(null)}>

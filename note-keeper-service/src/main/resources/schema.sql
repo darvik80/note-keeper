@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS todo (
     schedule_end_date TEXT,
     owner_id TEXT NOT NULL REFERENCES users(id),
     shared_with TEXT DEFAULT '[]',
+    last_completed_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -67,6 +68,17 @@ CREATE INDEX IF NOT EXISTS idx_todo_is_deleted ON todo(is_deleted);
 CREATE INDEX IF NOT EXISTS idx_todo_is_archived ON todo(is_archived);
 CREATE INDEX IF NOT EXISTS idx_todo_due_date ON todo(due_date);
 CREATE INDEX IF NOT EXISTS idx_todo_created_at ON todo(created_at);
+
+CREATE TABLE IF NOT EXISTS todo_completion_log (
+    id TEXT PRIMARY KEY,
+    todo_id TEXT NOT NULL REFERENCES todo(id) ON DELETE CASCADE,
+    completed_at TEXT NOT NULL,
+    occurrence_reminder TEXT,
+    occurrence_due_date TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_completion_log_todo ON todo_completion_log(todo_id);
+CREATE INDEX IF NOT EXISTS idx_completion_log_date ON todo_completion_log(completed_at);
 
 CREATE TABLE IF NOT EXISTS attachment (
     id TEXT PRIMARY KEY,

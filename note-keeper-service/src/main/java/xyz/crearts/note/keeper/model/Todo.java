@@ -31,6 +31,7 @@ public class Todo {
     private Location location;
     private Schedule schedule;
     private List<Attachment> attachments = new ArrayList<>();
+    private LocalDateTime lastCompletedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

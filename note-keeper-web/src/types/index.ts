@@ -146,10 +146,26 @@ export interface Todo {
    * @example "telegram,dingtalk"
    */
   notificationChannels?: string;
+  /** When this recurring todo was last completed (for display). */
+  lastCompletedAt?: Date;
   /** When the todo was created. */
   createdAt: Date;
   /** When the todo was last saved. */
   updatedAt: Date;
+}
+
+/** A single completion event for a recurring todo. */
+export interface TodoCompletionLog {
+  /** Unique log entry identifier. */
+  id: string;
+  /** The todo that was completed. */
+  todoId: string;
+  /** When the user marked it as done. */
+  completedAt: Date;
+  /** The reminder value at time of completion. */
+  occurrenceReminder?: Date;
+  /** The due date value at time of completion. */
+  occurrenceDueDate?: Date;
 }
 
 /** A reusable Markdown template for quickly creating notes. */

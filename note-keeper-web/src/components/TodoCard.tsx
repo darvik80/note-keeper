@@ -144,6 +144,12 @@ export const TodoCard: React.FC<TodoCardProps> = ({
               <span>
                 <i className="fas fa-repeat mr-1" aria-hidden="true"></i>
                 {todo.schedule.repeat}
+                {todo.lastCompletedAt && (
+                  <span className="ml-2 text-green-500" title="Last completed">
+                    <i className="fas fa-check-circle mr-1"></i>
+                    {new Date(todo.lastCompletedAt).toLocaleDateString()}
+                  </span>
+                )}
               </span>
             )}
           </div>
