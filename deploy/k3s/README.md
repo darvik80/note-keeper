@@ -51,3 +51,5 @@ ssh-keygen -lf ~/.ssh/authorized_keys
 4. `rollout restart` and wait until ready
 
 `imagePullPolicy: Never` (local import). SQLite data on PVC `note-keeper-data` (`local-path`, 5Gi). `replicas: 1`.
+
+Init container creates `/app/var/{data,attachments,backups}` on the PVC before the app starts (SQLite needs `data/`).
