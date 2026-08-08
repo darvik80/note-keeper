@@ -1,5 +1,5 @@
--- Migration: Recurring todo completion tracking
--- Adds completion log table and last_completed_at column for recurring todos
+-- Applied automatically on startup by DatabaseMigrationService (008_recurring_completion).
+-- Kept for reference / manual recovery.
 
 -- Completion history for recurring todos (calendar view)
 CREATE TABLE IF NOT EXISTS todo_completion_log (

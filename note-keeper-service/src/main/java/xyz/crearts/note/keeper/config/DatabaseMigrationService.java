@@ -33,6 +33,7 @@ public class DatabaseMigrationService {
         apply("005_template_owner", this::addTemplateOwnerColumn);
         apply("006_assign_orphan_records", this::assignOrphanRecordsToDefaultOwner);
         apply("007_telegram_webhook_secret", this::addTelegramWebhookSecretColumn);
+        apply("008_recurring_completion", this::addRecurringCompletion);
     }
 
     private void apply(String id, Runnable migration) {
@@ -180,6 +181,47 @@ public class DatabaseMigrationService {
     private void addTelegramWebhookSecretColumn() {
         addColumnIfMissing("user_settings", "telegram_webhook_secret",
                 "ALTER TABLE user_settings ADD COLUMN telegram_webhook_secret TEXT");
+    }
+
+    private void addRecurringCompletion() {
+        // Create completion log table for recurring todos (calendar view)
+        if (postgres) {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS todo_completion_log (
+                    id VARCHAR(255) PRIMARY KEY,
+                    todo_id VARCHAR(255) NOT NULL REFERENCES todo(id) ON DELETE CASCADE,
+                    completed_at TIMESTAMP NOT NULL,
+                    occurrence_reminder TIMESTAMP,
+                    occurrence_due_date TIMESTAMP
+                )
+                """);
+        } else {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS todo_completion_log (
+                    id TEXT PRIMARY KEY,
+                    todo_id TEXT NOT NULL REFERENCES todo(id) ON DELETE CASCADE,
+                    completed_at TEXT NOT NULL,
+                    occurrence_reminder TEXT,
+                    occurrence_due_date TEXT
+                )
+                """);
+        }
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_completion_log_todo ON todo_completion_log(todo_id)");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_completion_log_date ON todo_completion_log(completed_at)");
+
+        // Add last_completed_at column to todo table
+        addColumnIfMissing("todo", "last_completed_at",
+                postgres
+                        ? "ALTER TABLE todo ADD COLUMN last_completed_at TIMESTAMP"
+                        : "ALTER TABLE todo ADD COLUMN last_completed_at TEXT");
+
+        // Fix existing stuck recurring todos: reset completed so they become visible again
+        jdbcTemplate.update("""
+            UPDATE todo SET completed = 0, notified_at = NULL
+            WHERE schedule_repeat IN ('daily', 'weekly', 'monthly')
+              AND completed = 1
+              AND is_deleted = 0
+            """);
     }
 
     private void addColumnIfMissing(String table, String column, String ddl) {
