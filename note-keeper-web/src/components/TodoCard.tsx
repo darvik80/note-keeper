@@ -24,7 +24,7 @@ export const TodoCard: React.FC<TodoCardProps> = ({
 }) => {
   const isReadonly = variant === 'readonly';
   const isRecurring = !!todo.schedule && todo.schedule.repeat !== 'none';
-  const isRecurringCompletedToday = isRecurring && todo.completed && todo.lastCompletedAt &&
+  const isRecurringCompletedToday = isRecurring && todo.lastCompletedAt &&
     new Date(todo.lastCompletedAt).toDateString() === new Date().toDateString();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
