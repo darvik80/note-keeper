@@ -317,8 +317,10 @@ export const handlers = [
     if (!todo) return HttpResponse.json({ message: 'Not found' }, { status: 404 });
 
     const isRecurring = todo.schedule?.repeat && todo.schedule.repeat !== 'none';
+    const alreadyCompletedToday = todo.lastCompletedAt &&
+      new Date(todo.lastCompletedAt).toDateString() === new Date().toDateString();
 
-    if (isRecurring && !todo.completed) {
+    if (isRecurring && !todo.completed && !alreadyCompletedToday) {
       // Complete recurring: advance dates, reset completed
       const now = new Date();
       const repeat = todo.schedule.repeat;

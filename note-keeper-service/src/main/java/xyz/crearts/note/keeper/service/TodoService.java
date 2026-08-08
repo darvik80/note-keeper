@@ -218,7 +218,10 @@ public class TodoService {
         Todo todo = loadTodo(id);
         resourceAccess.requireTodoRead(todo, userId);
 
-        if (isRecurring(todo) && !todo.isCompleted()) {
+        boolean alreadyCompletedToday = todo.getLastCompletedAt() != null
+                && todo.getLastCompletedAt().toLocalDate().equals(java.time.LocalDate.now());
+
+        if (isRecurring(todo) && !todo.isCompleted() && !alreadyCompletedToday) {
             // Completing a recurring occurrence
             return completeRecurringOccurrence(todo);
         } else if (isRecurring(todo) && todo.isCompleted()) {
