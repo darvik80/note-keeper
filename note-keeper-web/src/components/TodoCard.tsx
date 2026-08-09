@@ -24,8 +24,10 @@ export const TodoCard: React.FC<TodoCardProps> = ({
 }) => {
   const isReadonly = variant === 'readonly';
   const isRecurring = !!todo.schedule && todo.schedule.repeat !== 'none';
-  const isRecurringCompletedToday = isRecurring && todo.lastCompletedAt &&
-    new Date(todo.lastCompletedAt).toDateString() === new Date().toDateString();
+  const doneThisCycle = isRecurring && todo.completed;
+  const formatDay = (value: Date | string) => new Date(value).toLocaleDateString();
+  const formatDayTime = (value: Date | string) =>
+    new Date(value).toLocaleString(undefined, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isReadonly && (e.key === 'Enter' || e.key === ' ')) {
@@ -66,7 +68,7 @@ export const TodoCard: React.FC<TodoCardProps> = ({
   return (
     <div
       className={`bg-surface rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-all overflow-hidden ${
-        todo.completed && !isRecurringCompletedToday ? 'opacity-60' : ''
+        !isRecurring && todo.completed ? 'opacity-60' : ''
       }`}
     >
       <div className="flex items-start gap-4">
@@ -74,21 +76,20 @@ export const TodoCard: React.FC<TodoCardProps> = ({
           <button
             onClick={onToggleComplete}
             className={`mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${
-              todo.completed
+              (isRecurring ? doneThisCycle : todo.completed)
                 ? 'bg-primary border-primary text-white'
                 : 'border-border hover:border-primary'
             }`}
-            aria-label={todo.completed ? 'Mark incomplete' : 'Mark complete'}
+            aria-label={doneThisCycle || todo.completed ? 'Mark incomplete' : 'Mark complete'}
           >
-            {todo.completed && <i className="fas fa-check text-xs" aria-hidden="true"></i>}
+            {(isRecurring ? doneThisCycle : todo.completed) && <i className="fas fa-check text-xs" aria-hidden="true"></i>}
           </button>
         )}
 
         <div className="flex-1 cursor-pointer min-w-0" onClick={onNavigate}>
           <div className="flex items-start justify-between mb-2 gap-2">
             <h3 className={`font-bold text-lg ${
-              isRecurringCompletedToday ? 'text-text' :
-              todo.completed ? 'line-through text-text-secondary' : 'text-text'
+              (isRecurring ? doneThisCycle : todo.completed) ? 'line-through text-text-secondary' : 'text-text'
             }`}>
               {todo.title}
             </h3>
@@ -146,29 +147,26 @@ export const TodoCard: React.FC<TodoCardProps> = ({
                 {todo.location.address}
               </span>
             )}
-            {todo.schedule && todo.schedule.repeat !== 'none' && (
-              isRecurringCompletedToday ? (
-                <span className="text-green-500">
-                  <i className="fas fa-check-circle mr-1" aria-hidden="true"></i>
-                  Done today
-                  {todo.reminder && (
-                    <span className="ml-2 text-text-secondary">
-                      next: {new Date(todo.reminder).toLocaleDateString()}
-                    </span>
-                  )}
-                </span>
-              ) : (
+            {isRecurring && (
+              <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span>
                   <i className="fas fa-repeat mr-1" aria-hidden="true"></i>
-                  {todo.schedule.repeat}
-                  {todo.lastCompletedAt && (
-                    <span className="ml-2 text-green-500" title="Last completed">
-                      <i className="fas fa-check-circle mr-1"></i>
-                      {new Date(todo.lastCompletedAt).toLocaleDateString()}
-                    </span>
-                  )}
+                  {todo.schedule!.repeat}
                 </span>
-              )
+                {todo.lastCompletedAt && (
+                  <span className="text-green-500" title="Last completed">
+                    <i className="fas fa-check-circle mr-1" aria-hidden="true"></i>
+                    last: {formatDay(todo.lastCompletedAt)}
+                  </span>
+                )}
+                {todo.reminder && (
+                  <span title="Next reminder">
+                    <i className="fas fa-bell mr-1" aria-hidden="true"></i>
+                    next: {formatDayTime(todo.reminder)}
+                  </span>
+                )}
+                {doneThisCycle && <span className="text-green-500">done this cycle</span>}
+              </span>
             )}
           </div>
 

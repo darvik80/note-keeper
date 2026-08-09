@@ -36,16 +36,23 @@ public class TodoService {
 
     public List<Todo> findAll(Boolean completed, String tag, String priority,
                               Boolean isFavorite, Boolean isArchived, Boolean isDeleted, String ownerId) {
+        rolloverOwnerRecurring(ownerId);
         return todoMapper.findAll(completed, tag, priority, isFavorite, isArchived, isDeleted, ownerId);
     }
 
     public List<Todo> findSharedWithMe(String userId) {
-        return todoMapper.findSharedWithMe(userId);
+        List<Todo> todos = todoMapper.findSharedWithMe(userId);
+        LocalDateTime now = Recurrence.nowUtc();
+        for (Todo todo : todos) {
+            persistRollover(todo, now);
+        }
+        return todos;
     }
 
     public Todo findById(String id, String userId) {
         Todo todo = loadTodo(id);
         resourceAccess.requireTodoRead(todo, userId);
+        persistRollover(todo, Recurrence.nowUtc());
         return todo;
     }
 
@@ -209,88 +216,100 @@ public class TodoService {
     }
 
     /**
-     * Toggle completion status for a todo.
-     * For recurring todos: logs the completion, advances to next occurrence, resets completed=false.
-     * For non-recurring todos: simple toggle.
+     * Toggle completion. Recurring: done for current period only (log + next reminder).
+     * Undo same period restores current slot. One-shot: simple flip.
      */
     @Transactional
     public Todo toggleComplete(String id, String userId) {
         Todo todo = loadTodo(id);
         resourceAccess.requireTodoRead(todo, userId);
+        LocalDateTime now = Recurrence.nowUtc();
+        persistRollover(todo, now);
 
-        boolean alreadyCompletedToday = todo.getLastCompletedAt() != null
-                && todo.getLastCompletedAt().toLocalDate().equals(java.time.LocalDate.now());
-
-        if (isRecurring(todo) && !todo.isCompleted() && !alreadyCompletedToday) {
-            // Completing a recurring occurrence
-            return completeRecurringOccurrence(todo);
-        } else if (isRecurring(todo) && todo.isCompleted()) {
-            // Uncompleting a recurring todo (edge case: reset for current occurrence)
-            todo.setCompleted(false);
-            todo.setNotifiedAt(null);
-            todo.setUpdatedAt(LocalDateTime.now());
-            todoMapper.update(todo);
-            notificationService.notifyTodoUpdated(id, todo.getOwnerId());
-            return findById(id, userId);
-        } else {
-            // Non-recurring: simple toggle
+        if (!Recurrence.isRecurring(todo)) {
             todo.setCompleted(!todo.isCompleted());
-            todo.setUpdatedAt(LocalDateTime.now());
+            todo.setUpdatedAt(now);
             todoMapper.update(todo);
             notificationService.notifyTodoUpdated(id, todo.getOwnerId());
-            return findById(id, userId);
+            return todo;
         }
+
+        if (Recurrence.isDoneThisPeriod(todo, now) || todo.isCompleted()) {
+            return uncompleteRecurringOccurrence(todo, now);
+        }
+        return completeRecurringOccurrence(todo, now);
     }
 
     /**
-     * Complete one occurrence of a recurring todo:
-     * 1. Log the completion for calendar history
-     * 2. Advance reminder/due_date to next occurrence
-     * 3. Reset completed=false so the todo stays visible
-     * 4. Clear notified_at so the next reminder fires
+     * Complete current period: log history, mark done, point reminder at next slot.
      */
-    private Todo completeRecurringOccurrence(Todo todo) {
-        LocalDateTime now = LocalDateTime.now();
-        String repeat = todo.getSchedule().getRepeat();
+    private Todo completeRecurringOccurrence(Todo todo, LocalDateTime now) {
+        String repeat = Recurrence.repeatOf(todo);
+        LocalDateTime slot = Recurrence.currentSlot(todo.getReminder(), repeat, now);
 
-        // 1. Log the completion
         TodoCompletionLog log = new TodoCompletionLog();
         log.setId(UUID.randomUUID().toString());
         log.setTodoId(todo.getId());
         log.setCompletedAt(now);
-        log.setOccurrenceReminder(todo.getReminder());
+        log.setOccurrenceReminder(slot);
         log.setOccurrenceDueDate(todo.getDueDate());
         todoMapper.insertCompletionLog(log);
 
-        // 2. Advance reminder to next occurrence
-        LocalDateTime nextReminder = ReminderService.advance(todo.getReminder(), repeat);
-        LocalDateTime nextDueDate = ReminderService.advanceDueDate(todo.getDueDate(), todo.getReminder(), nextReminder);
+        LocalDateTime nextReminder = Recurrence.advance(slot, repeat);
+        LocalDateTime nextDueDate = Recurrence.advanceDueDate(todo.getDueDate(), todo.getReminder(), nextReminder);
 
-        // Check endDate
-        LocalDateTime endDate = todo.getSchedule().getEndDate();
-        if (endDate != null && nextReminder != null && nextReminder.isAfter(endDate)) {
-            // Recurrence ended — mark as truly completed
-            todo.setCompleted(true);
-            todo.setLastCompletedAt(now);
-            todo.setUpdatedAt(now);
+        todo.setLastCompletedAt(now);
+        todo.setCompleted(true);
+        todo.setUpdatedAt(now);
+
+        if (nextReminder != null && Recurrence.pastEndDate(todo, nextReminder)) {
             todoMapper.update(todo);
             todoMapper.updateLastCompletedAt(todo.getId(), now);
             notificationService.notifyTodoUpdated(todo.getId(), todo.getOwnerId());
             return todo;
         }
 
-        // 3. Reset for next occurrence
-        todo.setCompleted(false);
         todo.setReminder(nextReminder);
         todo.setDueDate(nextDueDate);
         todo.setNotifiedAt(null);
-        todo.setLastCompletedAt(now);
-        todo.setUpdatedAt(now);
         todoMapper.update(todo);
         todoMapper.updateLastCompletedAt(todo.getId(), now);
-
         notificationService.notifyTodoUpdated(todo.getId(), todo.getOwnerId());
         return todo;
+    }
+
+    private Todo uncompleteRecurringOccurrence(Todo todo, LocalDateTime now) {
+        String repeat = Recurrence.repeatOf(todo);
+        LocalDateTime slot = Recurrence.currentSlot(todo.getReminder(), repeat, now);
+        LocalDateTime periodStart = slot.toLocalDate().atStartOfDay();
+
+        todoMapper.deleteCompletionLogsSince(todo.getId(), periodStart);
+
+        List<TodoCompletionLog> remaining = todoMapper.findCompletionLog(todo.getId());
+        todo.setLastCompletedAt(remaining.isEmpty() ? null : remaining.get(0).getCompletedAt());
+        todo.setCompleted(false);
+        todo.setDueDate(Recurrence.advanceDueDate(todo.getDueDate(), todo.getReminder(), slot));
+        todo.setReminder(slot);
+        todo.setNotifiedAt(null);
+        todo.setUpdatedAt(now);
+        todoMapper.update(todo);
+        notificationService.notifyTodoUpdated(todo.getId(), todo.getOwnerId());
+        return todo;
+    }
+
+    private void rolloverOwnerRecurring(String ownerId) {
+        LocalDateTime now = Recurrence.nowUtc();
+        for (Todo todo : todoMapper.findRecurringActive(ownerId)) {
+            persistRollover(todo, now);
+        }
+    }
+
+    private boolean persistRollover(Todo todo, LocalDateTime now) {
+        if (!Recurrence.rolloverIfNeeded(todo, now)) {
+            return false;
+        }
+        todoMapper.update(todo);
+        return true;
     }
 
     /**
@@ -302,15 +321,8 @@ public class TodoService {
         return todoMapper.findCompletionLog(todoId);
     }
 
-    /**
-     * Check if a todo has a recurring schedule.
-     */
     static boolean isRecurring(Todo todo) {
-        if (todo.getSchedule() == null || todo.getSchedule().getRepeat() == null) {
-            return false;
-        }
-        String repeat = todo.getSchedule().getRepeat();
-        return "daily".equals(repeat) || "weekly".equals(repeat) || "monthly".equals(repeat);
+        return Recurrence.isRecurring(todo);
     }
 
     private String toJsonArray(List<String> list) {

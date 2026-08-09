@@ -411,8 +411,8 @@ export const api = {
 
     /**
      * Toggle completion status for a todo.
-     * For recurring todos: logs completion, advances to next occurrence, resets completed=false.
-     * For non-recurring todos: simple toggle.
+     * Recurring: logs this period, sets completed for the cycle, points reminder at next slot.
+     * One-shot: simple toggle.
      * @param id - Todo UUID.
      * @returns The updated {@link Todo}.
      */

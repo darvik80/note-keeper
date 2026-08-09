@@ -317,30 +317,31 @@ export const handlers = [
     if (!todo) return HttpResponse.json({ message: 'Not found' }, { status: 404 });
 
     const isRecurring = todo.schedule?.repeat && todo.schedule.repeat !== 'none';
-    const alreadyCompletedToday = todo.lastCompletedAt &&
-      new Date(todo.lastCompletedAt).toDateString() === new Date().toDateString();
+    const now = new Date();
+    const advance = (dateStr: string | null | undefined) => {
+      if (!dateStr) return null;
+      const d = new Date(dateStr);
+      const repeat = todo.schedule?.repeat;
+      if (repeat === 'daily') d.setDate(d.getDate() + 1);
+      else if (repeat === 'weekly') d.setDate(d.getDate() + 7);
+      else if (repeat === 'monthly') d.setMonth(d.getMonth() + 1);
+      return d.toISOString();
+    };
 
-    if (isRecurring && !todo.completed && !alreadyCompletedToday) {
-      // Complete recurring: advance dates, reset completed
-      const now = new Date();
-      const repeat = todo.schedule.repeat;
-      const advance = (dateStr: string | null) => {
-        if (!dateStr) return null;
-        const d = new Date(dateStr);
-        if (repeat === 'daily') d.setDate(d.getDate() + 1);
-        else if (repeat === 'weekly') d.setDate(d.getDate() + 7);
-        else if (repeat === 'monthly') d.setMonth(d.getMonth() + 1);
-        return d.toISOString();
-      };
+    if (isRecurring && !todo.completed) {
       todo.lastCompletedAt = now.toISOString();
       todo.reminder = advance(todo.reminder);
       todo.dueDate = advance(todo.dueDate);
+      todo.completed = true;
+      todo.notifiedAt = null;
+      todo.updatedAt = now.toISOString();
+    } else if (isRecurring && todo.completed) {
       todo.completed = false;
       todo.notifiedAt = null;
       todo.updatedAt = now.toISOString();
     } else {
       todo.completed = !todo.completed;
-      todo.updatedAt = new Date().toISOString();
+      todo.updatedAt = now.toISOString();
     }
 
     return HttpResponse.json(todo);

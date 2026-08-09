@@ -92,26 +92,13 @@ export const Todos: React.FC = () => {
   const toggleComplete = async (id: string) => {
     const todo = todos.find(t => t.id === id);
     if (!todo) return;
-    // Optimistic update: for recurring todos, they stay visible (completed resets to false)
-    const isRecurring = todo.schedule && todo.schedule.repeat && todo.schedule.repeat !== 'none';
-    if (isRecurring) {
-      // For recurring: show a brief "done" state, then it will refresh from server
-      setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: true } : t));
-    } else {
-      const newVal = !todo.completed;
-      setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: newVal } : t));
-    }
+    const newVal = !todo.completed;
+    setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: newVal } : t));
     try {
       const updated = await api.todos.toggleComplete(id);
-      // Replace with server response (for recurring: completed=false, new reminder)
       setTodos(prev => prev.map(t => t.id === id ? updated : t));
     } catch (err) {
-      // Revert on error
-      if (isRecurring) {
-        setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: false } : t));
-      } else {
-        setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !todo.completed } : t));
-      }
+      setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: todo.completed } : t));
       setError((err as any)?.message || 'Failed to toggle complete');
     }
   };
@@ -148,9 +135,8 @@ export const Todos: React.FC = () => {
   };
 
   const displayTodos = showSharedOnly ? sharedTodos : todos;
-  // Helper to check if a todo is recurring
   const isRecurring = (t: Todo) => t.schedule && t.schedule.repeat && t.schedule.repeat !== 'none';
-  // Filter logic: recurring todos always show (they auto-reset after completion)
+  // Recurring stays in the list after "done this cycle" so next date + undo stay visible
   const filteredTodos = showSharedOnly
     ? (showCompleted ? displayTodos : displayTodos.filter(t => !t.completed || isRecurring(t)))
     : (showCompleted ? todos : todos.filter(t => !t.completed || isRecurring(t)));

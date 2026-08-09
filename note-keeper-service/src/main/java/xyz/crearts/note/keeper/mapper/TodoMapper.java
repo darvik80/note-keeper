@@ -64,19 +64,9 @@ public interface TodoMapper {
     void markReminderNotified(@Param("id") String id, @Param("notifiedAt") LocalDateTime notifiedAt);
 
     /**
-     * Find recurring todos whose reminder is still in the past after being notified
-     * (schedule was never advanced — needs catch-up).
+     * Active recurring todos (for period rollover). {@code ownerId} optional.
      */
-    List<Todo> findStuckRecurringReminders(@Param("now") LocalDateTime now);
-
-    /**
-     * Advance recurring todo to the next reminder occurrence.
-     * Resets completed so the next cycle can be checked off again.
-     */
-    void advanceRecurringReminder(@Param("id") String id,
-                                  @Param("reminder") LocalDateTime reminder,
-                                  @Param("dueDate") LocalDateTime dueDate,
-                                  @Param("updatedAt") LocalDateTime updatedAt);
+    List<Todo> findRecurringActive(@Param("ownerId") String ownerId);
 
     void shareWithUser(@Param("id") String id, @Param("sharedWith") String sharedWith);
 
@@ -103,4 +93,6 @@ public interface TodoMapper {
      * Update last_completed_at on the todo table.
      */
     void updateLastCompletedAt(@Param("id") String id, @Param("lastCompletedAt") LocalDateTime lastCompletedAt);
+
+    void deleteCompletionLogsSince(@Param("todoId") String todoId, @Param("since") LocalDateTime since);
 }

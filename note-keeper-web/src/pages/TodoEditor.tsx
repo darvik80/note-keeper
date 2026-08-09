@@ -37,7 +37,7 @@ export const TodoEditor: React.FC = () => {
   const navigate = useNavigate();
   const [todo, setTodo] = useState<Todo | null>(null);
   const todoRef = React.useRef<Todo | null>(null);
-  const [isPreview, setIsPreview] = useState(false);
+  const [isPreview, setIsPreview] = useState(true);
   const [telegramStatus, setTelegramStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [dingtalkStatus, setDingtalkStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [showShareModal, setShowShareModal] = useState(false);
@@ -56,8 +56,10 @@ export const TodoEditor: React.FC = () => {
           if (cancelled) return;
           if (t && t.id) {
             setTodo(t);
+            setIsPreview(true);
           } else {
             setTodo(emptyTodo());
+            setIsPreview(false);
           }
         } catch (err: any) {
           if (!cancelled) setError(err?.message || 'Failed to load todo');
@@ -67,6 +69,7 @@ export const TodoEditor: React.FC = () => {
       return () => { cancelled = true; };
     } else {
       setTodo(emptyTodo());
+      setIsPreview(false);
     }
   }, [id]);
 
@@ -330,13 +333,41 @@ export const TodoEditor: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-auto p-4 sm:p-8 min-h-0">
-        <input
-          type="text"
-          value={todo.title}
-          onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, title: v } : prev); }}
-          className="text-2xl sm:text-3xl font-bold mb-6 w-full border-none outline-none"
-          placeholder="Todo Title"
-        />
+        {isPreview ? (
+          <h1 className={`text-2xl sm:text-3xl font-bold mb-4 ${todo.completed ? 'line-through text-text-secondary' : ''}`}>
+            {todo.title || 'Untitled'}
+          </h1>
+        ) : (
+          <input
+            type="text"
+            value={todo.title}
+            onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, title: v } : prev); }}
+            className="text-2xl sm:text-3xl font-bold mb-6 w-full border-none outline-none"
+            placeholder="Todo Title"
+          />
+        )}
+
+        {todo.schedule?.repeat && todo.schedule.repeat !== 'none' && (
+          <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
+            <span>
+              <i className="fas fa-repeat mr-1" aria-hidden="true"></i>
+              {todo.schedule.repeat}
+            </span>
+            {todo.lastCompletedAt && (
+              <span className="text-green-500">
+                <i className="fas fa-check-circle mr-1" aria-hidden="true"></i>
+                last: {new Date(todo.lastCompletedAt).toLocaleDateString()}
+              </span>
+            )}
+            {todo.reminder && (
+              <span>
+                <i className="fas fa-bell mr-1" aria-hidden="true"></i>
+                next: {new Date(todo.reminder).toLocaleString(undefined, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+            {todo.completed && <span className="text-green-500">done this cycle</span>}
+          </div>
+        )}
 
         <div className="space-y-6">
           <div>

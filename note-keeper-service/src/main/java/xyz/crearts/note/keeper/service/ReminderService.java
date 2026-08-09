@@ -12,16 +12,14 @@ import xyz.crearts.note.keeper.mapper.UserSettingsMapper;
 import xyz.crearts.note.keeper.model.Todo;
 import xyz.crearts.note.keeper.model.UserSettings;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * Todo reminder scheduler.
- * Every minute: notify due reminders via Telegram/DingTalk, then advance recurring schedules.
+ * Every minute: rollover recurring periods, then notify due incomplete reminders.
  * Telegram notifications use MarkdownV2 formatting with inline keyboard for quick actions.
  * Notes have a reminder field but are NOT handled here (display-only).
  */
@@ -51,138 +49,48 @@ public class ReminderService {
     }
 
     /**
-     * Check for due reminders every minute.
-     * Also catches up recurring todos whose reminder was never advanced after the first notify.
+     * Every minute: rollover recurring periods, then notify due incomplete reminders.
+     * Notify does not advance reminder — next fire happens after rollover into a new slot.
      */
     @Scheduled(fixedRate = 60000)
     public void checkReminders() {
         log.debug("Checking for due reminders...");
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDateTime now = Recurrence.nowUtc();
+
+        for (Todo todo : todoMapper.findRecurringActive(null)) {
+            if (Recurrence.rolloverIfNeeded(todo, now)) {
+                todoMapper.update(todo);
+                log.info("Rolled recurring todo {} to reminder={} completed={}",
+                        todo.getId(), todo.getReminder(), todo.isCompleted());
+            }
+        }
 
         for (Todo todo : todoMapper.findWithDueReminders(now)) {
             if (todo.getReminder() != null && !todo.isDeleted() && !todo.isArchived() && !todo.isCompleted()) {
-                sendReminderNotification(todo, now);
+                sendReminderNotification(todo);
             }
-        }
-
-        for (Todo todo : todoMapper.findStuckRecurringReminders(now)) {
-            catchUpStuckRecurring(todo, now);
         }
     }
 
-    private void sendReminderNotification(Todo todo, LocalDateTime now) {
+    private void sendReminderNotification(Todo todo) {
         log.info("Sending reminder for todo: {} - {}", todo.getId(), todo.getTitle());
         dispatchChannels(todo, buildReminderMessageMarkdownV2(todo), buildReminderMessagePlain(todo));
 
-        LocalDateTime notifiedAt = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDateTime notifiedAt = Recurrence.nowUtc();
         todoMapper.markReminderNotified(todo.getId(), notifiedAt);
         todo.setNotifiedAt(notifiedAt);
-
-        advanceRecurringIfNeeded(todo, now);
-    }
-
-    /**
-     * Stuck recurring: reminder still in the past after notify.
-     * Notify once for the most recent missed occurrence, then jump reminder to next future slot.
-     * Note: Does NOT check completed — recurring todos should always advance regardless.
-     */
-    private void catchUpStuckRecurring(Todo todo, LocalDateTime now) {
-        if (!isRecurring(todo) || todo.getReminder() == null) {
-            return;
-        }
-
-        String repeat = todo.getSchedule().getRepeat();
-        LocalDateTime endDate = todo.getSchedule().getEndDate();
-
-        LocalDateTime lastOccurrence = todo.getReminder();
-        LocalDateTime next = advance(lastOccurrence, repeat);
-
-        while (next != null && !next.isAfter(now)) {
-            if (endDate != null && next.isAfter(endDate)) {
-                log.info("Recurring todo {} ended (endDate={}), leaving reminder as-is", todo.getId(), endDate);
-                return;
-            }
-            lastOccurrence = next;
-            next = advance(next, repeat);
-        }
-
-        if (next == null || (endDate != null && next.isAfter(endDate))) {
-            log.info("Recurring todo {} has no future occurrence after endDate={}", todo.getId(), endDate);
-            return;
-        }
-
-
-        if (todo.getNotifiedAt() == null || todo.getNotifiedAt().isBefore(lastOccurrence)) {
-            log.info("Catch-up reminder for todo: {} - {}", todo.getId(), todo.getTitle());
-            dispatchChannels(todo, buildReminderMessageMarkdownV2(todo), buildReminderMessagePlain(todo));
-            LocalDateTime notifiedAt = LocalDateTime.now(ZoneOffset.UTC);
-            todoMapper.markReminderNotified(todo.getId(), notifiedAt);
-            todo.setNotifiedAt(notifiedAt);
-        }
-
-        LocalDateTime nextDue = advanceDueDate(todo.getDueDate(), todo.getReminder(), next);
-        todoMapper.advanceRecurringReminder(todo.getId(), next, nextDue, LocalDateTime.now(ZoneOffset.UTC));
-        log.info("Caught up recurring todo {}: next reminder at {}", todo.getId(), next);
-    }
-
-    /**
-     * After notify, move reminder (and due date) to the next future occurrence.
-     * Note: Does NOT check completed — recurring todos should always advance.
-     */
-    void advanceRecurringIfNeeded(Todo todo, LocalDateTime now) {
-        if (!isRecurring(todo) || todo.getReminder() == null) {
-            return;
-        }
-
-        String repeat = todo.getSchedule().getRepeat();
-        LocalDateTime endDate = todo.getSchedule().getEndDate();
-        LocalDateTime originalReminder = todo.getReminder();
-        LocalDateTime next = originalReminder;
-
-        do {
-            next = advance(next, repeat);
-            if (next == null) {
-                return;
-            }
-            if (endDate != null && next.isAfter(endDate)) {
-                log.info("Recurring todo {} reached endDate={}, not scheduling further", todo.getId(), endDate);
-                return;
-            }
-        } while (!next.isAfter(now));
-
-        LocalDateTime nextDue = advanceDueDate(todo.getDueDate(), originalReminder, next);
-        todoMapper.advanceRecurringReminder(todo.getId(), next, nextDue, LocalDateTime.now(ZoneOffset.UTC));
-        todo.setReminder(next);
-        todo.setDueDate(nextDue);
-        log.info("Advanced recurring todo {} ({}) to next reminder {}", todo.getId(), repeat, next);
     }
 
     static boolean isRecurring(Todo todo) {
-        if (todo.getSchedule() == null || todo.getSchedule().getRepeat() == null) {
-            return false;
-        }
-        String repeat = todo.getSchedule().getRepeat();
-        return "daily".equals(repeat) || "weekly".equals(repeat) || "monthly".equals(repeat);
+        return Recurrence.isRecurring(todo);
     }
 
     static LocalDateTime advance(LocalDateTime from, String repeat) {
-        if (from == null || repeat == null) {
-            return null;
-        }
-        return switch (repeat) {
-            case "daily" -> from.plusDays(1);
-            case "weekly" -> from.plusWeeks(1);
-            case "monthly" -> from.plusMonths(1);
-            default -> null;
-        };
+        return Recurrence.advance(from, repeat);
     }
 
-    /** Preserve gap between due date and reminder when advancing. */
     static LocalDateTime advanceDueDate(LocalDateTime dueDate, LocalDateTime oldReminder, LocalDateTime newReminder) {
-        if (dueDate == null || oldReminder == null || newReminder == null) {
-            return dueDate;
-        }
-        return dueDate.plus(Duration.between(oldReminder, newReminder));
+        return Recurrence.advanceDueDate(dueDate, oldReminder, newReminder);
     }
 
     private void dispatchChannels(Todo todo, String markdownMessage, String plainMessage) {

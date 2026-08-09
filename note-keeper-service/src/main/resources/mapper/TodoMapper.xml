@@ -172,29 +172,15 @@
         WHERE id = #{id}
     </update>
 
-    <!-- Recurring todos stuck after first notify (reminder never advanced).
-         Includes completed recurring todos — they should still advance to next occurrence. -->
-    <select id="findStuckRecurringReminders" resultMap="todoResultMap">
+    <select id="findRecurringActive" resultMap="todoResultMap">
         SELECT * FROM todo
-        WHERE reminder IS NOT NULL
-          AND reminder &lt;= #{now, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
-          AND notified_at IS NOT NULL
-          AND notified_at &gt;= reminder
-          AND schedule_repeat IN ('daily', 'weekly', 'monthly')
+        WHERE schedule_repeat IN ('daily', 'weekly', 'monthly')
+          AND reminder IS NOT NULL
           AND is_deleted = 0
           AND is_archived = 0
+          <if test="ownerId != null">AND owner_id = #{ownerId}</if>
         ORDER BY reminder ASC
     </select>
-
-    <!-- Advance reminder/due date for recurring todo; reset completed for next cycle -->
-    <update id="advanceRecurringReminder">
-        UPDATE todo SET
-            reminder = #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
-            due_date = #{dueDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
-            completed = 0,
-            updated_at = #{updatedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
-        WHERE id = #{id}
-    </update>
 
     <!-- Update shared_with field -->
     <update id="shareWithUser">
@@ -243,5 +229,11 @@
             updated_at = #{lastCompletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
         WHERE id = #{id}
     </update>
+
+    <delete id="deleteCompletionLogsSince">
+        DELETE FROM todo_completion_log
+        WHERE todo_id = #{todoId}
+          AND completed_at &gt;= #{since, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+    </delete>
 
 </mapper>

@@ -71,12 +71,14 @@ class TodoServiceTest {
 
     @Test
     void findAll_shouldCallMapper() {
+        when(todoMapper.findRecurringActive("owner-1")).thenReturn(Collections.emptyList());
         when(todoMapper.findAll(any(), any(), any(), any(), any(), any(), eq("owner-1")))
                 .thenReturn(Collections.emptyList());
 
         List<Todo> result = todoService.findAll(null, null, null, null, null, null, "owner-1");
 
         assertNotNull(result);
+        verify(todoMapper).findRecurringActive("owner-1");
         verify(todoMapper).findAll(null, null, null, null, null, null, "owner-1");
     }
 
@@ -269,5 +271,59 @@ class TodoServiceTest {
 
         assertNotNull(result);
         verify(todoMapper).findSharedWithMe("user-1");
+    }
+
+    private Todo dailyTodo(String id, String ownerId, LocalDateTime reminder) {
+        Todo todo = buildTodo(id, ownerId);
+        todo.setReminder(reminder);
+        todo.setCompleted(false);
+        Todo.Schedule schedule = new Todo.Schedule();
+        schedule.setRepeat("daily");
+        todo.setSchedule(schedule);
+        return todo;
+    }
+
+    @Test
+    void toggleComplete_recurring_logsAndSetsNextReminder() {
+        LocalDateTime now = Recurrence.nowUtc();
+        LocalDateTime reminder = now.withHour(15).withMinute(30).withSecond(0).withNano(0);
+        Todo todo = dailyTodo("todo-1", "owner-1", reminder);
+        when(todoMapper.findById("todo-1")).thenReturn(todo);
+
+        Todo result = todoService.toggleComplete("todo-1", "owner-1");
+
+        assertTrue(result.isCompleted());
+        assertEquals(reminder.toLocalDate().plusDays(1), result.getReminder().toLocalDate());
+        verify(todoMapper).insertCompletionLog(any());
+        verify(notificationService).notifyTodoUpdated("todo-1", "owner-1");
+    }
+
+    @Test
+    void toggleComplete_recurringAlreadyDoneToday_doesNotSimpleToggle() {
+        LocalDateTime now = Recurrence.nowUtc();
+        LocalDateTime slot = now.withHour(15).withMinute(30).withSecond(0).withNano(0);
+        Todo todo = dailyTodo("todo-1", "owner-1", slot.plusDays(1));
+        todo.setCompleted(true);
+        todo.setLastCompletedAt(now.toLocalDate().atTime(3, 10));
+        when(todoMapper.findById("todo-1")).thenReturn(todo);
+        when(todoMapper.findCompletionLog("todo-1")).thenReturn(Collections.emptyList());
+
+        Todo result = todoService.toggleComplete("todo-1", "owner-1");
+
+        assertFalse(result.isCompleted());
+        verify(todoMapper, never()).insertCompletionLog(any());
+        verify(todoMapper).deleteCompletionLogsSince(eq("todo-1"), any());
+    }
+
+    @Test
+    void findAll_rolloversRecurringBeforeQuery() {
+        when(todoMapper.findRecurringActive("owner-1")).thenReturn(Collections.emptyList());
+        when(todoMapper.findAll(null, null, null, null, false, false, "owner-1"))
+                .thenReturn(Collections.emptyList());
+
+        todoService.findAll(null, null, null, null, false, false, "owner-1");
+
+        verify(todoMapper).findRecurringActive("owner-1");
+        verify(todoMapper).findAll(null, null, null, null, false, false, "owner-1");
     }
 }

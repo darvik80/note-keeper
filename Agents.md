@@ -203,11 +203,12 @@ Sends via `https://api.telegram.org/bot{token}/sendMessage`.
 Config: `webhookUrl` + optional `secret` in `user_settings`.
 Auth: HMAC-SHA256 signature (timestamp + `\n` + secret), appended as query params.
 
-### Reminders (`ReminderService`)
-- `@Scheduled` every 60s → `findWithDueReminders` (`reminder <= now` AND `notified_at IS NULL OR notified_at < reminder`)
-- Sends to `notificationChannels` (default `telegram` if empty)
-- Sets `notified_at`, then for `schedule_repeat` in `daily|weekly|monthly` advances `reminder`/`due_date` to next future occurrence and resets `completed=0`
-- Stuck repair: `findStuckRecurringReminders` catches todos notified once but never advanced
+### Reminders (`ReminderService` + `Recurrence`)
+- Recurring todo = habit series: `completed` = done for **current period only**; `last_completed_at` + `todo_completion_log` = history
+- `reminder` time-of-day is the template; `Recurrence.rolloverIfNeeded` aligns `completed`/`reminder` to today (or this week/month) on read + every 60s
+- `@Scheduled` 60s: rollover all recurring → `findWithDueReminders` (`reminder <= now`, `notified_at` null or `< reminder`, `completed=0`)
+- Notify sets `notified_at` only — **does not** advance reminder
+- Complete (`toggleComplete`): log occurrence, `completed=true`, `reminder` → next slot
 - Note.reminder = display only — no notify path
 - On todo update: reminder change clears `notified_at`
 
@@ -222,7 +223,8 @@ Auth: HMAC-SHA256 signature (timestamp + `\n` + secret), appended as query param
 | Frontend build | `npm run build` must run before `mvn install` if building backend alone | Use root `mvn clean install` for full build |
 | SQLite concurrency | Single-connection pool; don't use SQLite in multi-instance deploy | Switch to PostgreSQL for production |
 | JWT claims | Subject = userId (UUID string), not email | Use `JwtService.extractUserId()`, not `extractUsername()` |
-| Recurring reminders | Mark `notified_at` without advancing `reminder` → fires once forever | Always advance via `ReminderService.advanceRecurringIfNeeded` after notify |
+| Recurring `completed` | `completed=1` stuck across days → strikethrough forever, no notify | `Recurrence.rolloverIfNeeded` — `completed` is current period only |
+| Recurring reminders | Advance reminder on notify **and** on complete → double-jump / fight | Notify only sets `notified_at`; complete/rollover moves `reminder` |
 | Reminder edit | Change `reminder` but leave old `notified_at` ≥ new time → never fires | Clear `notified_at` when reminder changes (`TodoService.update`) |
 
 ---
@@ -234,6 +236,7 @@ Auth: HMAC-SHA256 signature (timestamp + `\n` + secret), appended as query param
 | Spring Boot entry point | `note-keeper-service/src/main/java/.../NotekeeperApplication.java` |
 | Security config + JWT filter | `config/SecurityConfig.java`, `config/JwtAuthenticationFilter.java` |
 | Reminder scheduler | `service/ReminderService.java` |
+| Recurrence math | `service/Recurrence.java` |
 | DB schema (SQLite) | `note-keeper-service/src/main/resources/schema.sql` |
 | MyBatis XML mappers | `note-keeper-service/src/main/resources/mapper/*.xml` |
 | App config | `note-keeper-service/src/main/resources/application.yml` |

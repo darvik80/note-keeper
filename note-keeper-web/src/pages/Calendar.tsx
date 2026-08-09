@@ -25,6 +25,7 @@ type CalendarItem = {
   reminder?: Date | string;
   schedule?: { repeat: string; endDate?: string };
   lastCompletedAt?: Date | string;
+  createdAt?: Date | string;
 };
 
 /** Calendar page displaying todos and notes by date in a monthly grid view. */
@@ -56,7 +57,8 @@ export const Calendar: React.FC = () => {
           dueDate: t.dueDate,
           reminder: t.reminder,
           schedule: t.schedule,
-          lastCompletedAt: t.lastCompletedAt
+          lastCompletedAt: t.lastCompletedAt,
+          createdAt: t.createdAt
         }));
 
       const noteItems: CalendarItem[] = notes
@@ -164,9 +166,9 @@ export const Calendar: React.FC = () => {
           return true;
         }
       }
-      // Check recurring schedule (todos only) — use dueDate or reminder as start
-      if (item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none' && (item.dueDate || item.reminder)) {
-        const rawStart = parseLocalDate(item.dueDate || item.reminder);
+      // Recurring: expand from series start (createdAt), not rolled reminder
+      if (item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none' && (item.dueDate || item.reminder || item.createdAt)) {
+        const rawStart = parseLocalDate(item.createdAt) || parseLocalDate(item.dueDate || item.reminder);
         if (!rawStart) return false;
         const startDate = new Date(rawStart.getFullYear(), rawStart.getMonth(), rawStart.getDate());
 
@@ -303,6 +305,7 @@ export const Calendar: React.FC = () => {
                               className={`text-xs px-1 py-0.5 rounded truncate flex items-center gap-1 ${
                                 item.type === 'note' ? 'bg-blue-500/15 text-blue-400' :
                                 completedOnThisDate ? 'bg-green-500/15 text-green-400' :
+                                isRecurring ? 'bg-yellow-500/15 text-yellow-400' :
                                 item.completed ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'
                               }`}
                             >
@@ -352,9 +355,10 @@ export const Calendar: React.FC = () => {
                         {item.type === 'todo' && (
                           <span className={`text-xs px-2 py-1 rounded ${
                             completedOnSelectedDate ? 'bg-green-500/15 text-green-400' :
+                            isRecurring ? 'bg-yellow-500/15 text-yellow-400' :
                             item.completed ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'
                           }`}>
-                            {completedOnSelectedDate ? '✓ Completed' : item.completed ? 'Completed' : 'Pending'}
+                            {completedOnSelectedDate ? '✓ Completed' : isRecurring ? 'Pending' : item.completed ? 'Completed' : 'Pending'}
                           </span>
                         )}
                         {item.type === 'note' && (
