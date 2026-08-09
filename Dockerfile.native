@@ -6,6 +6,8 @@ WORKDIR /app
 USER root
 ARG NATIVE_IMAGE_THREADS=2
 # MaxRAM: native-image default is 75.6% of *detected* RAM (ignores docker --memory under BuildKit).
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 ENV MAVEN_OPTS="-Xmx512m"
 ENV NATIVE_IMAGE_JAVA_OPTIONS="-XX:MaxRAM=4g -Xmx1800m -XX:+UseSerialGC"
 ENV NATIVE_IMAGE_OPTIONS="-H:NumberOfThreads=${NATIVE_IMAGE_THREADS} --max-ram-percentage=70 -H:+ReportExceptionStackTraces"
@@ -19,24 +21,32 @@ RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline || true
 
 COPY . .
 # Compile service+web first (process-aot needs NotekeeperApplication.class), then AOT, then native-image.
+# Run native:compile with -f service pom so image lands in module target, not reactor /app.
 RUN chmod +x mvnw \
     && ./mvnw -B -DskipTests -pl note-keeper-service -am install \
-    && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -pl note-keeper-service spring-boot:process-aot \
-    && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -pl note-keeper-service native:compile \
+    && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -f note-keeper-service/pom.xml spring-boot:process-aot \
+    && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -Dnative.image.name=note-keeper \
+         -f note-keeper-service/pom.xml native:compile \
     || (echo "=== native-image / maven failure ===" \
-        && ls -la note-keeper-service/target || true \
-        && find note-keeper-service/target -name '*.txt' -o -name '*.log' 2>/dev/null | head -50 \
-        && find note-keeper-service/target -name '*native-image*' -o -name '*.log' | while read f; do echo "----- $f -----"; tail -n 80 "$f"; done \
+        && ls -la /app note-keeper-service/target || true \
+        && find /app -maxdepth 2 -type f \( -name 'note-keeper' -o -name 'xyz.crearts.note.keeper.NotekeeperApplication' -o -name 'lib*.so' \) -ls \
         && exit 1) \
-    && ls -la note-keeper-service/target \
-    && BIN="$(ls note-keeper-service/target/note-keeper note-keeper-service/target/note-keeper-service 2>/dev/null | head -n1)" \
-    && test -n "$BIN" && cp "$BIN" /note-keeper
+    && mkdir -p /native-out \
+    && BIN="$(find /app/note-keeper-service/target /app -maxdepth 1 -type f \
+         \( -name note-keeper -o -name note-keeper-service -o -name xyz.crearts.note.keeper.NotekeeperApplication \) \
+         ! -name '*.jar' ! -name '*.original' 2>/dev/null | head -n1)" \
+    && echo "NATIVE_BIN=$BIN" && test -n "$BIN" \
+    && cp "$BIN" /native-out/note-keeper \
+    && find "$(dirname "$BIN")" -maxdepth 1 -name 'lib*.so' -exec cp {} /native-out/ \; \
+    && chmod +x /native-out/note-keeper \
+    && ls -la /native-out
 
 FROM debian:bookworm-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY --from=build /note-keeper /app/note-keeper
+ENV LD_LIBRARY_PATH=/app
+COPY --from=build /native-out/ /app/
 EXPOSE 8080
 ENTRYPOINT ["/app/note-keeper", "-Djavax.xml.accessExternalDTD=all", "--spring.config.location=file:/app/etc/application.yaml"]

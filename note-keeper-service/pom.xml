@@ -146,6 +146,7 @@
 				<artifactId>native-maven-plugin</artifactId>
 				<configuration>
 					<imageName>note-keeper</imageName>
+					<outputDirectory>${project.build.directory}</outputDirectory>
 					<mainClass>xyz.crearts.note.keeper.NotekeeperApplication</mainClass>
 					<metadataRepository>
 						<enabled>true</enabled>
