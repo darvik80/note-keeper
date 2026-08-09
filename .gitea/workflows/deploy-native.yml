@@ -30,7 +30,11 @@ jobs:
       - name: Build native docker image
         run: |
           export DOCKER_API_VERSION=1.43
+          NCPU=$(nproc)
+          CPU_QUOTA=$(awk -v n="$NCPU" 'BEGIN{printf "%d", n*70000}')
+          echo "CPU cap: 70% of ${NCPU} cores (quota=${CPU_QUOTA}/100000)"
           docker build --memory=4g --memory-swap=4g \
+            --cpu-period=100000 --cpu-quota="$CPU_QUOTA" \
             -f Dockerfile.native -t localhost/$IMAGE_NAME:latest .
 
       - name: Restart note-keeper-native
@@ -38,10 +42,14 @@ jobs:
           SPRING_PROFILE: ${{ github.event.inputs.spring_profile || 'sqlite' }}
         run: |
           export DOCKER_API_VERSION=1.43
+          NCPU=$(nproc)
+          CPU_LIMIT=$(awk -v n="$NCPU" 'BEGIN{printf "%.2f", n*0.7}')
           mkdir -p /volume1/docker/$CONTAINER_NAME/var
           docker rm -f $CONTAINER_NAME || true
           docker run \
             -d -p $TARGET_PORT:8080 \
+            --memory=4g --memory-swap=4g \
+            --cpus="$CPU_LIMIT" \
             -e SPRING_PROFILES_ACTIVE="$SPRING_PROFILE" \
             --volume /volume1/docker/note-keeper/etc:/app/etc:ro \
             --volume /volume1/docker/$CONTAINER_NAME/var:/app/var:rw \
