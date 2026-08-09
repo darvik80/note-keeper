@@ -30,12 +30,15 @@ jobs:
       - name: Build native docker image
         run: |
           export DOCKER_API_VERSION=1.43
+          # BuildKit ignores --memory/--cpu-quota on docker build. Classic builder honors them.
+          export DOCKER_BUILDKIT=0
           NCPU=$(nproc)
           CPU_QUOTA=$(awk -v n="$NCPU" 'BEGIN{printf "%d", n*70000}')
-          echo "CPU cap: 70% of ${NCPU} cores (quota=${CPU_QUOTA}/100000)"
-          # 4g RAM + 4g swap: native-image RSS spikes beyond heap, swap avoids SIGKILL 137
+          NI_THREADS=$(awk -v n="$NCPU" 'BEGIN{t=int(n*0.7); if(t<1) t=1; print t}')
+          echo "CPU cap: 70% of ${NCPU} cores (quota=${CPU_QUOTA}/100000, native-image threads=${NI_THREADS})"
           docker build --memory=4g --memory-swap=8g \
             --cpu-period=100000 --cpu-quota="$CPU_QUOTA" \
+            --build-arg NATIVE_IMAGE_THREADS="$NI_THREADS" \
             -f Dockerfile.native -t localhost/$IMAGE_NAME:latest .
 
       - name: Restart note-keeper-native
