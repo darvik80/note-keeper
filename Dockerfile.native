@@ -1,5 +1,6 @@
 # Native image: UI + API in one binary. Needs ~8GB RAM for native-image.
-FROM ghcr.io/graalvm/native-image-community:25 AS build
+# Pin ol9: tag :25 tracks OL10 (glibc x86-64-v3). NAS/Gitea runners are often v2.
+FROM ghcr.io/graalvm/native-image-community:25-ol9 AS build
 WORKDIR /app
 USER root
 
