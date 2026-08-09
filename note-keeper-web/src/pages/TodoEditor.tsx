@@ -56,7 +56,8 @@ export const TodoEditor: React.FC = () => {
           if (cancelled) return;
           if (t && t.id) {
             setTodo(t);
-            setIsPreview(true);
+            const isBlankNew = (!t.title?.trim() || t.title === 'New Todo') && !t.description?.trim();
+            setIsPreview(!isBlankNew);
           } else {
             setTodo(emptyTodo());
             setIsPreview(false);
