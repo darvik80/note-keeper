@@ -11,15 +11,19 @@ COPY note-keeper-web/pom.xml note-keeper-web/
 RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline || true
 
 COPY . .
-# package -am: build web jar first, then service native (CLI native:compile skips reactor install)
+# Boot 4.1 native profile does not bind native-image to package. Install web, then native:compile.
 RUN chmod +x mvnw \
-    && ./mvnw -B -Pnative -DskipTests -pl note-keeper-service -am package
+    && ./mvnw -B -DskipTests -pl note-keeper-web -am install \
+    && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -pl note-keeper-service native:compile \
+    && ls -la note-keeper-service/target \
+    && BIN="$(ls note-keeper-service/target/note-keeper note-keeper-service/target/note-keeper-service 2>/dev/null | head -n1)" \
+    && test -n "$BIN" && cp "$BIN" /note-keeper
 
 FROM debian:bookworm-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY --from=build /app/note-keeper-service/target/note-keeper /app/note-keeper
+COPY --from=build /note-keeper /app/note-keeper
 EXPOSE 8080
 ENTRYPOINT ["/app/note-keeper", "-Djavax.xml.accessExternalDTD=all", "--spring.config.location=file:/app/etc/application.yaml"]
