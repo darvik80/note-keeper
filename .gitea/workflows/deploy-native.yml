@@ -33,7 +33,8 @@ jobs:
           NCPU=$(nproc)
           CPU_QUOTA=$(awk -v n="$NCPU" 'BEGIN{printf "%d", n*70000}')
           echo "CPU cap: 70% of ${NCPU} cores (quota=${CPU_QUOTA}/100000)"
-          docker build --memory=4g --memory-swap=4g \
+          # 4g RAM + 4g swap: native-image RSS spikes beyond heap, swap avoids SIGKILL 137
+          docker build --memory=4g --memory-swap=8g \
             --cpu-period=100000 --cpu-quota="$CPU_QUOTA" \
             -f Dockerfile.native -t localhost/$IMAGE_NAME:latest .
 

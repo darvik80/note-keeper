@@ -1,10 +1,13 @@
-# Native image: UI + API in one binary. Cap heap for 4GB docker --memory.
+# Native image: UI + API in one binary.
 # Pin ol9: tag :25 tracks OL10 (glibc x86-64-v3). NAS/Gitea runners are often v2.
+# Fit ~4GB cgroup: small Maven heap + serial GC + few native-image threads.
 FROM ghcr.io/graalvm/native-image-community:25-ol9 AS build
 WORKDIR /app
 USER root
-ENV MAVEN_OPTS="-Xmx768m"
-ENV NATIVE_IMAGE_JAVA_OPTIONS="-Xmx2800m"
+ENV MAVEN_OPTS="-Xmx512m"
+ENV NATIVE_IMAGE_JAVA_OPTIONS="-Xmx1800m -XX:+UseSerialGC"
+ENV NATIVE_IMAGE_OPTIONS="-H:NumberOfThreads=2 -H:+ReportExceptionStackTraces"
+ENV JWT_SECRET=aot-dummy-secret-key-must-be-32-bytes!!
 
 COPY mvnw pom.xml ./
 COPY .mvn .mvn
@@ -13,10 +16,16 @@ COPY note-keeper-web/pom.xml note-keeper-web/
 RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline || true
 
 COPY . .
-# Boot 4.1 native profile does not bind native-image to package. Install web, then native:compile.
+# Boot 4.1: install web, AOT, then native:compile (package does not run native-image).
 RUN chmod +x mvnw \
     && ./mvnw -B -DskipTests -pl note-keeper-web -am install \
-    && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -Dnative.image.maxHeap=2800m -pl note-keeper-service native:compile \
+    && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -pl note-keeper-service spring-boot:process-aot \
+    && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -pl note-keeper-service native:compile \
+    || (echo "=== native-image / maven failure ===" \
+        && ls -la note-keeper-service/target || true \
+        && find note-keeper-service/target -name '*.txt' -o -name '*.log' 2>/dev/null | head -50 \
+        && find note-keeper-service/target -name '*native-image*' -o -name '*.log' | while read f; do echo "----- $f -----"; tail -n 80 "$f"; done \
+        && exit 1) \
     && ls -la note-keeper-service/target \
     && BIN="$(ls note-keeper-service/target/note-keeper note-keeper-service/target/note-keeper-service 2>/dev/null | head -n1)" \
     && test -n "$BIN" && cp "$BIN" /note-keeper
