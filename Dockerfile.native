@@ -11,8 +11,9 @@ COPY note-keeper-web/pom.xml note-keeper-web/
 RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline || true
 
 COPY . .
+# package -am: build web jar first, then service native (CLI native:compile skips reactor install)
 RUN chmod +x mvnw \
-    && ./mvnw -B -Pnative -DskipTests native:compile
+    && ./mvnw -B -Pnative -DskipTests -pl note-keeper-service -am package
 
 FROM debian:bookworm-slim
 RUN apt-get update \
