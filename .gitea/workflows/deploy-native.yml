@@ -1,0 +1,47 @@
+name: Deploy native on NAS
+
+on:
+  workflow_dispatch:
+    inputs:
+      spring_profile:
+        description: Spring profile
+        required: true
+        default: sqlite
+        type: choice
+        options:
+          - sqlite
+          - postgresql
+  push:
+    branches: [ "native" ]
+
+env:
+  TARGET_PORT: 9082
+  CONTAINER_NAME: note-keeper-native
+  IMAGE_NAME: note-keeper-native
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build native docker image
+        run: |
+          export DOCKER_API_VERSION=1.43
+          docker build -f Dockerfile.native -t localhost/$IMAGE_NAME:latest .
+
+      - name: Restart note-keeper-native
+        env:
+          SPRING_PROFILE: ${{ github.event.inputs.spring_profile || 'sqlite' }}
+        run: |
+          export DOCKER_API_VERSION=1.43
+          mkdir -p /volume1/docker/$CONTAINER_NAME/var
+          docker rm -f $CONTAINER_NAME || true
+          docker run \
+            -d -p $TARGET_PORT:8080 \
+            -e SPRING_PROFILES_ACTIVE="$SPRING_PROFILE" \
+            --volume /volume1/docker/note-keeper/etc:/app/etc:ro \
+            --volume /volume1/docker/$CONTAINER_NAME/var:/app/var:rw \
+            --name $CONTAINER_NAME localhost/$IMAGE_NAME:latest

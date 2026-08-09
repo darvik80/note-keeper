@@ -12,6 +12,12 @@
 	<name>note-keeper-service</name>
 	<description>NoteKeeper backend service (Spring Boot + MyBatis + SQLite)</description>
 
+	<properties>
+		<skipNativeBuild>false</skipNativeBuild>
+		<skipNativeTests>false</skipNativeTests>
+		<spring-boot.aot.skip>false</spring-boot.aot.skip>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -120,6 +126,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<mainClass>xyz.crearts.note.keeper.NotekeeperApplication</mainClass>
 					<jvmArguments>
 						--enable-native-access=ALL-UNNAMED
 						--sun-misc-unsafe-memory-access=allow
@@ -139,10 +146,14 @@
 				<artifactId>native-maven-plugin</artifactId>
 				<configuration>
 					<imageName>note-keeper</imageName>
+					<mainClass>xyz.crearts.note.keeper.NotekeeperApplication</mainClass>
+					<metadataRepository>
+						<enabled>true</enabled>
+					</metadataRepository>
 					<buildArgs>
-						<buildArg>--enable-url-protocols=http,https</buildArg>
+						<buildArg>--enable-url-protocols=http,https,jar</buildArg>
 						<buildArg>-Djavax.xml.accessExternalDTD=all</buildArg>
-						<buildArg>--features=org.sqlite.nativeimage.SqliteNativeImageFeature</buildArg>
+						<buildArg>--features=org.sqlite.nativeimage.SqliteJdbcFeature</buildArg>
 					</buildArgs>
 				</configuration>
 			</plugin>

@@ -81,8 +81,10 @@ npm run build    # outputs to dist/, copied into JAR by Maven
 ### GraalVM native image
 Requires GraalVM 25+ (`native-image` on PATH, `JAVA_HOME`/`GRAALVM_HOME` set). Windows: x64 Native Tools Command Prompt.
 
+One binary = frontend static + backend. From repo root:
+
 ```bash
-mvn -pl note-keeper-service -am -Pnative native:compile
+mvn -Pnative native:compile
 # binary: note-keeper-service/target/note-keeper
 ./note-keeper-service/target/note-keeper -Djavax.xml.accessExternalDTD=all
 ```
@@ -91,6 +93,10 @@ Docker image (Buildpacks, JDK 25+):
 ```bash
 mvn -pl note-keeper-service -am -Pnative spring-boot:build-image
 ```
+
+CI image: `docker build -f Dockerfile.native -t note-keeper-native .`
+
+Gitea NAS: `.gitea/workflows/deploy-native.yml` — `workflow_dispatch` or branch `native`. Container `note-keeper-native` port **9082**. JVM `deploy.yml` on master unchanged.
 
 ---
 
@@ -240,7 +246,7 @@ Auth: HMAC-SHA256 signature (timestamp + `\n` + secret), appended as query param
 | Recurring `completed` | `completed=1` stuck across days → strikethrough forever, no notify | `Recurrence.rolloverIfNeeded` — `completed` is current period only |
 | Recurring reminders | Advance reminder on notify **and** on complete → double-jump / fight | Notify only sets `notified_at`; complete/rollover moves `reminder` |
 | Reminder edit | Change `reminder` but leave old `notified_at` ≥ new time → never fires | Clear `notified_at` when reminder changes (`TodoService.update`) |
-| GraalVM native | MyBatis XML DTD / SQLite JNI missing at runtime | Run with `-Djavax.xml.accessExternalDTD=all`; plugin uses `SqliteNativeImageFeature` |
+| GraalVM native | MyBatis XML DTD / SQLite JNI missing at runtime | Run with `-Djavax.xml.accessExternalDTD=all`; plugin uses `SqliteJdbcFeature` |
 
 ---
 

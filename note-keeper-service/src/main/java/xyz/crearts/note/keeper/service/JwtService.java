@@ -22,6 +22,9 @@ public class JwtService {
 
     @PostConstruct
     void validateConfiguration() {
+        if (Boolean.getBoolean("spring.aot.processing")) {
+            return;
+        }
         if (jwtSecret == null || jwtSecret.isBlank()) {
             throw new IllegalStateException(
                     "JWT secret is not configured. Set the JWT_SECRET environment variable.");

@@ -14,6 +14,16 @@ import xyz.crearts.note.keeper.dto.NoteTemplateInput;
 import xyz.crearts.note.keeper.dto.SavedQueryInput;
 import xyz.crearts.note.keeper.dto.SearchResult;
 import xyz.crearts.note.keeper.dto.TodoInput;
+import xyz.crearts.note.keeper.mapper.AttachmentMapper;
+import xyz.crearts.note.keeper.mapper.NoteHistoryMapper;
+import xyz.crearts.note.keeper.mapper.NoteMapper;
+import xyz.crearts.note.keeper.mapper.SavedQueryMapper;
+import xyz.crearts.note.keeper.mapper.TemplateMapper;
+import xyz.crearts.note.keeper.mapper.TodoMapper;
+import xyz.crearts.note.keeper.mapper.UserCredentialsMapper;
+import xyz.crearts.note.keeper.mapper.UserMapper;
+import xyz.crearts.note.keeper.mapper.UserSettingsMapper;
+import xyz.crearts.note.keeper.mapper.UserTagMapper;
 import xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler;
 import xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler;
 import xyz.crearts.note.keeper.model.Attachment;
@@ -39,6 +49,7 @@ public class NativeRuntimeHints implements RuntimeHintsRegistrar {
         hints.resources().registerPattern("schema-postgresql.sql");
         hints.resources().registerPattern("data.sql");
         hints.resources().registerPattern("data-postgresql.sql");
+        hints.resources().registerPattern("static/*");
         hints.resources().registerPattern("static/**");
         hints.resources().registerPattern("application.yml");
         hints.resources().registerPattern("application-*.yml");
@@ -56,6 +67,16 @@ public class NativeRuntimeHints implements RuntimeHintsRegistrar {
                 LocalDateTimeTypeHandler.class, StringListTypeHandler.class
         }) {
             hints.reflection().registerType(type, members);
+        }
+
+        for (Class<?> mapper : new Class<?>[] {
+                NoteMapper.class, TodoMapper.class, AttachmentMapper.class,
+                UserMapper.class, UserCredentialsMapper.class, UserSettingsMapper.class,
+                UserTagMapper.class, TemplateMapper.class, SavedQueryMapper.class,
+                NoteHistoryMapper.class
+        }) {
+            hints.proxies().registerJdkProxy(mapper);
+            hints.reflection().registerType(mapper, members);
         }
     }
 }

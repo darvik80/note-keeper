@@ -1,0 +1,23 @@
+# Native image: UI + API in one binary. Needs ~8GB RAM for native-image.
+FROM ghcr.io/graalvm/native-image-community:25 AS build
+WORKDIR /app
+USER root
+
+COPY mvnw pom.xml ./
+COPY .mvn .mvn
+COPY note-keeper-service/pom.xml note-keeper-service/
+COPY note-keeper-web/pom.xml note-keeper-web/
+RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline || true
+
+COPY . .
+RUN chmod +x mvnw \
+    && ./mvnw -B -Pnative -DskipTests native:compile
+
+FROM debian:bookworm-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /app/note-keeper-service/target/note-keeper /app/note-keeper
+EXPOSE 8080
+ENTRYPOINT ["/app/note-keeper", "-Djavax.xml.accessExternalDTD=all", "--spring.config.location=file:/app/etc/application.yaml"]

@@ -27,6 +27,10 @@
 		<node.version>v26.1.0</node.version>
 		<npm.version>11.13.0</npm.version>
 		<frontend-maven-plugin.version>1.15.1</frontend-maven-plugin.version>
+		<!-- native:compile / process-aot from reactor root: only service is the app -->
+		<skipNativeBuild>true</skipNativeBuild>
+		<skipNativeTests>true</skipNativeTests>
+		<spring-boot.aot.skip>true</spring-boot.aot.skip>
 	</properties>
 
 	<dependencyManagement>

@@ -27,8 +27,6 @@ On a machine that already has working SSH to the node:
 ```bash
 # dedicated key (recommended)
 ssh-keygen -t ed25519 -f ./gitea-k3s-deploy -N "" -C "gitea-note-keeper-k3s"
-
-# install public key on the node
 ssh-copy-id -i ./gitea-k3s-deploy.pub darvik@192.168.1.103
 
 # put PRIVATE key into Gitea secret K3S_SSH_KEY_B64

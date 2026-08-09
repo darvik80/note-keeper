@@ -196,8 +196,10 @@ Frontend served by backend at `http://localhost:8080`
 
 Needs GraalVM 25+ with `native-image`. On Windows use x64 Native Tools Command Prompt.
 
+One binary = React UI + Spring API. From repo root:
+
 ```bash
-mvn -pl note-keeper-service -am -Pnative native:compile
+mvn -Pnative native:compile
 ./note-keeper-service/target/note-keeper -Djavax.xml.accessExternalDTD=all
 ```
 
@@ -206,6 +208,19 @@ Docker image (Buildpacks, JDK 25+):
 ```bash
 mvn -pl note-keeper-service -am -Pnative spring-boot:build-image
 ```
+
+CI image (multi-stage GraalVM):
+
+```bash
+docker build -f Dockerfile.native -t note-keeper-native .
+docker run -d -p 9082:8080 \
+  -e SPRING_PROFILES_ACTIVE=sqlite \
+  -v /volume1/docker/note-keeper/etc:/app/etc:ro \
+  -v /volume1/docker/note-keeper-native/var:/app/var:rw \
+  --name note-keeper-native note-keeper-native
+```
+
+Gitea: **Deploy native on NAS** (`workflow_dispatch` or branch `native`). JVM `deploy.yml` on `master` unchanged.
 
 ## API Documentation
 
