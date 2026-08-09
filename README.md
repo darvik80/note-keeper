@@ -26,7 +26,7 @@ Open-source Evernote alternative with powerful features for notes and todos mana
 
 ### Backend
 - Java 25
-- Spring Boot 3.5
+- Spring Boot 4.1
 - MyBatis
 - SQLite (default) / PostgreSQL
 - Maven
@@ -191,6 +191,21 @@ mvn clean install -pl note-keeper-web
 ```
 
 Frontend served by backend at `http://localhost:8080`
+
+### GraalVM native image
+
+Needs GraalVM 25+ with `native-image`. On Windows use x64 Native Tools Command Prompt.
+
+```bash
+mvn -pl note-keeper-service -am -Pnative native:compile
+./note-keeper-service/target/note-keeper -Djavax.xml.accessExternalDTD=all
+```
+
+Docker image (Buildpacks, JDK 25+):
+
+```bash
+mvn -pl note-keeper-service -am -Pnative spring-boot:build-image
+```
 
 ## API Documentation
 

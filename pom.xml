@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.13</version>
+		<version>4.1.0</version>
 		<relativePath/>
 	</parent>
 	<groupId>xyz.crearts</groupId>
@@ -21,8 +21,8 @@
 	</modules>
 
 	<properties>
-		<java.version>26</java.version>
-		<mybatis-spring-boot.version>3.0.4</mybatis-spring-boot.version>
+		<java.version>25</java.version>
+		<mybatis-spring-boot.version>4.1.0</mybatis-spring-boot.version>
 		<sqlite-jdbc.version>3.47.1.0</sqlite-jdbc.version>
 		<node.version>v26.1.0</node.version>
 		<npm.version>11.13.0</npm.version>

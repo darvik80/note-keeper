@@ -7,7 +7,7 @@ Reference guide for AI agents working on this codebase.
 ## Project Overview
 
 Full-stack note-taking application. Multi-module Maven project:
-- **note-keeper-service** — Spring Boot 3.5 backend (Java 21, MyBatis, SQLite/PostgreSQL)
+- **note-keeper-service** — Spring Boot 4.1 backend (Java 25, MyBatis, SQLite/PostgreSQL, GraalVM native)
 - **note-keeper-web** — React 18 + TypeScript frontend (Tailwind CSS, Webpack)
 
 Frontend is bundled into the backend JAR as static resources.
@@ -76,6 +76,20 @@ npm run dev
 ```bash
 cd note-keeper-web
 npm run build    # outputs to dist/, copied into JAR by Maven
+```
+
+### GraalVM native image
+Requires GraalVM 25+ (`native-image` on PATH, `JAVA_HOME`/`GRAALVM_HOME` set). Windows: x64 Native Tools Command Prompt.
+
+```bash
+mvn -pl note-keeper-service -am -Pnative native:compile
+# binary: note-keeper-service/target/note-keeper
+./note-keeper-service/target/note-keeper -Djavax.xml.accessExternalDTD=all
+```
+
+Docker image (Buildpacks, JDK 25+):
+```bash
+mvn -pl note-keeper-service -am -Pnative spring-boot:build-image
 ```
 
 ---
@@ -226,6 +240,7 @@ Auth: HMAC-SHA256 signature (timestamp + `\n` + secret), appended as query param
 | Recurring `completed` | `completed=1` stuck across days → strikethrough forever, no notify | `Recurrence.rolloverIfNeeded` — `completed` is current period only |
 | Recurring reminders | Advance reminder on notify **and** on complete → double-jump / fight | Notify only sets `notified_at`; complete/rollover moves `reminder` |
 | Reminder edit | Change `reminder` but leave old `notified_at` ≥ new time → never fires | Clear `notified_at` when reminder changes (`TodoService.update`) |
+| GraalVM native | MyBatis XML DTD / SQLite JNI missing at runtime | Run with `-Djavax.xml.accessExternalDTD=all`; plugin uses `SqliteNativeImageFeature` |
 
 ---
 
@@ -237,6 +252,7 @@ Auth: HMAC-SHA256 signature (timestamp + `\n` + secret), appended as query param
 | Security config + JWT filter | `config/SecurityConfig.java`, `config/JwtAuthenticationFilter.java` |
 | Reminder scheduler | `service/ReminderService.java` |
 | Recurrence math | `service/Recurrence.java` |
+| GraalVM / AOT hints | `config/NativeRuntimeHints.java`, `config/MyBatisNativeConfiguration.java` |
 | DB schema (SQLite) | `note-keeper-service/src/main/resources/schema.sql` |
 | MyBatis XML mappers | `note-keeper-service/src/main/resources/mapper/*.xml` |
 | App config | `note-keeper-service/src/main/resources/application.yml` |
