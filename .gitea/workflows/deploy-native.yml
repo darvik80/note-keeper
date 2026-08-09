@@ -30,7 +30,8 @@ jobs:
       - name: Build native docker image
         run: |
           export DOCKER_API_VERSION=1.43
-          docker build -f Dockerfile.native -t localhost/$IMAGE_NAME:latest .
+          docker build --memory=4g --memory-swap=4g \
+            -f Dockerfile.native -t localhost/$IMAGE_NAME:latest .
 
       - name: Restart note-keeper-native
         env:

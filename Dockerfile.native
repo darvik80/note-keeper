@@ -1,8 +1,10 @@
-# Native image: UI + API in one binary. Needs ~8GB RAM for native-image.
+# Native image: UI + API in one binary. Cap heap for 4GB docker --memory.
 # Pin ol9: tag :25 tracks OL10 (glibc x86-64-v3). NAS/Gitea runners are often v2.
 FROM ghcr.io/graalvm/native-image-community:25-ol9 AS build
 WORKDIR /app
 USER root
+ENV MAVEN_OPTS="-Xmx768m"
+ENV NATIVE_IMAGE_JAVA_OPTIONS="-Xmx2800m"
 
 COPY mvnw pom.xml ./
 COPY .mvn .mvn
@@ -14,7 +16,7 @@ COPY . .
 # Boot 4.1 native profile does not bind native-image to package. Install web, then native:compile.
 RUN chmod +x mvnw \
     && ./mvnw -B -DskipTests -pl note-keeper-web -am install \
-    && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -pl note-keeper-service native:compile \
+    && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -Dnative.image.maxHeap=2800m -pl note-keeper-service native:compile \
     && ls -la note-keeper-service/target \
     && BIN="$(ls note-keeper-service/target/note-keeper note-keeper-service/target/note-keeper-service 2>/dev/null | head -n1)" \
     && test -n "$BIN" && cp "$BIN" /note-keeper
