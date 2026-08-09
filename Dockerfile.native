@@ -16,9 +16,9 @@ COPY note-keeper-web/pom.xml note-keeper-web/
 RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline || true
 
 COPY . .
-# Boot 4.1: install web, AOT, then native:compile (package does not run native-image).
+# Compile service+web first (process-aot needs NotekeeperApplication.class), then AOT, then native-image.
 RUN chmod +x mvnw \
-    && ./mvnw -B -DskipTests -pl note-keeper-web -am install \
+    && ./mvnw -B -DskipTests -pl note-keeper-service -am install \
     && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -pl note-keeper-service spring-boot:process-aot \
     && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -pl note-keeper-service native:compile \
     || (echo "=== native-image / maven failure ===" \
