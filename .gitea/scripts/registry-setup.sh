@@ -4,20 +4,10 @@
 set -euo pipefail
 
 REGISTRY="${REGISTRY:?REGISTRY host:port required}"
-REGISTRY_IP="${REGISTRY_IP:-192.168.1.103}"
 
 REGISTRY="${REGISTRY#http://}"
 REGISTRY="${REGISTRY#https://}"
 HOST="${REGISTRY%%:*}"
-
-if ! getent hosts "$HOST" >/dev/null 2>&1; then
-  if grep -qE "(^|[[:space:]])${HOST}([[:space:]]|$)" /etc/hosts 2>/dev/null; then
-    :
-  else
-    echo "$REGISTRY_IP $HOST" | sudo tee -a /etc/hosts >/dev/null
-    echo "hosts: $REGISTRY_IP $HOST"
-  fi
-fi
 
 merge_insecure() {
   local conf="$1"
