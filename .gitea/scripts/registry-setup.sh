@@ -6,7 +6,6 @@ set -euo pipefail
 REGISTRY="${REGISTRY:?REGISTRY host:port required}"
 
 REGISTRY="${REGISTRY#http://}"
-REGISTRY="${REGISTRY#https://}"
 HOST="${REGISTRY%%:*}"
 
 merge_insecure() {
