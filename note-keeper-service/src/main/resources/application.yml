@@ -21,6 +21,10 @@ spring:
 
 # Application configuration
 app:
+  # Public site origin for OAuth redirects. Empty = infer from X-Forwarded-*.
+  # Synology RP often sends https + port 80; set this to skip guesswork:
+  # APP_PUBLIC_BASE_URL=https://note.darvik.synology.me
+  public-base-url: ${APP_PUBLIC_BASE_URL:}
   storage:
     base-dir: ${user.dir}/.data
     attachments-dir: ${app.storage.base-dir}/attachments

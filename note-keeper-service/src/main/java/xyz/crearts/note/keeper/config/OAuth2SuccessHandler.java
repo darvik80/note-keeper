@@ -4,9 +4,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import xyz.crearts.note.keeper.dto.AuthResponse;
@@ -15,6 +16,7 @@ import xyz.crearts.note.keeper.service.AuthService;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 /**
  * Handles successful Google OAuth2 login by generating a JWT token
@@ -27,9 +29,12 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private static final Logger log = LoggerFactory.getLogger(OAuth2SuccessHandler.class);
 
     private final AuthService authService;
+    private final String publicBaseUrl;
 
-    public OAuth2SuccessHandler(AuthService authService) {
+    public OAuth2SuccessHandler(AuthService authService,
+                                @Value("${app.public-base-url:}") String publicBaseUrl) {
         this.authService = authService;
+        this.publicBaseUrl = publicBaseUrl == null ? "" : publicBaseUrl.replaceAll("/+$", "");
     }
 
     @Override
@@ -44,33 +49,84 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         log.info("Google OAuth2 success for user: {}", email);
 
-        // Create or update user and generate JWT
         AuthResponse authResponse = authService.loginWithGoogle(googleId, email, name, picture);
         String token = authResponse.getToken();
 
-        // Build absolute redirect URL respecting reverse proxy headers
-        String scheme = request.getHeader("X-Forwarded-Proto");
-        if (scheme == null || scheme.isEmpty()) {
+        String baseUrl = resolveBaseUrl(request);
+        String redirectUrl = baseUrl + "/#/login?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
+        log.info("OAuth2 redirect URL: {}/#/login?token=***", baseUrl);
+        response.sendRedirect(redirectUrl);
+    }
+
+    /**
+     * Public URL after Google login. Synology Reverse Proxy often sends
+     * {@code X-Forwarded-Proto: https} + port {@code 80} → {@code https://host:80}.
+     */
+    String resolveBaseUrl(HttpServletRequest request) {
+        if (!publicBaseUrl.isBlank()) {
+            return publicBaseUrl;
+        }
+
+        String scheme = firstHop(request.getHeader("X-Forwarded-Proto"));
+        if (scheme == null || scheme.isBlank()) {
             scheme = request.getScheme();
         }
-//        // Force HTTPS when behind reverse proxy on non-standard port
-//        if ("http".equalsIgnoreCase(scheme) && request.getServerPort() != 8080) {
-//            scheme = "https";
-//        }
+        scheme = scheme.toLowerCase(Locale.ROOT);
 
-        String host = request.getHeader("X-Forwarded-Host");
-        if (host == null || host.isEmpty()) {
-            host = request.getServerName();
-            int port = request.getServerPort();
-            if (("https".equalsIgnoreCase(scheme) && port != 443)
-                    || ("http".equalsIgnoreCase(scheme) && port != 80)) {
-                host = host + ":" + port;
+        String hostHeader = firstHop(request.getHeader("X-Forwarded-Host"));
+        String host;
+        Integer port = null;
+
+        if (hostHeader != null && !hostHeader.isBlank()) {
+            int colon = hostHeader.lastIndexOf(':');
+            if (colon > 0 && hostHeader.indexOf(']') < 0) {
+                host = hostHeader.substring(0, colon);
+                port = parsePort(hostHeader.substring(colon + 1));
+            } else {
+                host = hostHeader;
             }
+        } else {
+            host = request.getServerName();
+            port = request.getServerPort();
         }
 
-        String baseUrl = scheme + "://" + host;
-        String redirectUrl = baseUrl + "/#/login?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
-        log.info("OAuth2 redirect URL: {}", redirectUrl);
-        response.sendRedirect(redirectUrl);
+        if (port == null) {
+            port = parsePort(firstHop(request.getHeader("X-Forwarded-Port")));
+        }
+        if (port == null) {
+            port = request.getServerPort();
+        }
+
+        if (port != null && !isImplicitPublicPort(scheme, port)) {
+            return scheme + "://" + host + ":" + port;
+        }
+        return scheme + "://" + host;
+    }
+
+    /** https+80 is Synology RP bug; browsers treat https default as 443. */
+    static boolean isImplicitPublicPort(String scheme, int port) {
+        if ("https".equals(scheme)) {
+            return port == 443 || port == 80;
+        }
+        return "http".equals(scheme) && port == 80;
+    }
+
+    private static String firstHop(String header) {
+        if (header == null || header.isBlank()) {
+            return null;
+        }
+        int comma = header.indexOf(',');
+        return (comma < 0 ? header : header.substring(0, comma)).trim();
+    }
+
+    private static Integer parsePort(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }
