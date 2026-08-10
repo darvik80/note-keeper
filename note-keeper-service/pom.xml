@@ -156,6 +156,7 @@
 						<buildArg>-Djavax.xml.accessExternalDTD=all</buildArg>
 						<buildArg>--features=org.sqlite.nativeimage.SqliteJdbcFeature</buildArg>
 						<buildArg>-H:+ReportExceptionStackTraces</buildArg>
+						<buildArg>-march=x86-64-v2</buildArg>
 					</buildArgs>
 				</configuration>
 			</plugin>
