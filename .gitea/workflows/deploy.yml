@@ -44,11 +44,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup HTTP registry
-        run: |
-          export DOCKER_API_VERSION=1.43
-          bash .gitea/scripts/registry-setup.sh
-
       - name: Login to registry
         env:
           REGISTRY_USER: ${{ secrets.REGISTRY_USER }}

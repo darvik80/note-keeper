@@ -24,8 +24,7 @@ on:
 env:
   TARGET_PORT: 9084
   CONTAINER_NAME: note-keeper-native
-  REGISTRY: devops.local:5000
-  REGISTRY_IP: 192.168.1.103
+  REGISTRY: 192.168.1.103
   IMAGE_NAME: note-keeper-native
 
 jobs:
@@ -35,9 +34,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup HTTP registry
-        run: bash .gitea/scripts/registry-setup.sh
 
       - name: Login to registry
         env:
@@ -84,11 +80,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup HTTP registry
-        run: |
-          export DOCKER_API_VERSION=1.43
-          bash .gitea/scripts/registry-setup.sh
 
       - name: Login to registry
         env:
