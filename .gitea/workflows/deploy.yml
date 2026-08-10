@@ -9,7 +9,7 @@ on:
 env:
   TARGET_PORT: 9081
   CONTAINER_NAME: note-keeper
-  REGISTRY: 192.168.1.103:5000
+  REGISTRY: http://devops.local:5000
   IMAGE_NAME: note-keeper
 
 jobs:
