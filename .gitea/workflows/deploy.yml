@@ -9,7 +9,8 @@ on:
 env:
   TARGET_PORT: 9081
   CONTAINER_NAME: note-keeper
-  REGISTRY: http://devops.local:5000
+  REGISTRY: devops.local:5000
+  REGISTRY_IP: devops.local
   IMAGE_NAME: note-keeper
 
 jobs:
@@ -19,6 +20,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup HTTP registry
+        run: bash .gitea/scripts/registry-setup.sh
 
       - name: Login to registry
         env:
@@ -43,6 +47,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup HTTP registry
+        run: |
+          export DOCKER_API_VERSION=1.43
+          bash .gitea/scripts/registry-setup.sh
+
       - name: Login to registry
         env:
           REGISTRY_USER: ${{ secrets.REGISTRY_USER }}

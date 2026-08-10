@@ -96,7 +96,7 @@ mvn -pl note-keeper-service -am -Pnative spring-boot:build-image
 
 CI image: `docker build -f Dockerfile.native -t note-keeper-native .`
 
-Gitea: registry `192.168.1.103:5000`. Secrets: `REGISTRY_USER`, `REGISTRY_PASSWORD`.
+Gitea: HTTP registry `devops.local:5000` (`REGISTRY_IP` 192.168.1.103, insecure). Secrets: `REGISTRY_USER`, `REGISTRY_PASSWORD`.
 - JVM `.gitea/workflows/deploy.yml` — `darvik-minipc` build+push `note-keeper` → NAS pull+run **9081** (`master`)
 - Native `.gitea/workflows/deploy-native.yml` — minipc build+push `note-keeper-native` → NAS pull+run **9082** (`native` / dispatch). `deploy-only` = tag minipc image + push, no Graal.
 
