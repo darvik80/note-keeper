@@ -43,10 +43,10 @@ export const Dashboard: React.FC = () => {
   const pendingTodos = todos.filter(t => !t.completed).slice(0, 5);
 
   const stats = [
-    { label: 'Total Notes', value: notes.length, icon: 'fa-note-sticky', color: 'bg-blue-500' },
-    { label: 'Active Todos', value: todos.filter(t => !t.completed).length, icon: 'fa-list-check', color: 'bg-green-500' },
-    { label: 'Favorites', value: notes.filter(n => n.isFavorite).length + todos.filter(t => t.isFavorite).length, icon: 'fa-star', color: 'bg-yellow-500' },
-    { label: 'Archived', value: archivedCount, icon: 'fa-box-archive', color: 'bg-purple-500' },
+    { label: 'Total Notes', value: notes.length, icon: 'fa-note-sticky', color: 'bg-blue-500', path: '/notes' },
+    { label: 'Active Todos', value: todos.filter(t => !t.completed).length, icon: 'fa-list-check', color: 'bg-green-500', path: '/todos' },
+    { label: 'Favorites', value: notes.filter(n => n.isFavorite).length + todos.filter(t => t.isFavorite).length, icon: 'fa-star', color: 'bg-yellow-500', path: '/favorites' },
+    { label: 'Archived', value: archivedCount, icon: 'fa-box-archive', color: 'bg-purple-500', path: '/archive' },
   ];
 
   return (
@@ -54,12 +54,36 @@ export const Dashboard: React.FC = () => {
       <Header title="Dashboard" />
 
       <div className="flex-1 overflow-auto p-4 lg:p-8">
+        <div className="flex flex-wrap gap-3 mb-6 lg:mb-8">
+          <button
+            type="button"
+            onClick={() => navigate('/notes')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <i className="fas fa-note-sticky" aria-hidden="true"></i>
+            Notes
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/todos')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <i className="fas fa-list-check" aria-hidden="true"></i>
+            Todos
+          </button>
+        </div>
+
         {loading ? (
           <StatCardsSkeleton />
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="bg-surface rounded-xl p-4 lg:p-6 shadow-sm border border-border">
+            {stats.map((stat) => (
+              <button
+                key={stat.path}
+                type="button"
+                onClick={() => navigate(stat.path)}
+                className="bg-surface rounded-xl p-4 lg:p-6 shadow-sm border border-border text-left hover:border-primary transition-colors"
+              >
                 <div className="flex items-center justify-between mb-3 lg:mb-4">
                   <div className={`${stat.color} w-10 h-10 lg:w-12 lg:h-12 rounded-lg flex items-center justify-center text-white`}>
                     <i className={`fas ${stat.icon} text-lg lg:text-xl`}></i>
@@ -67,7 +91,7 @@ export const Dashboard: React.FC = () => {
                   <span className="text-2xl lg:text-3xl font-bold text-text">{stat.value}</span>
                 </div>
                 <p className="text-text-secondary font-medium text-sm lg:text-base">{stat.label}</p>
-              </div>
+              </button>
             ))}
           </div>
         )}

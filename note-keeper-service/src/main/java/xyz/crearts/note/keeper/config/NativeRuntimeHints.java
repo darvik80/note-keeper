@@ -3,6 +3,8 @@ package xyz.crearts.note.keeper.config;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
+import xyz.crearts.note.keeper.client.DingTalkClient;
+import xyz.crearts.note.keeper.client.TelegramClient;
 import xyz.crearts.note.keeper.dto.AnalyticsResponse;
 import xyz.crearts.note.keeper.dto.AuthRequest;
 import xyz.crearts.note.keeper.dto.AuthResponse;
@@ -64,6 +66,8 @@ public class NativeRuntimeHints implements RuntimeHintsRegistrar {
                 NoteInput.class, TodoInput.class, NoteTemplateInput.class, SavedQueryInput.class,
                 SearchResult.class, IntegrationRequest.class, IntegrationResponse.class,
                 AnalyticsResponse.class, AnalyticsResponse.TagCount.class,
+                TelegramClient.TelegramResponse.class, TelegramClient.InlineButton.class,
+                DingTalkClient.DingTalkResponse.class,
                 LocalDateTimeTypeHandler.class, StringListTypeHandler.class
         }) {
             hints.reflection().registerType(type, members);

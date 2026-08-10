@@ -27,8 +27,8 @@ export const Favorites: React.FC = () => {
           api.notes.getAll({ isFavorite: true, isArchived: false, isDeleted: false }),
           api.todos.getAll({ isFavorite: true, isArchived: false, isDeleted: false })
         ]);
-        setNotes(n);
-        setTodos(t);
+        setNotes(n.filter(x => !x.isDeleted && !x.isArchived));
+        setTodos(t.filter(x => !x.isDeleted && !x.isArchived));
       } catch (err) {
         setError((err as any)?.message || 'Failed to load favorites');
       } finally {

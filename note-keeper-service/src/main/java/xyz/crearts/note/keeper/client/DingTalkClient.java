@@ -90,7 +90,8 @@ public class DingTalkClient {
         return webhookUrl + "&timestamp=" + timestamp + "&sign=" + sign;
     }
 
-    private static class DingTalkResponse {
+    /** DingTalk webhook envelope — must be public for GraalVM / Jackson binding. */
+    public static class DingTalkResponse {
         private Integer errcode;
         private String errmsg;
 

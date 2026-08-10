@@ -250,6 +250,7 @@ Auth: HMAC-SHA256 signature (timestamp + `\n` + secret), appended as query param
 | Reminder edit | Change `reminder` but leave old `notified_at` ≥ new time → never fires | Clear `notified_at` when reminder changes (`TodoService.update`) |
 | GraalVM native | MyBatis XML DTD / SQLite JNI missing at runtime | Run with `-Djavax.xml.accessExternalDTD=all`; plugin uses `SqliteJdbcFeature` |
 | Native `CPU ISA level is lower than required` | OL10/` :25 ` glibc or `-march=native` on minipc → binary needs x86-64-v3; Synology is v2 | `Dockerfile.native` image `25-ol9`; native-image `-march=x86-64-v2` |
+| Native Telegram/DingTalk | Private nested API DTOs → Jackson `HttpMessageConversionException` | Public nested `TelegramResponse` / `DingTalkResponse` + `NativeRuntimeHints` |
 
 ---
 

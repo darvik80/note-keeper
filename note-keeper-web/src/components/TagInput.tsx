@@ -79,7 +79,7 @@ export const TagInput: React.FC<TagInputProps> = ({ tags, onChange }) => {
 
   return (
     <div ref={wrapperRef} className="relative">
-      <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+      <label className="block text-sm font-medium text-text mb-2">Tags</label>
       <div className="flex flex-wrap gap-2 mb-3">
         {tags.map(tag => (
           <span
@@ -105,7 +105,7 @@ export const TagInput: React.FC<TagInputProps> = ({ tags, onChange }) => {
               setShowSuggestions(true);
             }
           }}
-          className="px-4 py-2 border border-gray-300 rounded-lg flex-1"
+          className="px-4 py-2 border border-border rounded-lg flex-1 bg-surface text-text"
         />
         <button
           type="button"
@@ -117,15 +117,15 @@ export const TagInput: React.FC<TagInputProps> = ({ tags, onChange }) => {
         </button>
       </div>
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-10 mt-1 w-full bg-surface border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
           {suggestions.map(tag => (
             <button
               key={tag}
               type="button"
               onClick={() => addTag(tag)}
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2"
+              className="w-full text-left px-4 py-2 hover:bg-hover text-text text-sm flex items-center gap-2"
             >
-              <i className="fas fa-tag text-gray-400"></i>
+              <i className="fas fa-tag text-text-secondary"></i>
               <span>#{tag}</span>
             </button>
           ))}

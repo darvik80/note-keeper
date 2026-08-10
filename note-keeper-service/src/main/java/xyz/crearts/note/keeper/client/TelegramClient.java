@@ -240,7 +240,8 @@ public class TelegramClient {
         }
     }
 
-    private static class TelegramResponse {
+    /** Telegram Bot API envelope — must be public for GraalVM / Jackson binding. */
+    public static class TelegramResponse {
         private boolean ok;
         private String description;
 

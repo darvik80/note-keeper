@@ -39,7 +39,10 @@
             <if test="isFavorite != null">AND is_favorite = #{isFavorite}</if>
             <if test="isEncrypted != null">AND is_encrypted = #{isEncrypted}</if>
             <if test="isArchived != null">AND is_archived = #{isArchived}</if>
-            <if test="isDeleted != null">AND is_deleted = #{isDeleted}</if>
+            <choose>
+                <when test="isDeleted == true">AND is_deleted = 1</when>
+                <when test="isDeleted == false">AND is_deleted = 0</when>
+            </choose>
             <if test="ownerId != null">AND (owner_id = #{ownerId} OR shared_with LIKE '%' || #{ownerId} || '%')</if>
         </where>
         ORDER BY updated_at DESC
