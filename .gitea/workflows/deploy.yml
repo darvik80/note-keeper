@@ -9,7 +9,7 @@ on:
 env:
   TARGET_PORT: 9081
   CONTAINER_NAME: note-keeper
-  REGISTRY: 192.168.1.103:5000
+  REGISTRY: 192.168.1.103
   IMAGE_NAME: note-keeper
 
 jobs:
@@ -19,9 +19,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup HTTP registry
-        run: bash .gitea/scripts/registry-setup.sh
 
       - name: Login to registry
         env:
