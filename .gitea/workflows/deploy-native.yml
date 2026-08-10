@@ -29,7 +29,7 @@ env:
 
 jobs:
   build:
-    runs-on: darvik-minipc
+    runs-on: devops.local
     timeout-minutes: 120
     steps:
       - name: Checkout
