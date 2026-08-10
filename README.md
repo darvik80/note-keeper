@@ -220,7 +220,7 @@ docker run -d -p 9082:8080 \
   --name note-keeper-native note-keeper-native
 ```
 
-Gitea: **Deploy native on NAS** (`workflow_dispatch` or branch `native`). JVM `deploy.yml` on `master` unchanged.
+Gitea: **Deploy native on NAS** — build on `darvik-minipc`, run on Synology port **9082**. `workflow_dispatch` (`deploy-only` / `build-and-deploy`) or branch `native`. JVM `deploy.yml` on `master` unchanged.
 
 ## API Documentation
 

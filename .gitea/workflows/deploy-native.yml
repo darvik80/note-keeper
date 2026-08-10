@@ -1,12 +1,30 @@
-name: Build native image
+name: Deploy native on NAS
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: deploy-only uses image already on minipc (no Graal rebuild)
+        type: choice
+        default: deploy-only
+        options:
+          - deploy-only
+          - build-and-deploy
+      spring_profile:
+        description: Spring profile
+        required: true
+        default: sqlite
+        type: choice
+        options:
+          - sqlite
+          - postgresql
   push:
     branches: [ "native" ]
 
 env:
   IMAGE_NAME: note-keeper-native
+  CONTAINER_NAME: note-keeper-native
+  TARGET_PORT: 9081
 
 jobs:
   build-and-upload:
@@ -14,10 +32,18 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout
+        if: github.event_name == 'push' || github.event.inputs.mode == 'build-and-deploy'
         uses: actions/checkout@v4
 
       - name: Build native docker image
+        if: github.event_name == 'push' || github.event.inputs.mode == 'build-and-deploy'
         run: docker build -f Dockerfile.native -t "$IMAGE_NAME:latest" .
+
+      - name: Ensure minipc image exists
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'deploy-only'
+        run: |
+          docker image inspect "$IMAGE_NAME:latest" \
+            || { echo "No $IMAGE_NAME:latest on darvik-minipc. Run with mode=build-and-deploy."; exit 1; }
 
       - name: Save image archive
         run: docker save "$IMAGE_NAME:latest" | gzip > note-keeper-native.tar.gz
@@ -28,3 +54,38 @@ jobs:
           name: note-keeper-native
           path: note-keeper-native.tar.gz
           retention-days: 14
+
+  deploy:
+    needs: build-and-upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: note-keeper-native
+
+      - name: Load and run on Synology
+        env:
+          SPRING_PROFILE: ${{ github.event.inputs.spring_profile || 'sqlite' }}
+        run: |
+          set -euo pipefail
+          export DOCKER_API_VERSION=1.43
+          TAR=$(find . -name 'note-keeper-native.tar.gz' | head -n1)
+          test -n "$TAR"
+          gunzip -c "$TAR" | docker load
+          if docker image inspect "$IMAGE_NAME:latest" >/dev/null 2>&1; then
+            docker tag "$IMAGE_NAME:latest" "localhost/$IMAGE_NAME:latest"
+          elif ! docker image inspect "localhost/$IMAGE_NAME:latest" >/dev/null 2>&1; then
+            echo "Loaded image not found"; docker images; exit 1
+          fi
+          mkdir -p "/volume1/docker/$CONTAINER_NAME/var"
+          docker rm -f "$CONTAINER_NAME" || true
+          docker run \
+            -d -p "$TARGET_PORT:8080" \
+            -e SPRING_PROFILES_ACTIVE="$SPRING_PROFILE" \
+            --volume /volume1/docker/note-keeper/etc:/app/etc:ro \
+            --volume "/volume1/docker/$CONTAINER_NAME/var:/app/var:rw" \
+            --name "$CONTAINER_NAME" \
+            "localhost/$IMAGE_NAME:latest"
+          docker ps --filter "name=$CONTAINER_NAME"
