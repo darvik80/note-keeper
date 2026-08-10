@@ -220,7 +220,7 @@ docker run -d -p 9082:8080 \
   --name note-keeper-native note-keeper-native
 ```
 
-Gitea: **Deploy native on NAS** — build on `darvik-minipc`, run on Synology port **9082**. `workflow_dispatch` (`deploy-only` / `build-and-deploy`) or branch `native`. JVM `deploy.yml` on `master` unchanged.
+Gitea: registry `192.168.1.103:5000` (`REGISTRY_USER` / `REGISTRY_PASSWORD`). JVM `deploy.yml` — minipc build+push → NAS **9081**. Native `deploy-native.yml` — minipc build+push → NAS **9082**.
 
 ## API Documentation
 

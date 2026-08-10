@@ -96,7 +96,9 @@ mvn -pl note-keeper-service -am -Pnative spring-boot:build-image
 
 CI image: `docker build -f Dockerfile.native -t note-keeper-native .`
 
-Gitea: `.gitea/workflows/deploy-native.yml` — build on `darvik-minipc`, deploy on NAS (`ubuntu-latest`). `workflow_dispatch` or branch `native`. Container `note-keeper-native` port **9082**. Dispatch mode `deploy-only` (default) reuses minipc image; `build-and-deploy` rebuilds Graal. JVM `deploy.yml` on master unchanged.
+Gitea: registry `192.168.1.103:5000`. Secrets: `REGISTRY_USER`, `REGISTRY_PASSWORD`.
+- JVM `.gitea/workflows/deploy.yml` — `darvik-minipc` build+push `note-keeper` → NAS pull+run **9081** (`master`)
+- Native `.gitea/workflows/deploy-native.yml` — minipc build+push `note-keeper-native` → NAS pull+run **9082** (`native` / dispatch). `deploy-only` = tag minipc image + push, no Graal.
 
 ---
 

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: deploy-only uses image already on minipc (no Graal rebuild)
+        description: deploy-only pushes image already on minipc (no Graal rebuild)
         type: choice
         default: deploy-only
         options:
@@ -22,12 +22,13 @@ on:
     branches: [ "native" ]
 
 env:
-  IMAGE_NAME: note-keeper-native
+  TARGET_PORT: 9084
   CONTAINER_NAME: note-keeper-native
-  TARGET_PORT: 9081
+  REGISTRY: 192.168.1.103:5000
+  IMAGE_NAME: note-keeper-native
 
 jobs:
-  build-and-upload:
+  build:
     runs-on: darvik-minipc
     timeout-minutes: 120
     steps:
@@ -35,50 +36,67 @@ jobs:
         if: github.event_name == 'push' || github.event.inputs.mode == 'build-and-deploy'
         uses: actions/checkout@v4
 
-      - name: Build native docker image
-        if: github.event_name == 'push' || github.event.inputs.mode == 'build-and-deploy'
-        run: docker build -f Dockerfile.native -t "$IMAGE_NAME:latest" .
+      - name: Login to registry
+        env:
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        run: |
+          test -n "${REGISTRY_USER:-}" || { echo "Missing secret REGISTRY_USER"; exit 1; }
+          test -n "${REGISTRY_PASSWORD:-}" || { echo "Missing secret REGISTRY_PASSWORD"; exit 1; }
+          echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
 
-      - name: Ensure minipc image exists
+      - name: Build native image
+        if: github.event_name == 'push' || github.event.inputs.mode == 'build-and-deploy'
+        run: |
+          docker build -f Dockerfile.native \
+            -t "$REGISTRY/$IMAGE_NAME:latest" \
+            -t "$REGISTRY/$IMAGE_NAME:${{ github.sha }}" \
+            -t "$IMAGE_NAME:latest" \
+            .
+
+      - name: Tag existing minipc image
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'deploy-only'
         run: |
-          docker image inspect "$IMAGE_NAME:latest" \
-            || { echo "No $IMAGE_NAME:latest on darvik-minipc. Run with mode=build-and-deploy."; exit 1; }
+          SRC=""
+          if docker image inspect "$IMAGE_NAME:latest" >/dev/null 2>&1; then
+            SRC="$IMAGE_NAME:latest"
+          elif docker image inspect "$REGISTRY/$IMAGE_NAME:latest" >/dev/null 2>&1; then
+            SRC="$REGISTRY/$IMAGE_NAME:latest"
+          else
+            echo "No $IMAGE_NAME on darvik-minipc. Run with mode=build-and-deploy."
+            exit 1
+          fi
+          docker tag "$SRC" "$REGISTRY/$IMAGE_NAME:latest"
+          docker tag "$SRC" "$REGISTRY/$IMAGE_NAME:${{ github.sha }}"
 
-      - name: Save image archive
-        run: docker save "$IMAGE_NAME:latest" | gzip > note-keeper-native.tar.gz
-
-      - name: Upload image
-        uses: actions/upload-artifact@v3
-        with:
-          name: note-keeper-native
-          path: note-keeper-native.tar.gz
-          retention-days: 14
+      - name: Push
+        run: |
+          docker push "$REGISTRY/$IMAGE_NAME:latest"
+          docker push "$REGISTRY/$IMAGE_NAME:${{ github.sha }}"
 
   deploy:
-    needs: build-and-upload
+    needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
-      - name: Download image artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: note-keeper-native
+      - name: Login to registry
+        env:
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        run: |
+          export DOCKER_API_VERSION=1.43
+          test -n "${REGISTRY_USER:-}" || { echo "Missing secret REGISTRY_USER"; exit 1; }
+          test -n "${REGISTRY_PASSWORD:-}" || { echo "Missing secret REGISTRY_PASSWORD"; exit 1; }
+          echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
 
-      - name: Load and run on Synology
+      - name: Pull and run
         env:
           SPRING_PROFILE: ${{ github.event.inputs.spring_profile || 'sqlite' }}
         run: |
           set -euo pipefail
           export DOCKER_API_VERSION=1.43
-          TAR=$(find . -name 'note-keeper-native.tar.gz' | head -n1)
-          test -n "$TAR"
-          gunzip -c "$TAR" | docker load
-          if docker image inspect "$IMAGE_NAME:latest" >/dev/null 2>&1; then
-            docker tag "$IMAGE_NAME:latest" "localhost/$IMAGE_NAME:latest"
-          elif ! docker image inspect "localhost/$IMAGE_NAME:latest" >/dev/null 2>&1; then
-            echo "Loaded image not found"; docker images; exit 1
-          fi
+          IMAGE="$REGISTRY/$IMAGE_NAME:${{ github.sha }}"
+          docker pull "$IMAGE"
           mkdir -p "/volume1/docker/$CONTAINER_NAME/var"
           docker rm -f "$CONTAINER_NAME" || true
           docker run \
@@ -87,5 +105,5 @@ jobs:
             --volume /volume1/docker/note-keeper/etc:/app/etc:ro \
             --volume "/volume1/docker/$CONTAINER_NAME/var:/app/var:rw" \
             --name "$CONTAINER_NAME" \
-            "localhost/$IMAGE_NAME:latest"
+            "$IMAGE"
           docker ps --filter "name=$CONTAINER_NAME"
