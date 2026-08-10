@@ -1,16 +1,10 @@
 # Native image: UI + API in one binary.
-# Pin ol9: tag :25 tracks OL10 (glibc x86-64-v3). NAS/Gitea runners are often v2.
-# Fit ~4GB cgroup: small Maven heap + serial GC + few native-image threads.
+# Pin ol9: tag :25 tracks OL10 (glibc x86-64-v3).
 FROM ghcr.io/graalvm/native-image-community:25-ol9 AS build
 WORKDIR /app
 USER root
-ARG NATIVE_IMAGE_THREADS=2
-# MaxRAM: native-image default is 75.6% of *detected* RAM (ignores docker --memory under BuildKit).
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
-ENV MAVEN_OPTS="-Xmx512m"
-ENV NATIVE_IMAGE_JAVA_OPTIONS="-XX:MaxRAM=4g -Xmx1800m -XX:+UseSerialGC"
-ENV NATIVE_IMAGE_OPTIONS="-H:NumberOfThreads=${NATIVE_IMAGE_THREADS} --max-ram-percentage=70 -H:+ReportExceptionStackTraces"
 ENV JWT_SECRET=aot-dummy-secret-key-must-be-32-bytes!!
 
 COPY mvnw pom.xml ./
