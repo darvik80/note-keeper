@@ -48,6 +48,12 @@ public class NoteService {
                               Boolean isFavorite, Boolean isEncrypted,
                               Boolean isArchived, Boolean isDeleted, String ownerId) {
         List<Note> notes = noteMapper.findAll(folder, tag, priority, isFavorite, isEncrypted, isArchived, isDeleted, ownerId);
+        boolean wantDeleted = Boolean.TRUE.equals(isDeleted);
+        notes = notes.stream()
+                .filter(n -> n.isDeleted() == wantDeleted)
+                .filter(n -> isFavorite == null || n.isFavorite() == isFavorite)
+                .filter(n -> isArchived == null || n.isArchived() == isArchived)
+                .collect(Collectors.toList());
         // Decrypt content for encrypted notes
         for (Note note : notes) {
             if (note.isEncrypted() && note.getContent() != null && !note.getContent().isEmpty()) {

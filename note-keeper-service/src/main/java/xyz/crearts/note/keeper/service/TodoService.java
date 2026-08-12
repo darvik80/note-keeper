@@ -37,7 +37,14 @@ public class TodoService {
     public List<Todo> findAll(Boolean completed, String tag, String priority,
                               Boolean isFavorite, Boolean isArchived, Boolean isDeleted, String ownerId) {
         rolloverOwnerRecurring(ownerId);
-        return todoMapper.findAll(completed, tag, priority, isFavorite, isArchived, isDeleted, ownerId);
+        boolean wantDeleted = Boolean.TRUE.equals(isDeleted);
+        return todoMapper.findAll(completed, tag, priority, isFavorite, isArchived, isDeleted, ownerId)
+                .stream()
+                .filter(t -> t.isDeleted() == wantDeleted)
+                .filter(t -> isFavorite == null || t.isFavorite() == isFavorite)
+                .filter(t -> isArchived == null || t.isArchived() == isArchived)
+                .filter(t -> completed == null || t.isCompleted() == completed)
+                .collect(Collectors.toList());
     }
 
     public List<Todo> findSharedWithMe(String userId) {

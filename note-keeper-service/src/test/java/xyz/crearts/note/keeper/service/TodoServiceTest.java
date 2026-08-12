@@ -83,6 +83,24 @@ class TodoServiceTest {
     }
 
     @Test
+    void findAll_shouldDropDeletedWhenNotRequested() {
+        Todo live = buildTodo("live", "owner-1");
+        live.setDeleted(false);
+        live.setFavorite(true);
+        Todo trash = buildTodo("trash", "owner-1");
+        trash.setDeleted(true);
+        trash.setFavorite(true);
+        when(todoMapper.findRecurringActive("owner-1")).thenReturn(Collections.emptyList());
+        when(todoMapper.findAll(null, null, null, true, false, false, "owner-1"))
+                .thenReturn(List.of(live, trash));
+
+        List<Todo> result = todoService.findAll(null, null, null, true, false, false, "owner-1");
+
+        assertEquals(1, result.size());
+        assertEquals("live", result.get(0).getId());
+    }
+
+    @Test
     void create_shouldInsertTodoAndSyncTags() {
         TodoInput input = new TodoInput();
         input.setTitle("New Todo");

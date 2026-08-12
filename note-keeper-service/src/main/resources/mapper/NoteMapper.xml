@@ -40,8 +40,8 @@
             <if test="isEncrypted != null">AND is_encrypted = #{isEncrypted}</if>
             <if test="isArchived != null">AND is_archived = #{isArchived}</if>
             <choose>
-                <when test="isDeleted == true">AND is_deleted = 1</when>
-                <when test="isDeleted == false">AND is_deleted = 0</when>
+                <when test="isDeleted != null and isDeleted">AND is_deleted = 1</when>
+                <otherwise>AND is_deleted = 0</otherwise>
             </choose>
             <if test="ownerId != null">AND (owner_id = #{ownerId} OR shared_with LIKE '%' || #{ownerId} || '%')</if>
         </where>

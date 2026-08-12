@@ -77,6 +77,32 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
+/** Jackson may emit `deleted` / `favorite` instead of `isDeleted` / `isFavorite`. */
+function flag(item: Record<string, unknown>, camel: string, plain: string): boolean {
+  return item[camel] === true || item[plain] === true;
+}
+
+function normalizeNote(note: Note): Note {
+  const raw = note as Note & { deleted?: boolean; archived?: boolean; favorite?: boolean; encrypted?: boolean };
+  return {
+    ...note,
+    isDeleted: flag(raw as Record<string, unknown>, 'isDeleted', 'deleted') || raw.deletedAt != null,
+    isArchived: flag(raw as Record<string, unknown>, 'isArchived', 'archived'),
+    isFavorite: flag(raw as Record<string, unknown>, 'isFavorite', 'favorite'),
+    isEncrypted: flag(raw as Record<string, unknown>, 'isEncrypted', 'encrypted'),
+  };
+}
+
+function normalizeTodo(todo: Todo): Todo {
+  const raw = todo as Todo & { deleted?: boolean; archived?: boolean; favorite?: boolean };
+  return {
+    ...todo,
+    isDeleted: flag(raw as Record<string, unknown>, 'isDeleted', 'deleted') || raw.deletedAt != null,
+    isArchived: flag(raw as Record<string, unknown>, 'isArchived', 'archived'),
+    isFavorite: flag(raw as Record<string, unknown>, 'isFavorite', 'favorite'),
+  };
+}
+
 /**
  * Serialises an object of optional query parameters into a URL query string.
  * `undefined` and `null` values are omitted.
@@ -192,7 +218,8 @@ export const api = {
       const res = await fetch(`${API_BASE}/notes${buildQuery(params)}`, {
         headers: getAuthHeaders()
       });
-      return handleResponse(res);
+      const notes = await handleResponse<Note[]>(res);
+      return notes.map(normalizeNote);
     },
 
     /**
@@ -331,7 +358,8 @@ export const api = {
       const res = await fetch(`${API_BASE}/todos${buildQuery(params)}`, {
         headers: getAuthHeaders()
       });
-      return handleResponse(res);
+      const todos = await handleResponse<Todo[]>(res);
+      return todos.map(normalizeTodo);
     },
 
     /**

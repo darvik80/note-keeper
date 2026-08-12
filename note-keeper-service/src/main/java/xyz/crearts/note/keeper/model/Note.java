@@ -2,6 +2,8 @@ package xyz.crearts.note.keeper.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -16,13 +18,17 @@ public class Note {
     private String folder;
     private String subfolder;
     private String priority;
-    @JsonProperty("isFavorite")
+    @Getter(onMethod_ = @JsonProperty("isFavorite"))
+    @Setter(onMethod_ = @JsonProperty("isFavorite"))
     private boolean favorite;
-    @JsonProperty("isEncrypted")
+    @Getter(onMethod_ = @JsonProperty("isEncrypted"))
+    @Setter(onMethod_ = @JsonProperty("isEncrypted"))
     private boolean encrypted;
-    @JsonProperty("isArchived")
+    @Getter(onMethod_ = @JsonProperty("isArchived"))
+    @Setter(onMethod_ = @JsonProperty("isArchived"))
     private boolean archived;
-    @JsonProperty("isDeleted")
+    @Getter(onMethod_ = @JsonProperty("isDeleted"))
+    @Setter(onMethod_ = @JsonProperty("isDeleted"))
     private boolean deleted;
     private LocalDateTime deletedAt;
     private LocalDateTime reminder;
