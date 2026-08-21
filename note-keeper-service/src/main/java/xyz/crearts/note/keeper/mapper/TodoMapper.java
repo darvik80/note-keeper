@@ -62,5 +62,12 @@ public interface TodoMapper {
      */
     void markReminderNotified(@Param("id") String id, @Param("notifiedAt") LocalDateTime notifiedAt);
 
+    /**
+     * Advance recurring reminder to the next occurrence and mark notified.
+     */
+    void advanceReminder(@Param("id") String id,
+                         @Param("reminder") LocalDateTime reminder,
+                         @Param("notifiedAt") LocalDateTime notifiedAt);
+
     void shareWithUser(@Param("id") String id, @Param("sharedWith") String sharedWith);
 }

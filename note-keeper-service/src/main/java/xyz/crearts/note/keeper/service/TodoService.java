@@ -74,12 +74,6 @@ public class TodoService {
         todo.setReminder(parseDate(input.getReminder()));
         todo.setNotificationChannels(input.getNotificationChannels());
 
-        if (input.getLocation() != null) {
-            todo.setLocation(convertToLocation(input.getLocation()));
-        } else {
-            todo.setLocation(new Todo.Location());
-        }
-
         if (input.getSchedule() != null) {
             todo.setSchedule(convertToSchedule(input.getSchedule()));
         } else {
@@ -115,15 +109,20 @@ public class TodoService {
         if (input.getTags() != null) existing.setTags(input.getTags());
         if (input.getPriority() != null) existing.setPriority(input.getPriority());
         if (input.getIsFavorite() != null) existing.setFavorite(input.getIsFavorite());
+
+        LocalDateTime previousReminder = existing.getReminder();
+        LocalDateTime newReminder = parseDate(input.getReminder());
         existing.setDueDate(parseDate(input.getDueDate()));
-        existing.setReminder(parseDate(input.getReminder()));
-        if (input.getNotificationChannels() != null) {
-            existing.setNotificationChannels(input.getNotificationChannels());
+        existing.setReminder(newReminder);
+        if (newReminder != null && (previousReminder == null || !newReminder.equals(previousReminder))) {
+            existing.setNotifiedAt(null);
         }
 
-        if (input.getLocation() != null) {
-            existing.setLocation(convertToLocation(input.getLocation()));
+        // Always apply channels when present in payload (incl. empty string to clear)
+        if (input.getNotificationChannels() != null) {
+            existing.setNotificationChannels(input.getNotificationChannels().isBlank() ? null : input.getNotificationChannels());
         }
+
         if (input.getSchedule() != null) {
             existing.setSchedule(convertToSchedule(input.getSchedule()));
         }
@@ -210,23 +209,12 @@ public class TodoService {
                 .collect(Collectors.joining(",")) + "]";
     }
 
-    private Todo.Location convertToLocation(Map<String, Object> map) {
-        if (map == null) return new Todo.Location();
-        Todo.Location location = new Todo.Location();
-        Object lat = map.get("lat");
-        Object lng = map.get("lng");
-        Object address = map.get("address");
-        if (lat instanceof Number) location.setLat(((Number) lat).doubleValue());
-        if (lng instanceof Number) location.setLng(((Number) lng).doubleValue());
-        if (address instanceof String) location.setAddress((String) address);
-        return location;
-    }
-
     private Todo.Schedule convertToSchedule(Map<String, Object> map) {
         if (map == null) return new Todo.Schedule();
         Todo.Schedule schedule = new Todo.Schedule();
         Object repeat = map.get("repeat");
         Object endDate = map.get("endDate");
+        Object daysOfWeek = map.get("daysOfWeek");
         if (repeat instanceof String) schedule.setRepeat((String) repeat);
         if (endDate instanceof String) {
             String dateStr = (String) endDate;
@@ -242,6 +230,24 @@ public class TodoService {
                     }
                 }
             }
+        }
+        if (daysOfWeek instanceof List<?> list) {
+            List<Integer> days = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Number n) {
+                    days.add(n.intValue());
+                }
+            }
+            schedule.setDaysOfWeek(days);
+        }
+        // weekdays → Mon–Fri if not provided
+        if ("weekdays".equalsIgnoreCase(schedule.getRepeat())
+                && (schedule.getDaysOfWeek() == null || schedule.getDaysOfWeek().isEmpty())) {
+            schedule.setDaysOfWeek(List.of(1, 2, 3, 4, 5));
+        }
+        if ("none".equalsIgnoreCase(schedule.getRepeat())) {
+            schedule.setEndDate(null);
+            schedule.setDaysOfWeek(null);
         }
         return schedule;
     }

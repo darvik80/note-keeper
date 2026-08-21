@@ -45,6 +45,8 @@ class DatabaseMigrationServiceTest {
                 .thenReturn(List.of("id", "name", "content"));
         when(jdbcTemplate.query(eq("PRAGMA table_info(user_settings)"), any(RowMapper.class)))
                 .thenReturn(List.of("id"));
+        when(jdbcTemplate.query(eq("PRAGMA table_info(todo)"), any(RowMapper.class)))
+                .thenReturn(List.of("id", "schedule_repeat"));
         when(jdbcTemplate.query(
                 eq("SELECT id FROM users WHERE email = ? LIMIT 1"),
                 any(RowMapper.class),
@@ -56,6 +58,7 @@ class DatabaseMigrationServiceTest {
         verify(jdbcTemplate, atLeastOnce()).execute(matches("(?s).*schema_migration.*"));
         verify(jdbcTemplate, atLeastOnce()).execute(matches("(?s).*ALTER TABLE saved_query ADD COLUMN owner_id.*"));
         verify(jdbcTemplate, atLeastOnce()).execute(matches("(?s).*ALTER TABLE note_template ADD COLUMN owner_id.*"));
+        verify(jdbcTemplate, atLeastOnce()).execute(matches("(?s).*ALTER TABLE todo ADD COLUMN schedule_days.*"));
         verify(jdbcTemplate).update(
                 matches("(?s).*UPDATE note_template SET owner_id = \\? WHERE owner_id IS NULL.*"),
                 eq("user-darvik")
@@ -64,7 +67,7 @@ class DatabaseMigrationServiceTest {
                 matches("(?s).*UPDATE saved_query SET owner_id = \\? WHERE owner_id IS NULL.*"),
                 eq("user-darvik")
         );
-        verify(jdbcTemplate, times(6)).update(
+        verify(jdbcTemplate, times(7)).update(
                 matches("INSERT INTO schema_migration.*"),
                 anyString(),
                 anyString()
@@ -81,6 +84,8 @@ class DatabaseMigrationServiceTest {
                 .thenReturn(List.of("id", "name", "content"));
         when(jdbcTemplate.query(eq("PRAGMA table_info(user_settings)"), any(RowMapper.class)))
                 .thenReturn(List.of("id"));
+        when(jdbcTemplate.query(eq("PRAGMA table_info(todo)"), any(RowMapper.class)))
+                .thenReturn(List.of("id", "schedule_repeat"));
         when(jdbcTemplate.query(
                 eq("SELECT id FROM users WHERE email = ? LIMIT 1"),
                 any(RowMapper.class),

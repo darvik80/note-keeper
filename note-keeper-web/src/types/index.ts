@@ -88,7 +88,7 @@ export interface NoteHistory {
   action: 'created' | 'edited' | 'restored';
 }
 
-/** A task / todo item with optional scheduling and geolocation. */
+/** A task / todo item with optional scheduling. */
 export interface Todo {
   /** Unique todo identifier (UUID). */
   id: string;
@@ -104,25 +104,20 @@ export interface Todo {
   isFavorite: boolean;
   /** `true` when the task is marked done. */
   completed: boolean;
-  /** Optional deadline. */
+  /** Optional deadline — also anchors recurrence start for repeating todos. */
   dueDate?: Date;
   /** Optional reminder datetime. */
   reminder?: Date;
-  /** Optional physical location associated with the task. */
-  location?: {
-    /** Latitude in decimal degrees. */
-    lat: number;
-    /** Longitude in decimal degrees. */
-    lng: number;
-    /** Human-readable address string. */
-    address: string;
-  };
+  /** When the last reminder notification was sent (ISO from API). */
+  notifiedAt?: Date | string;
   /** Optional recurrence configuration. */
   schedule?: {
     /** Recurrence interval. `"none"` means no repeat. */
-    repeat: 'none' | 'daily' | 'weekly' | 'monthly';
+    repeat: 'none' | 'daily' | 'weekly' | 'monthly' | 'weekdays' | 'custom';
     /** When the recurrence stops (ISO date string from API). */
     endDate?: string;
+    /** Day-of-week indices for custom/weekdays (0=Sun … 6=Sat). */
+    daysOfWeek?: number[];
   };
   /** Files attached to this todo. */
   attachments: Attachment[];
@@ -239,6 +234,13 @@ export interface Settings {
     /** Toggle the sidebar. Default: `"ctrl+b"`. */
     toggleSidebar: string;
   };
+  /** Default notification channels applied when a reminder is set. */
+  notifications: {
+    /** Enable Telegram by default on new reminders. */
+    telegram: boolean;
+    /** Enable DingTalk by default on new reminders. */
+    dingtalk: boolean;
+  };
 }
 
 /**
@@ -326,10 +328,8 @@ export interface TodoInput {
   dueDate?: string;
   /** ISO 8601 reminder datetime string. */
   reminder?: string;
-  /** Geolocation data. */
-  location?: { lat: number; lng: number; address: string };
   /** Recurrence schedule. */
-  schedule?: { repeat: string; endDate?: string };
+  schedule?: { repeat: string; endDate?: string; daysOfWeek?: number[] };
   /** Comma-separated notification channels (e.g. "telegram,dingtalk"). */
   notificationChannels?: string;
   /** Attachments to persist. */

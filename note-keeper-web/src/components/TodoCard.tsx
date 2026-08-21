@@ -134,12 +134,6 @@ export const TodoCard: React.FC<TodoCardProps> = ({
                 {new Date(todo.dueDate).toLocaleDateString()}
               </span>
             )}
-            {todo.location && (
-              <span>
-                <i className="fas fa-location-dot mr-1" aria-hidden="true"></i>
-                {todo.location.address}
-              </span>
-            )}
             {todo.schedule && todo.schedule.repeat !== 'none' && (
               <span>
                 <i className="fas fa-repeat mr-1" aria-hidden="true"></i>

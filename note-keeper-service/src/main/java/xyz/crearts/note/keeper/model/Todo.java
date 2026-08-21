@@ -28,22 +28,16 @@ public class Todo {
     private String notificationChannels; // Comma-separated: telegram,dingtalk
     private String ownerId;
     private String sharedWith; // JSON array of user IDs
-    private Location location;
     private Schedule schedule;
     private List<Attachment> attachments = new ArrayList<>();
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     @Data
-    public static class Location {
-        private Double lat;
-        private Double lng;
-        private String address;
-    }
-
-    @Data
     public static class Schedule {
         private String repeat;
         private LocalDateTime endDate;
+        /** Day-of-week indices for custom/weekdays (0=Sun … 6=Sat, JS Date.getDay). */
+        private List<Integer> daysOfWeek;
     }
 }

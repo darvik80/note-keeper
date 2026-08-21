@@ -32,6 +32,7 @@ public class DatabaseMigrationService {
         apply("004_saved_query_owner", this::addSavedQueryOwnerColumn);
         apply("005_template_owner", this::addTemplateOwnerColumn);
         apply("006_assign_orphan_records", this::assignOrphanRecordsToDefaultOwner);
+        apply("007_schedule_days_and_repeat", this::expandScheduleRepeat);
     }
 
     private void apply(String id, Runnable migration) {
@@ -149,6 +150,73 @@ public class DatabaseMigrationService {
                         ? "ALTER TABLE note_template ADD COLUMN owner_id VARCHAR(255) REFERENCES users(id)"
                         : "ALTER TABLE note_template ADD COLUMN owner_id TEXT REFERENCES users(id)");
         jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_note_template_owner ON note_template(owner_id)");
+    }
+
+    private void expandScheduleRepeat() {
+        addColumnIfMissing("todo", "schedule_days",
+                "ALTER TABLE todo ADD COLUMN schedule_days TEXT");
+        if (postgres) {
+            jdbcTemplate.execute("ALTER TABLE todo DROP CONSTRAINT IF EXISTS todo_schedule_repeat_check");
+            jdbcTemplate.execute("""
+                ALTER TABLE todo ADD CONSTRAINT todo_schedule_repeat_check
+                CHECK (schedule_repeat IN ('none','daily','weekly','monthly','weekdays','custom'))
+                """);
+            return;
+        }
+        // SQLite: rebuild table to expand CHECK on schedule_repeat
+        jdbcTemplate.execute("""
+            CREATE TABLE IF NOT EXISTS todo_mig_007 (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL DEFAULT '',
+                completed INTEGER NOT NULL DEFAULT 0,
+                tags TEXT DEFAULT '[]',
+                priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('low','medium','high')),
+                is_favorite INTEGER NOT NULL DEFAULT 0,
+                is_archived INTEGER NOT NULL DEFAULT 0,
+                is_deleted INTEGER NOT NULL DEFAULT 0,
+                deleted_at TEXT,
+                due_date TEXT,
+                reminder TEXT,
+                notified_at TEXT,
+                notification_channels TEXT,
+                location_lat REAL,
+                location_lng REAL,
+                location_address TEXT,
+                schedule_repeat TEXT DEFAULT 'none' CHECK(schedule_repeat IN ('none','daily','weekly','monthly','weekdays','custom')),
+                schedule_end_date TEXT,
+                schedule_days TEXT,
+                owner_id TEXT NOT NULL REFERENCES users(id),
+                shared_with TEXT DEFAULT '[]',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """);
+        jdbcTemplate.execute("""
+            INSERT INTO todo_mig_007 (
+                id, title, description, completed, tags, priority,
+                is_favorite, is_archived, is_deleted, deleted_at,
+                due_date, reminder, notified_at, notification_channels,
+                location_lat, location_lng, location_address,
+                schedule_repeat, schedule_end_date, schedule_days,
+                owner_id, shared_with, created_at, updated_at
+            )
+            SELECT
+                id, title, description, completed, tags, priority,
+                is_favorite, is_archived, is_deleted, deleted_at,
+                due_date, reminder, notified_at, notification_channels,
+                location_lat, location_lng, location_address,
+                schedule_repeat, schedule_end_date, schedule_days,
+                owner_id, shared_with, created_at, updated_at
+            FROM todo
+            """);
+        jdbcTemplate.execute("DROP TABLE todo");
+        jdbcTemplate.execute("ALTER TABLE todo_mig_007 RENAME TO todo");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_completed ON todo(completed)");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_is_deleted ON todo(is_deleted)");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_is_archived ON todo(is_archived)");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_due_date ON todo(due_date)");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_created_at ON todo(created_at)");
     }
 
     private void assignOrphanRecordsToDefaultOwner() {

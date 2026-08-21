@@ -23,14 +23,11 @@
         <result property="sharedWith" column="shared_with"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
-        <association property="location" javaType="xyz.crearts.note.keeper.model.Todo$Location">
-            <result property="lat" column="location_lat"/>
-            <result property="lng" column="location_lng"/>
-            <result property="address" column="location_address"/>
-        </association>
         <association property="schedule" javaType="xyz.crearts.note.keeper.model.Todo$Schedule">
             <result property="repeat" column="schedule_repeat"/>
             <result property="endDate" column="schedule_end_date" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+            <result property="daysOfWeek" column="schedule_days"
+                    typeHandler="xyz.crearts.note.keeper.mapper.typehandler.IntegerListTypeHandler"/>
         </association>
         <collection property="attachments" column="id" select="xyz.crearts.note.keeper.mapper.AttachmentMapper.findByTodoId"/>
     </resultMap>
@@ -64,8 +61,7 @@
         INSERT INTO todo (id, title, description, completed, tags, priority,
             is_favorite, is_archived, is_deleted, deleted_at, due_date, reminder,
             notification_channels,
-            location_lat, location_lng, location_address,
-            schedule_repeat, schedule_end_date,
+            schedule_repeat, schedule_end_date, schedule_days,
             owner_id, shared_with,
             created_at, updated_at)
         VALUES (#{id}, #{title}, #{description}, #{completed},
@@ -73,9 +69,8 @@
             #{priority}, #{favorite}, #{archived}, #{deleted}, #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             #{dueDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             #{notificationChannels, jdbcType=VARCHAR},
-            #{location.lat, jdbcType=REAL}, #{location.lng, jdbcType=REAL},
-            #{location.address, jdbcType=VARCHAR},
             #{schedule.repeat, jdbcType=VARCHAR}, #{schedule.endDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            #{schedule.daysOfWeek, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.IntegerListTypeHandler},
             #{ownerId}, #{sharedWith},
             #{createdAt}, #{updatedAt})
     </insert>
@@ -91,11 +86,9 @@
             due_date = #{dueDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             reminder = #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             notification_channels = #{notificationChannels, jdbcType=VARCHAR},
-            location_lat = #{location.lat, jdbcType=REAL},
-            location_lng = #{location.lng, jdbcType=REAL},
-            location_address = #{location.address, jdbcType=VARCHAR},
             schedule_repeat = #{schedule.repeat, jdbcType=VARCHAR},
             schedule_end_date = #{schedule.endDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            schedule_days = #{schedule.daysOfWeek, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.IntegerListTypeHandler},
             updated_at = #{updatedAt}
         WHERE id = #{id}
     </update>
@@ -164,6 +157,15 @@
     <!-- Mark todo reminder as notified -->
     <update id="markReminderNotified">
         UPDATE todo SET notified_at = #{notifiedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, updated_at = #{notifiedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+        WHERE id = #{id}
+    </update>
+
+    <!-- Advance recurring reminder to next occurrence and mark notified -->
+    <update id="advanceReminder">
+        UPDATE todo SET
+            reminder = #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            notified_at = #{notifiedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            updated_at = #{notifiedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
         WHERE id = #{id}
     </update>
 

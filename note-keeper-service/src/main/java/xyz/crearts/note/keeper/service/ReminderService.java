@@ -9,6 +9,7 @@ import xyz.crearts.note.keeper.mapper.TodoMapper;
 import xyz.crearts.note.keeper.model.Todo;
 import xyz.crearts.note.keeper.model.UserSettings;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -20,6 +21,8 @@ import java.util.List;
 @Slf4j
 @Service
 public class ReminderService {
+
+    private static final List<Integer> WEEKDAYS = List.of(1, 2, 3, 4, 5); // Mon–Fri (JS getDay)
 
     private final TodoMapper todoMapper;
     private final TelegramClient telegramClient;
@@ -40,11 +43,10 @@ public class ReminderService {
     @Scheduled(fixedRate = 60000) // every 60 seconds
     public void checkReminders() {
         log.debug("Checking for due reminders...");
-        
+
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        // Find todos with reminder time <= now
         List<Todo> todosWithReminders = todoMapper.findWithDueReminders(now);
-        
+
         for (Todo todo : todosWithReminders) {
             if (todo.getReminder() != null && !todo.isDeleted() && !todo.isArchived()) {
                 sendReminderNotification(todo);
@@ -58,36 +60,91 @@ public class ReminderService {
      */
     private void sendReminderNotification(Todo todo) {
         String message = buildReminderMessage(todo);
-        
+
         log.info("Sending reminder for todo: {} - {}", todo.getId(), todo.getTitle());
-        
-        // Get user credentials from settings (in production, load from database)
-        // For now, using placeholder - credentials will come from UI settings
-        
+
         String channels = todo.getNotificationChannels();
-        if (channels == null || channels.isEmpty()) {
-            // Default to both channels if not specified
-            channels = "telegram,dingtalk";
-        }
-        
-        String[] channelArray = channels.split(",");
-        for (String channel : channelArray) {
-            String trimmedChannel = channel.trim();
-            if ("telegram".equalsIgnoreCase(trimmedChannel)) {
-                sendToTelegram(todo, message);
-            } else if ("dingtalk".equalsIgnoreCase(trimmedChannel)) {
-                sendToDingTalk(todo, message);
+        if (channels == null || channels.isBlank()) {
+            log.warn("No notification channels set for todo {}; skipping send", todo.getId());
+        } else {
+            String[] channelArray = channels.split(",");
+            for (String channel : channelArray) {
+                String trimmedChannel = channel.trim();
+                if ("telegram".equalsIgnoreCase(trimmedChannel)) {
+                    sendToTelegram(todo, message);
+                } else if ("dingtalk".equalsIgnoreCase(trimmedChannel)) {
+                    sendToDingTalk(todo, message);
+                }
             }
         }
-        
-        // Mark reminder as notified
-        todoMapper.markReminderNotified(todo.getId(), LocalDateTime.now(ZoneOffset.UTC));
+
+        LocalDateTime notifiedAt = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDateTime next = computeNextReminder(todo);
+        if (next != null) {
+            todoMapper.advanceReminder(todo.getId(), next, notifiedAt);
+            log.info("Advanced recurring reminder for todo {} to {}", todo.getId(), next);
+        } else {
+            todoMapper.markReminderNotified(todo.getId(), notifiedAt);
+        }
     }
 
     /**
-     * Send notification to Telegram.
-     * Gets credentials from user_settings table.
+     * Next reminder from the series anchored at the current reminder datetime
+     * (which itself was seeded from due/start when the todo was created).
      */
+    LocalDateTime computeNextReminder(Todo todo) {
+        LocalDateTime current = todo.getReminder();
+        if (current == null) {
+            return null;
+        }
+        Todo.Schedule schedule = todo.getSchedule();
+        if (schedule == null || schedule.getRepeat() == null || "none".equalsIgnoreCase(schedule.getRepeat())) {
+            return null;
+        }
+
+        LocalDateTime next = switch (schedule.getRepeat().toLowerCase()) {
+            case "daily" -> current.plusDays(1);
+            case "weekly" -> current.plusWeeks(1);
+            case "monthly" -> current.plusMonths(1);
+            case "weekdays" -> nextMatchingDay(current, WEEKDAYS);
+            case "custom" -> {
+                List<Integer> days = schedule.getDaysOfWeek();
+                yield (days == null || days.isEmpty()) ? null : nextMatchingDay(current, days);
+            }
+            default -> null;
+        };
+
+        if (next == null) {
+            return null;
+        }
+        LocalDateTime end = schedule.getEndDate();
+        if (end != null && next.toLocalDate().isAfter(end.toLocalDate())) {
+            return null;
+        }
+        return next;
+    }
+
+    /**
+     * Next datetime after {@code from} whose day-of-week is in {@code days}
+     * (0=Sun … 6=Sat, matching JS {@code Date.getDay()}).
+     */
+    private static LocalDateTime nextMatchingDay(LocalDateTime from, List<Integer> days) {
+        LocalDateTime candidate = from.plusDays(1);
+        for (int i = 0; i < 8; i++) {
+            int jsDow = toJsDayOfWeek(candidate.getDayOfWeek());
+            if (days.contains(jsDow)) {
+                return candidate;
+            }
+            candidate = candidate.plusDays(1);
+        }
+        return null;
+    }
+
+    private static int toJsDayOfWeek(DayOfWeek day) {
+        // Java Mon=1..Sun=7 → JS Sun=0..Sat=6
+        return day.getValue() % 7;
+    }
+
     private void sendToTelegram(Todo todo, String message) {
         String userId = todo.getOwnerId() != null ? todo.getOwnerId() : "default";
         UserSettings settings = userSettingsService.getDecryptedSettings(userId);
@@ -95,14 +152,14 @@ public class ReminderService {
             log.warn("Telegram credentials not configured. Skipping notification for todo: {}", todo.getId());
             return;
         }
-        
+
         log.info("Sending Telegram notification for todo: {}", todo.getId());
         boolean success = telegramClient.sendMessage(
             settings.getTelegramBotToken(),
             settings.getTelegramChatId(),
             message
         );
-        
+
         if (success) {
             log.info("Telegram notification sent successfully for todo: {}", todo.getId());
         } else {
@@ -110,10 +167,6 @@ public class ReminderService {
         }
     }
 
-    /**
-     * Send notification to DingTalk.
-     * Gets credentials from user_settings table.
-     */
     private void sendToDingTalk(Todo todo, String message) {
         String userId = todo.getOwnerId() != null ? todo.getOwnerId() : "default";
         UserSettings settings = userSettingsService.getDecryptedSettings(userId);
@@ -121,14 +174,14 @@ public class ReminderService {
             log.warn("DingTalk credentials not configured. Skipping notification for todo: {}", todo.getId());
             return;
         }
-        
+
         log.info("Sending DingTalk notification for todo: {}", todo.getId());
         boolean success = dingTalkClient.sendMessage(
             settings.getDingtalkWebhook(),
             settings.getDingtalkSecret(),
             message
         );
-        
+
         if (success) {
             log.info("DingTalk notification sent successfully for todo: {}", todo.getId());
         } else {
@@ -136,25 +189,22 @@ public class ReminderService {
         }
     }
 
-    /**
-     * Build reminder message for notification.
-     */
     private String buildReminderMessage(Todo todo) {
         StringBuilder sb = new StringBuilder();
         sb.append("⏰ Reminder: ").append(todo.getTitle());
-        
+
         if (todo.getDescription() != null && !todo.getDescription().isEmpty()) {
             sb.append("\n").append(todo.getDescription().substring(0, Math.min(100, todo.getDescription().length())));
         }
-        
+
         if (todo.getDueDate() != null) {
             sb.append("\n📅 Due: ").append(todo.getDueDate());
         }
-        
+
         if (todo.getPriority() != null) {
             sb.append("\nPriority: ").append(todo.getPriority());
         }
-        
+
         return sb.toString();
     }
 }

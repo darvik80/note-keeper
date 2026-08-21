@@ -56,6 +56,10 @@ export const storage = {
         newTodo: 'ctrl+t',
         search: 'ctrl+k',
         toggleSidebar: 'ctrl+b'
+      },
+      notifications: {
+        telegram: true,
+        dingtalk: false
       }
     };
 
@@ -66,7 +70,8 @@ export const storage = {
       ...defaultSettings,
       ...parsed,
       email: parsed.email || defaultSettings.email,
-      shortcuts: parsed.shortcuts || defaultSettings.shortcuts
+      shortcuts: parsed.shortcuts || defaultSettings.shortcuts,
+      notifications: { ...defaultSettings.notifications, ...(parsed.notifications || {}) }
     };
   },
 
