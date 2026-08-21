@@ -17,6 +17,8 @@ public class TemplateService {
 
     private final TemplateMapper templateMapper;
 
+    private static final String SYSTEM_OWNER = "system";
+
     public TemplateService(TemplateMapper templateMapper) {
         this.templateMapper = templateMapper;
     }
@@ -29,6 +31,10 @@ public class TemplateService {
         NoteTemplate template = templateMapper.findById(id);
         if (template == null) {
             throw new ResourceNotFoundException("Template not found: " + id);
+        }
+        // System templates are readable by everyone
+        if (SYSTEM_OWNER.equals(template.getOwnerId())) {
+            return template;
         }
         requireOwner(template, ownerId);
         return template;
@@ -49,7 +55,11 @@ public class TemplateService {
     }
 
     public void delete(String id, String ownerId) {
-        requireOwner(loadTemplate(id), ownerId);
+        NoteTemplate template = loadTemplate(id);
+        if (SYSTEM_OWNER.equals(template.getOwnerId())) {
+            throw new AccessDeniedException("Cannot delete system templates");
+        }
+        requireOwner(template, ownerId);
         templateMapper.delete(id);
     }
 

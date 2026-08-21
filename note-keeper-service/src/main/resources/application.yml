@@ -30,6 +30,11 @@ app:
   encryption:
     # AES-256 key (Base64 encoded). Set APP_ENCRYPTION_KEY in production.
     key: ${APP_ENCRYPTION_KEY:}
+  telegram:
+    # Public base URL for Telegram webhook callbacks.
+    # Must be accessible from the internet (e.g. https://your-domain.com).
+    # The full webhook URL will be: {webhook-base-url}/api/v1/telegram/webhook/{userSecret}
+    webhook-base-url: ${TELEGRAM_WEBHOOK_BASE_URL:}
 
 jwt:
   secret: ${JWT_SECRET:}
@@ -63,6 +68,7 @@ spring:
     init:
       mode: always
       schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
 
 # PostgreSQL profile
 ---
@@ -82,6 +88,7 @@ spring:
     init:
       mode: always
       platform: postgresql
+      data-locations: classpath:data-postgresql.sql
 
 logging:
   level:

@@ -53,6 +53,10 @@ module.exports = (_env, argv) => {
     devServer: {
       port: 3001,
       allowedHosts: ['all', '.alibaba-inc.com'],
+      static: {
+        directory: path.resolve(__dirname, 'public'),
+        publicPath: '/',
+      },
       historyApiFallback: {
         index: '/index.html',
         rewrites: [{ from: /^\/_p\/\d+\//, to: '/index.html' }],

@@ -96,9 +96,10 @@ export const Todos: React.FC = () => {
     const newVal = !todo.completed;
     setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: newVal } : t));
     try {
-      await api.todos.update(id, buildUpdatePayload(todo, { completed: newVal }));
+      const updated = await api.todos.toggleComplete(id);
+      setTodos(prev => prev.map(t => t.id === id ? updated : t));
     } catch (err) {
-      setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !newVal } : t));
+      setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: todo.completed } : t));
       setError((err as any)?.message || 'Failed to toggle complete');
     }
   };
@@ -135,9 +136,11 @@ export const Todos: React.FC = () => {
   };
 
   const displayTodos = showSharedOnly ? sharedTodos : todos;
+  const isRecurring = (t: Todo) => t.schedule && t.schedule.repeat && t.schedule.repeat !== 'none';
+  // Recurring stays in the list after "done this cycle" so next date + undo stay visible
   const filteredTodos = showSharedOnly
-    ? (showCompleted ? displayTodos : displayTodos.filter(t => !t.completed))
-    : (showCompleted ? todos : todos.filter(t => !t.completed));
+    ? (showCompleted ? displayTodos : displayTodos.filter(t => !t.completed || isRecurring(t)))
+    : (showCompleted ? todos : todos.filter(t => !t.completed || isRecurring(t)));
 
   return (
     <PageShell error={error} onDismissError={() => setError(null)}>

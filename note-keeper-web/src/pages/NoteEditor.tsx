@@ -168,7 +168,7 @@ export const NoteEditor: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="text-gray-400 flex items-center gap-2">
+        <div className="text-text-secondary flex items-center gap-2">
           <i className="fas fa-spinner fa-spin"></i>
           Loading...
         </div>
@@ -189,15 +189,15 @@ export const NoteEditor: React.FC = () => {
         <div className="flex items-center gap-1 sm:gap-3 overflow-x-auto">
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
+            className="p-2 hover:bg-hover rounded-lg shrink-0"
             title="History"
           >
-            <i className={`fas fa-clock-rotate-left ${showHistory ? 'text-primary' : 'text-gray-400'}`}></i>
+            <i className={`fas fa-clock-rotate-left ${showHistory ? 'text-primary' : 'text-text-secondary'}`}></i>
           </button>
           <button
             onClick={() => setIsPreview(!isPreview)}
             className={`p-2 sm:px-4 sm:py-2 rounded-lg transition-colors shrink-0 ${
-              isPreview ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              isPreview ? 'bg-primary text-white' : 'bg-hover text-text hover:bg-hover/80'
             }`}
             title={isPreview ? 'Edit' : 'Preview'}
           >
@@ -206,29 +206,29 @@ export const NoteEditor: React.FC = () => {
           </button>
           <button
             onClick={() => setNote(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : prev)}
-            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
+            className="p-2 hover:bg-hover rounded-lg shrink-0"
             title="Favorite"
           >
-            <i className={`fas fa-star ${note.isFavorite ? 'text-yellow-500' : 'text-gray-400'}`}></i>
+            <i className={`fas fa-star ${note.isFavorite ? 'text-yellow-500' : 'text-text-secondary'}`}></i>
           </button>
           <button
             onClick={() => setNote(prev => prev ? { ...prev, isEncrypted: !prev.isEncrypted } : prev)}
-            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
+            className="p-2 hover:bg-hover rounded-lg shrink-0"
             title="Encrypt"
           >
-            <i className={`fas fa-lock ${note.isEncrypted ? 'text-purple-500' : 'text-gray-400'}`}></i>
+            <i className={`fas fa-lock ${note.isEncrypted ? 'text-purple-500' : 'text-text-secondary'}`}></i>
           </button>
           <button
             onClick={() => setShowShareModal(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
+            className="p-2 hover:bg-hover rounded-lg shrink-0"
             title="Share"
           >
-            <i className="fas fa-share-alt text-gray-400"></i>
+            <i className="fas fa-share-alt text-text-secondary"></i>
           </button>
           <select
             value={note.priority}
             onChange={(e) => { const v = e.target.value as any; setNote(prev => prev ? { ...prev, priority: v } : prev); }}
-            className="px-2 py-2 border border-gray-300 rounded-lg text-sm shrink-0"
+            className="px-2 py-2 border border-border rounded-lg text-sm shrink-0"
           >
             <option value="low">Low</option>
             <option value="medium">Med</option>
@@ -247,25 +247,25 @@ export const NoteEditor: React.FC = () => {
 
       <div className="flex-1 overflow-auto p-4 sm:p-8 min-h-0">
         {showHistory && note.history && note.history.length > 0 && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
+          <div className="mb-6 p-4 bg-surface border border-border rounded-lg">
+            <h3 className="text-sm font-bold text-text mb-3 flex items-center gap-2">
               <i className="fas fa-clock-rotate-left"></i>
               History ({note.history.length} versions)
             </h3>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {[...note.history].reverse().map((entry, index) => (
-                <div key={entry.id} className="flex items-center justify-between p-2 bg-white rounded border border-blue-100">
+                <div key={entry.id} className="flex items-center justify-between p-2 bg-hover rounded border border-border">
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono text-blue-600">
+                    <span className="text-xs font-mono text-text-secondary">
                       {new Date(entry.timestamp).toLocaleString()}
                     </span>
-                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                    <span className="text-xs px-2 py-1 bg-hover text-text rounded">
                       {entry.action}
                     </span>
                   </div>
                   <button
                     onClick={() => setRestoreContent(entry.content)}
-                    className="text-xs px-3 py-1 text-primary hover:bg-primary/10 rounded"
+                    className="text-xs px-3 py-1 text-primary hover:bg-hover rounded"
                   >
                     <i className="fas fa-rotate-left mr-1"></i>
                     Restore
@@ -285,11 +285,11 @@ export const NoteEditor: React.FC = () => {
         />
 
         {isPreview ? (
-          <div className={`border border-gray-300 rounded-lg p-6 bg-white ${isFullscreen ? 'fixed inset-4 z-50 max-h-none' : 'min-h-96 max-h-[calc(100vh-400px)]'} overflow-y-auto`}>
+          <div className={`border border-border rounded-lg p-6 bg-surface ${isFullscreen ? 'fixed inset-4 z-50 max-h-none' : 'min-h-96 max-h-[calc(100vh-400px)]'} overflow-y-auto`}>
             <div className="flex justify-end mb-2">
               <button
                 onClick={() => setIsFullscreen(!isFullscreen)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-hover rounded-lg transition-colors"
                 title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
               >
                 <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`}></i>
@@ -301,7 +301,7 @@ export const NoteEditor: React.FC = () => {
           <textarea
             value={note.content}
             onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, content: v } : prev); }}
-            className="w-full h-96 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-primary font-mono"
+            className="w-full h-96 p-4 border border-border rounded-lg resize-none focus:outline-none focus:border-primary font-mono bg-surface"
             placeholder="Start writing your note... (Markdown & Mermaid supported)"
           />
         )}
@@ -317,38 +317,38 @@ export const NoteEditor: React.FC = () => {
               type="text"
               value={note.folder}
               onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, folder: v } : prev); }}
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full"
+              className="px-4 py-2 border border-border rounded-lg w-full"
               placeholder="Folder"
             />
             <input
               type="text"
               value={note.subfolder || ''}
               onChange={(e) => { const v = e.target.value || undefined; setNote(prev => prev ? { ...prev, subfolder: v } : prev); }}
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full"
+              className="px-4 py-2 border border-border rounded-lg w-full"
               placeholder="Subfolder (optional)"
             />
             <input
               type="datetime-local"
               value={note.reminder ? formatDateTimeLocal(note.reminder) : ''}
               onChange={(e) => { const v = e.target.value ? new Date(e.target.value) : undefined; setNote(prev => prev ? { ...prev, reminder: v } : prev); }}
-              className="px-4 py-2 border border-gray-300 rounded-lg w-full"
+              className="px-4 py-2 border border-border rounded-lg w-full"
             />
           </div>
         </div>
 
         <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-text-secondary mb-2">
             <i className="fas fa-paperclip mr-2"></i>
             Attachments
           </label>
           <div className="space-y-3">
             {note.attachments?.map(attachment => (
-              <div key={attachment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <div key={attachment.id} className="flex items-center justify-between p-3 bg-hover rounded-lg border border-border">
                 <div className="flex items-center gap-3">
-                  <i className="fas fa-file text-gray-400 text-xl"></i>
+                  <i className="fas fa-file text-text-secondary text-xl"></i>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{attachment.name}</p>
-                    <p className="text-xs text-gray-500">{formatFileSize(attachment.size)}</p>
+                    <p className="text-sm font-medium text-text">{attachment.name}</p>
+                    <p className="text-xs text-text-secondary">{formatFileSize(attachment.size)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -361,16 +361,16 @@ export const NoteEditor: React.FC = () => {
                   </a>
                   <button
                     onClick={() => removeAttachment(attachment.id)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                   >
                     <i className="fas fa-trash"></i>
                   </button>
                 </div>
               </div>
             ))}
-            <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer">
-              <i className="fas fa-cloud-upload-alt text-gray-400"></i>
-              <span className="text-sm text-gray-600">Upload files</span>
+            <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer">
+              <i className="fas fa-cloud-upload-alt text-text-secondary"></i>
+              <span className="text-sm text-text-secondary">Upload files</span>
               <input
                 type="file"
                 multiple
@@ -381,9 +381,9 @@ export const NoteEditor: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <h4 className="text-sm font-bold text-gray-700 mb-2">Markdown Cheatsheet:</h4>
-          <div className="text-xs text-gray-600 space-y-1">
+        <div className="mt-6 p-4 bg-hover rounded-lg">
+          <h4 className="text-sm font-bold text-text mb-2">Markdown Cheatsheet:</h4>
+          <div className="text-xs text-text-secondary space-y-1">
             <p><code># H1</code>, <code>## H2</code>, <code>### H3</code> - Headers</p>
             <p><code>**bold**</code>, <code>*italic*</code>, <code>`code`</code> - Text formatting</p>
             <p><code>- item</code> or <code>1. item</code> - Lists</p>

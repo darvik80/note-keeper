@@ -30,6 +30,7 @@ public class Todo {
     private String sharedWith; // JSON array of user IDs
     private Schedule schedule;
     private List<Attachment> attachments = new ArrayList<>();
+    private LocalDateTime lastCompletedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

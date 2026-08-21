@@ -1,0 +1,46 @@
+# Native image: UI + API in one binary.
+# Pin ol9: tag :25 tracks OL10 (glibc x86-64-v3).
+FROM ghcr.io/graalvm/native-image-community:25 AS build
+WORKDIR /app
+USER root
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV JWT_SECRET=aot-dummy-secret-key-must-be-32-bytes!!
+
+COPY mvnw pom.xml ./
+COPY .mvn .mvn
+COPY note-keeper-service/pom.xml note-keeper-service/
+COPY note-keeper-web/pom.xml note-keeper-web/
+RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline || true
+
+COPY . .
+# Compile service+web first (process-aot needs NotekeeperApplication.class), then AOT, then native-image.
+# Run native:compile with -f service pom so image lands in module target, not reactor /app.
+RUN chmod +x mvnw \
+    && ./mvnw -B -DskipTests -pl note-keeper-service -am install \
+    && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -f note-keeper-service/pom.xml spring-boot:process-aot \
+    && ./mvnw -B -Pnative -DskipTests -DskipNativeBuild=false -Dnative.image.name=note-keeper \
+         -f note-keeper-service/pom.xml native:compile \
+    || (echo "=== native-image / maven failure ===" \
+        && ls -la /app note-keeper-service/target || true \
+        && find /app -maxdepth 2 -type f \( -name 'note-keeper' -o -name 'xyz.crearts.note.keeper.NotekeeperApplication' -o -name 'lib*.so' \) -ls \
+        && exit 1) \
+    && mkdir -p /native-out \
+    && BIN="$(find /app/note-keeper-service/target /app -maxdepth 1 -type f \
+         \( -name note-keeper -o -name note-keeper-service -o -name xyz.crearts.note.keeper.NotekeeperApplication \) \
+         ! -name '*.jar' ! -name '*.original' 2>/dev/null | head -n1)" \
+    && echo "NATIVE_BIN=$BIN" && test -n "$BIN" \
+    && cp "$BIN" /native-out/note-keeper \
+    && find "$(dirname "$BIN")" -maxdepth 1 -name 'lib*.so' -exec cp {} /native-out/ \; \
+    && chmod +x /native-out/note-keeper \
+    && ls -la /native-out
+
+FROM debian:bookworm-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+ENV LD_LIBRARY_PATH=/app
+COPY --from=build /native-out/ /app/
+EXPOSE 8080
+ENTRYPOINT ["/app/note-keeper", "-Djavax.xml.accessExternalDTD=all", "--spring.config.location=file:/app/etc/application.yaml"]

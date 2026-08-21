@@ -119,4 +119,59 @@ class UserSettingsServiceTest {
 
         assertNull(result);
     }
+
+    @Test
+    void findByTelegramWebhookSecret_shouldQueryWithPlainText() {
+        UserSettings settings = new UserSettings();
+        settings.setId("user-1");
+        settings.setTelegramWebhookSecret("plain-secret");
+
+        when(userSettingsMapper.findByTelegramWebhookSecret("plain-secret")).thenReturn(settings);
+
+        UserSettings result = userSettingsService.findByTelegramWebhookSecret("plain-secret");
+
+        assertNotNull(result);
+        assertEquals("plain-secret", result.getTelegramWebhookSecret());
+        verify(userSettingsMapper).findByTelegramWebhookSecret("plain-secret");
+        verifyNoInteractions(encryptionService);
+    }
+
+    @Test
+    void findByTelegramWebhookSecret_nullSecret_shouldReturnNull() {
+        assertNull(userSettingsService.findByTelegramWebhookSecret(null));
+        verifyNoInteractions(userSettingsMapper);
+    }
+
+    @Test
+    void saveSettings_shouldNotEncryptWebhookSecret() {
+        UserSettings settings = new UserSettings();
+        settings.setId("user-1");
+        settings.setTelegramBotToken("plain-token");
+        settings.setTelegramWebhookSecret("webhook-plain");
+
+        when(encryptionService.encrypt("plain-token")).thenReturn("encrypted-token");
+
+        userSettingsService.saveSettings(settings);
+
+        verify(userSettingsMapper).upsert(argThat(s ->
+                "encrypted-token".equals(s.getTelegramBotToken()) &&
+                "webhook-plain".equals(s.getTelegramWebhookSecret())));
+    }
+
+    @Test
+    void getSettings_shouldMigrateEncryptedWebhookSecret() {
+        UserSettings raw = new UserSettings();
+        raw.setId("user-1");
+        raw.setTelegramWebhookSecret("encrypted-webhook-value");
+
+        when(userSettingsMapper.findById("user-1")).thenReturn(raw);
+        when(encryptionService.decrypt("encrypted-webhook-value")).thenReturn("plain-webhook");
+
+        UserSettings result = userSettingsService.getSettings("user-1");
+
+        assertEquals("plain-webhook", result.getTelegramWebhookSecret());
+        // Verify the encrypted value was re-saved as plain text
+        verify(userSettingsMapper).upsert(argThat(s ->
+                "plain-webhook".equals(s.getTelegramWebhookSecret())));
+    }
 }

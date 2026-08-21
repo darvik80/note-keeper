@@ -2,6 +2,7 @@
  * @module Calendar
  * @category Pages
  * @description Calendar page — todos with due dates displayed in a monthly calendar grid.
+ * Shows completion markers for recurring todos based on completion log.
  */
 import React, {useCallback, useEffect, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
@@ -10,6 +11,7 @@ import {PageShell} from '../components/PageShell';
 import {PriorityBadge} from '../components/PriorityBadge';
 import {api} from '../utils/api';
 import {useWebSocket} from '../hooks/useWebSocket';
+import {TodoCompletionLog} from '../types';
 
 type CalendarItem = {
   id: string;
@@ -22,6 +24,8 @@ type CalendarItem = {
   dueDate?: Date | string;
   reminder?: Date | string;
   schedule?: { repeat: string; endDate?: string; daysOfWeek?: number[] };
+  lastCompletedAt?: Date | string;
+  createdAt?: Date | string;
 };
 
 /** Calendar page displaying todos and notes by date in a monthly grid view. */
@@ -29,6 +33,7 @@ export const Calendar: React.FC = () => {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [items, setItems] = useState<CalendarItem[]>([]);
+  const [completionLogs, setCompletionLogs] = useState<Map<string, Date[]>>(new Map()); // todoId -> array of completedAt dates
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -54,7 +59,9 @@ export const Calendar: React.FC = () => {
           description: t.description,
           dueDate: t.dueDate,
           reminder: t.reminder,
-          schedule: t.schedule
+          schedule: t.schedule,
+          lastCompletedAt: t.lastCompletedAt,
+          createdAt: t.createdAt
         }));
 
       const noteItems: CalendarItem[] = notes
@@ -70,6 +77,23 @@ export const Calendar: React.FC = () => {
         }));
 
       setItems([...todoItems, ...noteItems]);
+
+      // Load completion logs for recurring todos
+      const recurringTodos = todos.filter(t => t.schedule && t.schedule.repeat && t.schedule.repeat !== 'none');
+      const logsMap = new Map<string, Date[]>();
+      await Promise.all(
+        recurringTodos.map(async (t) => {
+          try {
+            const logs = await api.todos.getCompletionLog(t.id);
+            if (logs && logs.length > 0) {
+              logsMap.set(t.id, logs.map(l => new Date(l.completedAt)));
+            }
+          } catch (e) {
+            // Ignore errors for individual todo logs
+          }
+        })
+      );
+      setCompletionLogs(logsMap);
     } catch (err) {
       setError((err as any)?.message || 'Failed to load calendar data');
     }
@@ -96,6 +120,15 @@ export const Calendar: React.FC = () => {
 
   const isSameDay = (a: Date, b: Date) =>
     a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+
+  /**
+   * Check if a recurring todo was completed on a specific date.
+   */
+  const wasCompletedOnDate = (todoId: string, date: Date): boolean => {
+    const logs = completionLogs.get(todoId);
+    if (!logs) return false;
+    return logs.some(logDate => isSameDay(logDate, date));
+  };
 
   /**
    * Parse API date string (e.g. "2026-07-05T15:00:00Z") into local Date
@@ -136,9 +169,9 @@ export const Calendar: React.FC = () => {
           return true;
         }
       }
-      // Check recurring schedule (todos only) — use dueDate or reminder as start
-      if (item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none' && (item.dueDate || item.reminder)) {
-        const rawStart = parseLocalDate(item.dueDate || item.reminder);
+      // Recurring: expand from series start (createdAt), not rolled reminder
+      if (item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none' && (item.dueDate || item.reminder || item.createdAt)) {
+        const rawStart = parseLocalDate(item.createdAt) || parseLocalDate(item.dueDate || item.reminder);
         if (!rawStart) return false;
         const startDate = new Date(rawStart.getFullYear(), rawStart.getMonth(), rawStart.getDate());
 
@@ -276,21 +309,31 @@ export const Calendar: React.FC = () => {
                     </div>
                     {dayItems.length > 0 && (
                       <div className="space-y-1">
-                        {dayItems.slice(0, 2).map(item => (
-                          <div
-                            key={item.id}
-                            className={`text-xs px-1 py-0.5 rounded truncate flex items-center gap-1 ${
-                              item.type === 'note' ? 'bg-blue-500/15 text-blue-400' :
-                              item.completed ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'
-                            }`}
-                          >
-                            {item.type === 'note' && <i className="fas fa-note-sticky text-[10px] opacity-60"></i>}
-                            {item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none' && (
-                              <i className="fas fa-repeat text-[10px] opacity-60" title={`Repeats ${item.schedule.repeat}`}></i>
-                            )}
-                            <span className="truncate">{item.title}</span>
-                          </div>
-                        ))}
+                        {dayItems.slice(0, 2).map(item => {
+                          // Check if this recurring todo was completed on this date
+                          const isRecurring = item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none';
+                          const completedOnThisDate = isRecurring && wasCompletedOnDate(item.id, date);
+                          return (
+                            <div
+                              key={item.id}
+                              className={`text-xs px-1 py-0.5 rounded truncate flex items-center gap-1 ${
+                                item.type === 'note' ? 'bg-blue-500/15 text-blue-400' :
+                                completedOnThisDate ? 'bg-green-500/15 text-green-400' :
+                                isRecurring ? 'bg-yellow-500/15 text-yellow-400' :
+                                item.completed ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'
+                              }`}
+                            >
+                              {item.type === 'note' && <i className="fas fa-note-sticky text-[10px] opacity-60"></i>}
+                              {isRecurring && (
+                                <i className="fas fa-repeat text-[10px] opacity-60" title={`Repeats ${item.schedule.repeat}`}></i>
+                              )}
+                              {completedOnThisDate && (
+                                <i className="fas fa-check-circle text-[10px] text-green-400" title="Completed on this day"></i>
+                              )}
+                              <span className="truncate">{item.title}</span>
+                            </div>
+                          );
+                        })}
                         {dayItems.length > 2 && (
                           <div className="text-xs text-text-secondary">+{dayItems.length - 2} more</div>
                         )}
@@ -311,39 +354,46 @@ export const Calendar: React.FC = () => {
                 <p className="text-sm text-text-secondary">No items for this day.</p>
               ) : (
               <div className="space-y-3">
-                {selectedDateItems.map(item => (
-                  <div
-                    key={item.id}
-                    className="p-4 border border-border rounded-lg hover:border-primary transition-colors cursor-pointer bg-background"
-                    onClick={() => navigate(item.type === 'note' ? `/notes/${item.id}` : `/todos/${item.id}`)}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {item.type === 'note' && <i className="fas fa-note-sticky text-secondary"></i>}
-                        <h4 className="font-semibold text-text">{item.title}</h4>
+                {selectedDateItems.map(item => {
+                  // Check if this recurring todo was completed on the selected date
+                  const isRecurring = item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none';
+                  const completedOnSelectedDate = isRecurring && selectedDate && wasCompletedOnDate(item.id, selectedDate);
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-4 border border-border rounded-lg hover:border-primary transition-colors cursor-pointer bg-background"
+                      onClick={() => navigate(item.type === 'note' ? `/notes/${item.id}` : `/todos/${item.id}`)}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {item.type === 'note' && <i className="fas fa-note-sticky text-secondary"></i>}
+                          <h4 className="font-semibold text-text">{item.title}</h4>
+                        </div>
+                        {item.type === 'todo' && (
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            completedOnSelectedDate ? 'bg-green-500/15 text-green-400' :
+                            isRecurring ? 'bg-yellow-500/15 text-yellow-400' :
+                            item.completed ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'
+                          }`}>
+                            {completedOnSelectedDate ? '✓ Completed' : isRecurring ? 'Pending' : item.completed ? 'Completed' : 'Pending'}
+                          </span>
+                        )}
+                        {item.type === 'note' && (
+                          <span className="text-xs px-2 py-1 rounded bg-blue-500/15 text-blue-400">Note</span>
+                        )}
                       </div>
-                      {item.type === 'todo' && (
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          item.completed ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'
-                        }`}>
-                          {item.completed ? 'Completed' : 'Pending'}
-                        </span>
-                      )}
-                      {item.type === 'note' && (
-                        <span className="text-xs px-2 py-1 rounded bg-blue-500/15 text-blue-400">Note</span>
-                      )}
+                      {item.description && <p className="text-sm text-text-secondary mb-2">{item.description}</p>}
+                      <div className="flex items-center gap-2">
+                        <PriorityBadge priority={item.priority} />
+                        {item.tags.slice(0, 3).map(tag => (
+                          <span key={tag} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    {item.description && <p className="text-sm text-text-secondary mb-2">{item.description}</p>}
-                    <div className="flex items-center gap-2">
-                      <PriorityBadge priority={item.priority} />
-                      {item.tags.slice(0, 3).map(tag => (
-                        <span key={tag} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               )}
             </div>

@@ -7,7 +7,7 @@ Reference guide for AI agents working on this codebase.
 ## Project Overview
 
 Full-stack note-taking application. Multi-module Maven project:
-- **note-keeper-service** — Spring Boot 3.5 backend (Java 21, MyBatis, SQLite/PostgreSQL)
+- **note-keeper-service** — Spring Boot 4.1 backend (Java 25, MyBatis, SQLite/PostgreSQL, GraalVM native)
 - **note-keeper-web** — React 18 + TypeScript frontend (Tailwind CSS, Webpack)
 
 Frontend is bundled into the backend JAR as static resources.
@@ -22,7 +22,7 @@ note-keeper/
 ├── note-keeper-service/             # Backend
 │   ├── src/main/java/xyz/crearts/note/keeper/
 │   │   ├── controller/              # 11 REST controllers
-│   │   ├── service/                 # 12 business logic services
+│   │   ├── service/                 # Business logic + ReminderService scheduler
 │   │   ├── mapper/                  # 11 MyBatis mappers (interfaces)
 │   │   ├── model/                   # 9 entity classes (Lombok @Data)
 │   │   ├── dto/                     # Request/response DTOs
@@ -77,6 +77,28 @@ npm run dev
 cd note-keeper-web
 npm run build    # outputs to dist/, copied into JAR by Maven
 ```
+
+### GraalVM native image
+Requires GraalVM 25+ (`native-image` on PATH, `JAVA_HOME`/`GRAALVM_HOME` set). Windows: x64 Native Tools Command Prompt.
+
+One binary = frontend static + backend. From repo root:
+
+```bash
+mvn -Pnative native:compile
+# binary: note-keeper-service/target/note-keeper
+./note-keeper-service/target/note-keeper -Djavax.xml.accessExternalDTD=all
+```
+
+Docker image (Buildpacks, JDK 25+):
+```bash
+mvn -pl note-keeper-service -am -Pnative spring-boot:build-image
+```
+
+CI image: `docker build -f Dockerfile.native -t note-keeper-native .`
+
+Gitea: HTTP registry `devops.local:5000` (`REGISTRY_IP` 192.168.1.103, insecure). Secrets: `REGISTRY_USER`, `REGISTRY_PASSWORD`.
+- JVM `.gitea/workflows/deploy.yml` — `darvik-minipc` build+push `note-keeper` → NAS pull+run **9081** (`master`)
+- Native `.gitea/workflows/deploy-native.yml` — minipc build+push `note-keeper-native` → NAS pull+run **9082** (`native` / dispatch). `deploy-only` = tag minipc image + push, no Graal.
 
 ---
 
@@ -203,6 +225,15 @@ Sends via `https://api.telegram.org/bot{token}/sendMessage`.
 Config: `webhookUrl` + optional `secret` in `user_settings`.
 Auth: HMAC-SHA256 signature (timestamp + `\n` + secret), appended as query params.
 
+### Reminders (`ReminderService` + `Recurrence`)
+- Recurring todo = habit series: `completed` = done for **current period only**; `last_completed_at` + `todo_completion_log` = history
+- `reminder` time-of-day is the template; `Recurrence.rolloverIfNeeded` aligns `completed`/`reminder` to today (or this week/month) on read + every 60s
+- `@Scheduled` 60s: rollover all recurring → `findWithDueReminders` (`reminder <= now`, `notified_at` null or `< reminder`, `completed=0`)
+- Notify sets `notified_at` only — **does not** advance reminder
+- Complete (`toggleComplete`): log occurrence, `completed=true`, `reminder` → next slot
+- Note.reminder = display only — no notify path
+- On todo update: reminder change clears `notified_at`
+
 ---
 
 ## Common Pitfalls
@@ -214,6 +245,10 @@ Auth: HMAC-SHA256 signature (timestamp + `\n` + secret), appended as query param
 | Frontend build | `npm run build` must run before `mvn install` if building backend alone | Use root `mvn clean install` for full build |
 | SQLite concurrency | Single-connection pool; don't use SQLite in multi-instance deploy | Switch to PostgreSQL for production |
 | JWT claims | Subject = userId (UUID string), not email | Use `JwtService.extractUserId()`, not `extractUsername()` |
+| Recurring `completed` | `completed=1` stuck across days → strikethrough forever, no notify | `Recurrence.rolloverIfNeeded` — `completed` is current period only |
+| Recurring reminders | Advance reminder on notify **and** on complete → double-jump / fight | Notify only sets `notified_at`; complete/rollover moves `reminder` |
+| Reminder edit | Change `reminder` but leave old `notified_at` ≥ new time → never fires | Clear `notified_at` when reminder changes (`TodoService.update`) |
+| GraalVM native | MyBatis XML DTD / SQLite JNI missing at runtime | Run with `-Djavax.xml.accessExternalDTD=all`; plugin uses `SqliteJdbcFeature` |
 
 ---
 
@@ -223,6 +258,9 @@ Auth: HMAC-SHA256 signature (timestamp + `\n` + secret), appended as query param
 |------|-------|
 | Spring Boot entry point | `note-keeper-service/src/main/java/.../NotekeeperApplication.java` |
 | Security config + JWT filter | `config/SecurityConfig.java`, `config/JwtAuthenticationFilter.java` |
+| Reminder scheduler | `service/ReminderService.java` |
+| Recurrence math | `service/Recurrence.java` |
+| GraalVM / AOT hints | `config/NativeRuntimeHints.java`, `config/MyBatisNativeConfiguration.java` |
 | DB schema (SQLite) | `note-keeper-service/src/main/resources/schema.sql` |
 | MyBatis XML mappers | `note-keeper-service/src/main/resources/mapper/*.xml` |
 | App config | `note-keeper-service/src/main/resources/application.yml` |

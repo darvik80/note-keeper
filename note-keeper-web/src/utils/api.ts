@@ -30,6 +30,7 @@ import {
     SavedQueryInput,
     SearchResult,
     Todo,
+    TodoCompletionLog,
     TodoInput,
     User
 } from '../types';
@@ -406,6 +407,33 @@ export const api = {
         headers: getAuthHeaders()
       });
       return handleResponse(res);
+    },
+
+    /**
+     * Toggle completion status for a todo.
+     * Recurring: logs this period, sets completed for the cycle, points reminder at next slot.
+     * One-shot: simple toggle.
+     * @param id - Todo UUID.
+     * @returns The updated {@link Todo}.
+     */
+    toggleComplete: async (id: string): Promise<Todo> => {
+      const res = await fetch(`${API_BASE}/todos/${id}/toggle-complete`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      return handleResponse(res);
+    },
+
+    /**
+     * Get completion history for a recurring todo.
+     * @param id - Todo UUID.
+     * @returns Array of {@link TodoCompletionLog} entries.
+     */
+    getCompletionLog: async (id: string): Promise<TodoCompletionLog[]> => {
+      const res = await fetch(`${API_BASE}/todos/${id}/completions`, {
+        headers: getAuthHeaders()
+      });
+      return handleResponse(res);
     }
   },
 
@@ -612,6 +640,18 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(request)
+      });
+      return handleResponse(res);
+    },
+
+    /**
+     * Send a test todo reminder with MarkdownV2 formatting and inline "Mark as Done" keyboard.
+     * Uses the user's stored Telegram credentials.
+     */
+    sendTestTodoTelegram: async (): Promise<IntegrationResponse> => {
+      const res = await fetch(`${API_BASE}/integrations/telegram/test-todo`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders() }
       });
       return handleResponse(res);
     },

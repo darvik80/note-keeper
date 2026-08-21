@@ -33,6 +33,8 @@ public class BackupScheduler {
 
     private ScheduledFuture<?> scheduledTask;
     private boolean initialized = false;
+    private String lastCronExpr;
+    private boolean lastEnabledState = false;
 
     /**
      * Check and update backup schedule based on database settings.
@@ -59,6 +61,11 @@ public class BackupScheduler {
             boolean isEnabled = enabled != null && enabled;
             String cronExpr = cron != null ? cron : "0 0 2 * * *";
 
+            // Skip re-scheduling if nothing changed
+            if (isEnabled == lastEnabledState && cronExpr.equals(lastCronExpr) && scheduledTask != null) {
+                return;
+            }
+
             // Cancel existing task if any
             if (scheduledTask != null) {
                 scheduledTask.cancel(false);
@@ -71,9 +78,11 @@ public class BackupScheduler {
                     this::executeBackup,
                     new CronTrigger(cronExpr)
                 );
+                lastCronExpr = cronExpr;
             } else {
                 log.debug("Automatic backup is disabled or not configured");
             }
+            lastEnabledState = isEnabled;
         } catch (Exception e) {
             log.warn("Backup settings not available yet: {}", e.getMessage());
         }

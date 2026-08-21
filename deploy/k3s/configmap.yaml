@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: note-keeper-config
+  namespace: note-keeper
+data:
+  application.yaml: |
+    server:
+      port: 8080
+      forward-headers-strategy: native
+
+    spring:
+      application:
+        name: note-keeper
+      profiles:
+        active: sqlite
+      security:
+        oauth2:
+          client:
+            registration:
+              google:
+                client-id: ${GOOGLE_CLIENT_ID:}
+                client-secret: ${GOOGLE_CLIENT_SECRET:}
+                scope:
+                  - profile
+                  - email
+                redirect-uri: "{baseUrl}/login/oauth2/code/google"
+
+    app:
+      storage:
+        base-dir: /app/var
+        attachments-dir: /app/var/attachments
+        backups-dir: /app/var/backups
+        data-dir: /app/var/data
+        db-path: /app/var/data/notekeeper.db
+      encryption:
+        key: ${APP_ENCRYPTION_KEY:}
+      telegram:
+        webhook-base-url: ${TELEGRAM_WEBHOOK_BASE_URL:}
+
+    jwt:
+      secret: ${JWT_SECRET:}
+      expiration: ${JWT_EXPIRY_MS:86400000}
+
+    mybatis:
+      mapper-locations: classpath*:mapper/*.xml
+      type-aliases-package: xyz.crearts.note.keeper.model
+      type-handlers-package: xyz.crearts.note.keeper.mapper.typehandler
+      configuration:
+        map-underscore-to-camel-case: true
+
+    ---
+    spring:
+      config:
+        activate:
+          on-profile: sqlite
+      datasource:
+        url: jdbc:sqlite:${app.storage.db-path}
+        driver-class-name: org.sqlite.JDBC
+        hikari:
+          maximum-pool-size: 1
+          connection-init-sql: "PRAGMA foreign_keys=OFF; PRAGMA journal_mode=WAL;"
+      sql:
+        init:
+          mode: always
+          schema-locations: classpath:schema.sql
+          data-locations: classpath:data.sql

@@ -8,6 +8,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import xyz.crearts.note.keeper.dto.TodoInput;
 import xyz.crearts.note.keeper.model.Todo;
+import xyz.crearts.note.keeper.model.TodoCompletionLog;
 import xyz.crearts.note.keeper.service.TodoService;
 
 import java.util.List;
@@ -103,5 +104,28 @@ public class TodoController {
         log.info("DELETE /api/v1/todos/{}/share - ownerId: {}, userId: {}", id, ownerId, userId);
         Todo todo = todoService.unshareWithUser(id, userId, ownerId);
         return ResponseEntity.ok(todo);
+    }
+
+    /**
+     * Toggle completion status for a todo.
+     * Recurring: logs this period, marks done for the cycle, points reminder at next slot.
+     * One-shot: simple toggle.
+     */
+    @PostMapping("/{id}/toggle-complete")
+    public Todo toggleComplete(@PathVariable String id,
+                               @AuthenticationPrincipal String ownerId) {
+        log.info("POST /api/v1/todos/{}/toggle-complete - ownerId: {}", id, ownerId);
+        return todoService.toggleComplete(id, ownerId);
+    }
+
+    /**
+     * Get completion history for a recurring todo.
+     * Returns list of completion events with timestamps.
+     */
+    @GetMapping("/{id}/completions")
+    public List<TodoCompletionLog> getCompletionLog(@PathVariable String id,
+                                                     @AuthenticationPrincipal String ownerId) {
+        log.info("GET /api/v1/todos/{}/completions - ownerId: {}", id, ownerId);
+        return todoService.getCompletionLog(id, ownerId);
     }
 }

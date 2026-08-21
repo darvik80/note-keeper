@@ -1,0 +1,130 @@
+name: Deploy on Kubernetes
+
+# Paused: native-only test. Re-enable: on.push.branches: [master]
+on:
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: note-keeper
+  IMAGE_REF: docker.io/library/note-keeper:latest
+  K3S_HOST: 192.168.1.103
+  K3S_USER: darvik
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build docker image
+        run: |
+          export DOCKER_API_VERSION=1.43
+          docker build -t "$IMAGE_NAME:latest" -t "$IMAGE_REF" .
+
+      - name: Configure SSH
+        env:
+          K3S_SSH_KEY: ${{ secrets.K3S_SSH_KEY }}
+          K3S_SSH_KEY_B64: ${{ secrets.K3S_SSH_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          KEY_FILE="$HOME/.ssh/k3s_deploy_key"
+
+          if [ -n "${K3S_SSH_KEY_B64:-}" ]; then
+            printf '%s' "$K3S_SSH_KEY_B64" | base64 -d > "$KEY_FILE"
+          elif [ -n "${K3S_SSH_KEY:-}" ]; then
+            # Prefer raw PEM; if secret was stored as one-line base64, decode it.
+            if printf '%s' "$K3S_SSH_KEY" | grep -q 'BEGIN .*PRIVATE KEY'; then
+              printf '%s\n' "$K3S_SSH_KEY" > "$KEY_FILE"
+            else
+              printf '%s' "$K3S_SSH_KEY" | base64 -d > "$KEY_FILE"
+            fi
+          else
+            echo "Missing secret K3S_SSH_KEY or K3S_SSH_KEY_B64"
+            exit 1
+          fi
+
+          # Normalize Windows CRLF from pasted secrets
+          sed -i 's/\r$//' "$KEY_FILE"
+          # Ensure trailing newline (required by OpenSSH)
+          [ -n "$(tail -c1 "$KEY_FILE")" ] && echo >> "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+
+          if ! ssh-keygen -y -f "$KEY_FILE" >/tmp/k3s_deploy_key.pub; then
+            echo "K3S SSH key is invalid (cannot read private key). Re-check secret contents."
+            exit 1
+          fi
+          echo "Deploy key fingerprint:"
+          ssh-keygen -lf /tmp/k3s_deploy_key.pub
+
+          ssh-keyscan -H "$K3S_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          cat > ~/.ssh/config <<EOF
+          Host k3s
+            HostName ${K3S_HOST}
+            User ${K3S_USER}
+            IdentityFile ${KEY_FILE}
+            IdentitiesOnly yes
+            PreferredAuthentications publickey
+            PasswordAuthentication no
+            BatchMode yes
+            StrictHostKeyChecking yes
+          EOF
+          chmod 600 ~/.ssh/config
+
+          echo "Testing SSH to ${K3S_USER}@${K3S_HOST}..."
+          if ! ssh -v k3s 'echo SSH_OK'; then
+            echo
+            echo "SSH publickey auth failed."
+            echo "1) Put the matching PUBLIC key into ${K3S_USER}@${K3S_HOST}:~/.ssh/authorized_keys"
+            echo "2) Prefer secret K3S_SSH_KEY_B64 = base64 -w0 < private_key"
+            echo "3) Public key fingerprint above must match the key on the server"
+            exit 1
+          fi
+
+      - name: Import image into k3s
+        run: |
+          export DOCKER_API_VERSION=1.43
+          docker save "$IMAGE_REF" | gzip | ssh k3s 'gunzip | sudo k3s ctr images import -'
+
+      - name: Apply manifests and rollout
+        env:
+          APP_ENCRYPTION_KEY: ${{ secrets.APP_ENCRYPTION_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TELEGRAM_WEBHOOK_BASE_URL: ${{ secrets.TELEGRAM_WEBHOOK_BASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "${APP_ENCRYPTION_KEY:-}" || { echo "Missing secret APP_ENCRYPTION_KEY"; exit 1; }
+          test -n "${JWT_SECRET:-}" || { echo "Missing secret JWT_SECRET"; exit 1; }
+
+          b64() { printf '%s' "$1" | base64 -w0 2>/dev/null || printf '%s' "$1" | base64; }
+
+          ssh k3s 'sudo k3s kubectl apply -f -' < deploy/k3s/namespace.yaml
+
+          cat <<EOF | ssh k3s 'sudo k3s kubectl apply -f -'
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: note-keeper-secrets
+            namespace: note-keeper
+          type: Opaque
+          data:
+            APP_ENCRYPTION_KEY: $(b64 "$APP_ENCRYPTION_KEY")
+            JWT_SECRET: $(b64 "$JWT_SECRET")
+            GOOGLE_CLIENT_ID: $(b64 "${GOOGLE_CLIENT_ID:-}")
+            GOOGLE_CLIENT_SECRET: $(b64 "${GOOGLE_CLIENT_SECRET:-}")
+            TELEGRAM_WEBHOOK_BASE_URL: $(b64 "${TELEGRAM_WEBHOOK_BASE_URL:-}")
+          EOF
+
+          ssh k3s 'sudo k3s kubectl apply -f -' < deploy/k3s/configmap.yaml
+          ssh k3s 'sudo k3s kubectl apply -f -' < deploy/k3s/pvc.yaml
+          ssh k3s 'sudo k3s kubectl apply -f -' < deploy/k3s/deployment.yaml
+          ssh k3s 'sudo k3s kubectl apply -f -' < deploy/k3s/service.yaml
+
+          ssh k3s 'sudo k3s kubectl -n note-keeper rollout restart deployment/note-keeper'
+          ssh k3s 'sudo k3s kubectl -n note-keeper rollout status deployment/note-keeper --timeout=180s'
+          ssh k3s 'sudo k3s kubectl -n note-keeper get pods,svc'

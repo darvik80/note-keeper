@@ -46,7 +46,7 @@ class DatabaseMigrationServiceTest {
         when(jdbcTemplate.query(eq("PRAGMA table_info(user_settings)"), any(RowMapper.class)))
                 .thenReturn(List.of("id"));
         when(jdbcTemplate.query(eq("PRAGMA table_info(todo)"), any(RowMapper.class)))
-                .thenReturn(List.of("id", "schedule_repeat"));
+                .thenReturn(List.of("id", "schedule_repeat", "title", "description", "completed"));
         when(jdbcTemplate.query(
                 eq("SELECT id FROM users WHERE email = ? LIMIT 1"),
                 any(RowMapper.class),
@@ -67,7 +67,7 @@ class DatabaseMigrationServiceTest {
                 matches("(?s).*UPDATE saved_query SET owner_id = \\? WHERE owner_id IS NULL.*"),
                 eq("user-darvik")
         );
-        verify(jdbcTemplate, times(7)).update(
+        verify(jdbcTemplate, times(9)).update(
                 matches("INSERT INTO schema_migration.*"),
                 anyString(),
                 anyString()
@@ -85,7 +85,7 @@ class DatabaseMigrationServiceTest {
         when(jdbcTemplate.query(eq("PRAGMA table_info(user_settings)"), any(RowMapper.class)))
                 .thenReturn(List.of("id"));
         when(jdbcTemplate.query(eq("PRAGMA table_info(todo)"), any(RowMapper.class)))
-                .thenReturn(List.of("id", "schedule_repeat"));
+                .thenReturn(List.of("id", "schedule_repeat", "title", "description", "completed"));
         when(jdbcTemplate.query(
                 eq("SELECT id FROM users WHERE email = ? LIMIT 1"),
                 any(RowMapper.class),

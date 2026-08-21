@@ -63,7 +63,7 @@ export const TodoEditor: React.FC = () => {
   const navigate = useNavigate();
   const [todo, setTodo] = useState<Todo | null>(null);
   const todoRef = React.useRef<Todo | null>(null);
-  const [isPreview, setIsPreview] = useState(false);
+  const [isPreview, setIsPreview] = useState(true);
   const [telegramStatus, setTelegramStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [dingtalkStatus, setDingtalkStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [showShareModal, setShowShareModal] = useState(false);
@@ -82,8 +82,11 @@ export const TodoEditor: React.FC = () => {
           if (cancelled) return;
           if (t && t.id) {
             setTodo(t);
+            const isBlankNew = (!t.title?.trim() || t.title === 'New Todo') && !t.description?.trim();
+            setIsPreview(!isBlankNew);
           } else {
             setTodo(emptyTodo());
+            setIsPreview(false);
           }
         } catch (err: any) {
           if (!cancelled) setError(err?.message || 'Failed to load todo');
@@ -93,6 +96,7 @@ export const TodoEditor: React.FC = () => {
       return () => { cancelled = true; };
     } else {
       setTodo(emptyTodo());
+      setIsPreview(false);
     }
   }, [id]);
 
@@ -283,7 +287,7 @@ export const TodoEditor: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="text-gray-400 flex items-center gap-2">
+        <div className="text-text-secondary flex items-center gap-2">
           <i className="fas fa-spinner fa-spin"></i>
           Loading...
         </div>
@@ -305,13 +309,13 @@ export const TodoEditor: React.FC = () => {
           <button
             onClick={() => setIsPreview(!isPreview)}
             className={`p-2 sm:px-4 sm:py-2 rounded-lg transition-colors shrink-0 ${
-              isPreview ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              isPreview ? 'bg-primary text-white' : 'bg-hover text-text hover:bg-hover/80'
             }`}
           >
             <i className={`fas ${isPreview ? 'fa-edit' : 'fa-eye'} sm:mr-2`}></i>
             <span className="hidden sm:inline">{isPreview ? 'Edit' : 'Preview'}</span>
           </button>
-          <div className="flex items-center gap-1 sm:gap-2 border-r border-gray-300 pr-1 sm:pr-3">
+          <div className="flex items-center gap-1 sm:gap-2 border-r border-border pr-1 sm:pr-3">
             <button
               onClick={sendToTelegram}
               disabled={telegramStatus === 'sending'}
@@ -320,7 +324,7 @@ export const TodoEditor: React.FC = () => {
                   ? 'bg-green-500 text-white'
                   : telegramStatus === 'error'
                   ? 'bg-red-500 text-white'
-                  : 'hover:bg-gray-100 text-blue-500'
+                  : 'hover:bg-hover text-blue-500'
               } disabled:opacity-50`}
               title="Send to Telegram"
             >
@@ -334,7 +338,7 @@ export const TodoEditor: React.FC = () => {
                   ? 'bg-green-500 text-white'
                   : dingtalkStatus === 'error'
                   ? 'bg-red-500 text-white'
-                  : 'hover:bg-gray-100 text-blue-600'
+                  : 'hover:bg-hover text-blue-600'
               } disabled:opacity-50`}
               title="Send to DingTalk"
             >
@@ -343,21 +347,21 @@ export const TodoEditor: React.FC = () => {
           </div>
           <button
             onClick={() => setTodo(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : prev)}
-            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
+            className="p-2 hover:bg-hover rounded-lg shrink-0"
           >
-            <i className={`fas fa-star ${todo.isFavorite ? 'text-yellow-500' : 'text-gray-400'}`}></i>
+            <i className={`fas fa-star ${todo.isFavorite ? 'text-yellow-500' : 'text-text-secondary'}`}></i>
           </button>
           <button
             onClick={() => setShowShareModal(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg shrink-0"
+            className="p-2 hover:bg-hover rounded-lg shrink-0"
             title="Share"
           >
-            <i className="fas fa-share-alt text-gray-400"></i>
+            <i className="fas fa-share-alt text-text-secondary"></i>
           </button>
           <select
             value={todo.priority}
             onChange={(e) => { const v = e.target.value as any; setTodo(prev => prev ? { ...prev, priority: v } : prev); }}
-            className="px-2 py-2 border border-gray-300 rounded-lg text-sm shrink-0"
+            className="px-2 py-2 border border-border rounded-lg text-sm shrink-0"
           >
             <option value="low">Low</option>
             <option value="medium">Med</option>
@@ -375,28 +379,56 @@ export const TodoEditor: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-auto p-4 sm:p-8 min-h-0">
-        <input
-          type="text"
-          value={todo.title}
-          onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, title: v } : prev); }}
-          className="text-2xl sm:text-3xl font-bold mb-6 w-full border-none outline-none"
-          placeholder="Todo Title"
-        />
+        {isPreview ? (
+          <h1 className={`text-2xl sm:text-3xl font-bold mb-4 ${todo.completed ? 'line-through text-text-secondary' : ''}`}>
+            {todo.title || 'Untitled'}
+          </h1>
+        ) : (
+          <input
+            type="text"
+            value={todo.title}
+            onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, title: v } : prev); }}
+            className="text-2xl sm:text-3xl font-bold mb-6 w-full border-none outline-none"
+            placeholder="Todo Title"
+          />
+        )}
+
+        {todo.schedule?.repeat && todo.schedule.repeat !== 'none' && (
+          <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
+            <span>
+              <i className="fas fa-repeat mr-1" aria-hidden="true"></i>
+              {todo.schedule.repeat}
+            </span>
+            {todo.lastCompletedAt && (
+              <span className="text-green-500">
+                <i className="fas fa-check-circle mr-1" aria-hidden="true"></i>
+                last: {new Date(todo.lastCompletedAt).toLocaleDateString()}
+              </span>
+            )}
+            {todo.reminder && (
+              <span>
+                <i className="fas fa-bell mr-1" aria-hidden="true"></i>
+                next: {new Date(todo.reminder).toLocaleString(undefined, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+            {todo.completed && <span className="text-green-500">done this cycle</span>}
+          </div>
+        )}
 
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-2">
               Description (Markdown supported)
             </label>
             {isPreview ? (
-              <div className="border border-gray-300 rounded-lg p-4 bg-white min-h-32">
+              <div className="border border-border rounded-lg p-4 bg-surface min-h-32">
                 <MarkdownRenderer content={todo.description} />
               </div>
             ) : (
               <textarea
                 value={todo.description}
                 onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, description: v } : prev); }}
-                className="w-full h-32 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-primary font-mono"
+                className="w-full h-32 p-4 border border-border rounded-lg resize-none focus:outline-none focus:border-primary font-mono"
                 placeholder="Add description... (Markdown supported)"
               />
             )}
@@ -409,21 +441,21 @@ export const TodoEditor: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 Due / Start Date
               </label>
-              <p className="text-xs text-gray-500 mb-1">Deadline and recurrence start (required for repeating schedule).</p>
+              <p className="text-xs text-text-secondary mb-1">Deadline and recurrence start (required for repeating schedule).</p>
               <input
                 type="datetime-local"
                 value={todo.dueDate ? formatDateTimeLocal(todo.dueDate) : ''}
                 onChange={(e) => { const v = e.target.value ? new Date(e.target.value) : undefined; setTodo(prev => prev ? { ...prev, dueDate: v } : prev); }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-2 border border-border rounded-lg"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Reminder</label>
-              <p className="text-xs text-gray-500 mb-1">When to notify. Enables default channels from Settings.</p>
+              <label className="block text-sm font-medium text-text-secondary mb-2">Reminder</label>
+              <p className="text-xs text-text-secondary mb-1">When to notify. Enables default channels from Settings.</p>
               <input
                 type="datetime-local"
                 value={todo.reminder ? formatDateTimeLocal(todo.reminder) : ''}
@@ -441,10 +473,10 @@ export const TodoEditor: React.FC = () => {
                     return next;
                   });
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-2 border border-border rounded-lg"
               />
               {todo.reminder && (!todo.schedule || todo.schedule.repeat === 'none') && (
-                <p className="text-xs mt-2 text-gray-600">
+                <p className="text-xs mt-2 text-text-secondary">
                   {(() => {
                     const rem = typeof todo.reminder === 'string' ? new Date(todo.reminder) : todo.reminder;
                     const notified = todo.notifiedAt
@@ -464,12 +496,12 @@ export const TodoEditor: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-2">
               <i className="fas fa-bell mr-2"></i>
               Notification Channels
             </label>
             <div className="flex gap-4">
-              <label className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+              <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-hover">
                 <input
                   type="checkbox"
                   checked={todo.notificationChannels?.includes('telegram') || false}
@@ -492,7 +524,7 @@ export const TodoEditor: React.FC = () => {
                 <i className="fab fa-telegram text-blue-500"></i>
                 <span>Telegram</span>
               </label>
-              <label className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+              <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-hover">
                 <input
                   type="checkbox"
                   checked={todo.notificationChannels?.includes('dingtalk') || false}
@@ -519,7 +551,7 @@ export const TodoEditor: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Schedule</label>
+            <label className="block text-sm font-medium text-text-secondary mb-2">Schedule</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <select
                 value={todo.schedule?.repeat || 'none'}
@@ -543,7 +575,7 @@ export const TodoEditor: React.FC = () => {
                     };
                   });
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg"
+                className="px-4 py-2 border border-border rounded-lg"
               >
                 <option value="none">No Repeat</option>
                 <option value="daily">Daily</option>
@@ -554,12 +586,12 @@ export const TodoEditor: React.FC = () => {
               </select>
               {todo.schedule?.repeat !== 'none' && (
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Repeat until (optional)</label>
+                  <label className="block text-xs text-text-secondary mb-1">Repeat until (optional)</label>
                   <input
                     type="date"
                     value={todo.schedule?.endDate ? (typeof todo.schedule.endDate === 'string' ? todo.schedule.endDate.slice(0, 10) : new Date(todo.schedule.endDate).toISOString().slice(0, 10)) : ''}
                     onChange={(e) => { const v = e.target.value || undefined; setTodo(prev => prev ? { ...prev, schedule: { ...prev.schedule!, endDate: v } } : prev); }}
-                    className="px-4 py-2 border border-gray-300 rounded-lg w-full"
+                    className="px-4 py-2 border border-border rounded-lg w-full"
                     placeholder="End Date"
                   />
                 </div>
@@ -588,7 +620,7 @@ export const TodoEditor: React.FC = () => {
                       className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                         selected
                           ? 'bg-primary text-white border-primary'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-primary'
+                          : 'bg-surface text-text border-border hover:border-primary'
                       }`}
                     >
                       {day.label}
@@ -600,18 +632,18 @@ export const TodoEditor: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-2">
               <i className="fas fa-paperclip mr-2"></i>
               Attachments
             </label>
             <div className="space-y-3">
               {todo.attachments?.map(attachment => (
-                <div key={attachment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div key={attachment.id} className="flex items-center justify-between p-3 bg-hover rounded-lg border border-border">
                   <div className="flex items-center gap-3">
-                    <i className="fas fa-file text-gray-400 text-xl"></i>
+                    <i className="fas fa-file text-text-secondary text-xl"></i>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{attachment.name}</p>
-                      <p className="text-xs text-gray-500">{formatFileSize(attachment.size)}</p>
+                      <p className="text-sm font-medium text-text">{attachment.name}</p>
+                      <p className="text-xs text-text-secondary">{formatFileSize(attachment.size)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -631,9 +663,9 @@ export const TodoEditor: React.FC = () => {
                   </div>
                 </div>
               ))}
-              <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer">
-                <i className="fas fa-cloud-upload-alt text-gray-400"></i>
-                <span className="text-sm text-gray-600">Upload files</span>
+              <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer">
+                <i className="fas fa-cloud-upload-alt text-text-secondary"></i>
+                <span className="text-sm text-text-secondary">Upload files</span>
                 <input
                   type="file"
                   multiple

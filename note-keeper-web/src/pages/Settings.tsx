@@ -20,6 +20,7 @@ export const Settings: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('integrations');
   const [telegramTestStatus, setTelegramTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [telegramTestTodoStatus, setTelegramTestTodoStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [dingtalkTestStatus, setDingtalkTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [backupStatus, setBackupStatus] = useState<'idle' | 'exporting' | 'importing' | 'success' | 'error'>('idle');
@@ -126,6 +127,21 @@ export const Settings: React.FC = () => {
       setError((err as any)?.message || 'Telegram test failed');
     }
     setTimeout(() => setTelegramTestStatus('idle'), 3000);
+  };
+
+  const sendTelegramTestTodo = async () => {
+    setTelegramTestTodoStatus('sending');
+    try {
+      const response: IntegrationResponse = await api.integrations.sendTestTodoTelegram();
+      setTelegramTestTodoStatus(response.success ? 'success' : 'error');
+      if (!response.success) {
+        setError(response.message);
+      }
+    } catch (err) {
+      setTelegramTestTodoStatus('error');
+      setError((err as any)?.message || 'Telegram test todo failed');
+    }
+    setTimeout(() => setTelegramTestTodoStatus('idle'), 3000);
   };
 
   const sendDingtalkTest = async () => {
@@ -439,6 +455,26 @@ export const Settings: React.FC = () => {
                         {telegramTestStatus === 'sending' ? 'Sending...' :
                          telegramTestStatus === 'success' ? 'Sent!' :
                          telegramTestStatus === 'error' ? 'Failed' : 'Send Test Message'}
+                      </button>
+                      <button
+                        onClick={sendTelegramTestTodo}
+                        disabled={telegramTestTodoStatus === 'sending'}
+                        className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                          telegramTestTodoStatus === 'success'
+                            ? 'bg-green-500 text-white'
+                            : telegramTestTodoStatus === 'error'
+                            ? 'bg-red-500 text-white'
+                            : 'bg-secondary text-white hover:bg-secondary/90'
+                        } disabled:opacity-50`}
+                      >
+                        <i className={`fas ${
+                          telegramTestTodoStatus === 'sending' ? 'fa-spinner fa-spin' :
+                          telegramTestTodoStatus === 'success' ? 'fa-check' :
+                          telegramTestTodoStatus === 'error' ? 'fa-times' : 'fa-list-check'
+                        }`}></i>
+                        {telegramTestTodoStatus === 'sending' ? 'Sending...' :
+                         telegramTestTodoStatus === 'success' ? 'Sent!' :
+                         telegramTestTodoStatus === 'error' ? 'Failed' : 'Send Test Todo'}
                       </button>
                     </div>
                   </div>

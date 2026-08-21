@@ -1,0 +1,49 @@
+---
+description: Todo reminder + recurrence rules (Telegram/DingTalk scheduler)
+globs:
+  - "**/ReminderService.java"
+  - "**/Recurrence.java"
+  - "**/TodoService.java"
+  - "**/TodoMapper.*"
+  - "**/Todo.java"
+  - "**/TodoEditor.tsx"
+  - "**/TodoCard.tsx"
+  - "**/Calendar.tsx"
+alwaysApply: false
+---
+
+# Todo reminders & recurrence
+
+Recurring todo = **habit series**, not a one-shot row that mutates forever.
+
+## Model
+- `reminder` time-of-day (+ weekday / day-of-month) = series template
+- `completed` = done for **current period only** (today / this ISO week / this month)
+- `last_completed_at` + `todo_completion_log` = history (calendar green ticks)
+- `notified_at` = last notify for current `reminder` slot
+
+## Flow
+1. `Recurrence.rolloverIfNeeded` on list/get + `@Scheduled` 60s
+2. Due = `reminder <= now` AND `completed=0` AND (`notified_at` null OR `< reminder`)
+3. Notify → set `notified_at` only. **Do not advance reminder.**
+4. `toggleComplete` on recurring: log + `completed=true` + `reminder` → next slot
+5. Next day/week/month: rollover sets `completed=false`, `reminder` = current slot
+
+## UI
+- Strikethrough only if done this period (`todo.completed` after rollover)
+- Always show **last** (`lastCompletedAt`) + **next** (`reminder`)
+- Calendar expand from `createdAt`, not rolled reminder; green only from completion log
+
+## Do not
+```java
+// BAD — completed stuck forever / double-advance
+todoMapper.markReminderNotified(id, now);
+advanceRecurringIfNeeded(todo, now);
+todo.setCompleted(true); // never cleared on new day
+```
+
+```java
+// GOOD
+Recurrence.rolloverIfNeeded(todo, now);
+todoMapper.markReminderNotified(id, now); // notify only
+```

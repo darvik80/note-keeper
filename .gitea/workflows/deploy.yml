@@ -1,32 +1,69 @@
-name: Synology
+name: Deploy on NAS
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - master
+  workflow_dispatch:
 
 env:
   TARGET_PORT: 9081
   CONTAINER_NAME: note-keeper
+  REGISTRY: 192.168.1.103
+  IMAGE_NAME: note-keeper
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+  build:
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build docker image
+      - name: Login to registry
+        env:
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
         run: |
-          export DOCKER_API_VERSION=1.43
-          docker build -t localhost/$CONTAINER_NAME:latest .
+          test -n "${REGISTRY_USER:-}" || { echo "Missing secret REGISTRY_USER"; exit 1; }
+          test -n "${REGISTRY_PASSWORD:-}" || { echo "Missing secret REGISTRY_PASSWORD"; exit 1; }
+          echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
 
-      # Перезапускаем контейнер
-      - name: Restart note-keeper
+      - name: Build and push
+        run: |
+          docker build \
+            -t "$REGISTRY/$IMAGE_NAME:latest" \
+            -t "$REGISTRY/$IMAGE_NAME:${{ github.sha }}" \
+            .
+          docker push "$REGISTRY/$IMAGE_NAME:latest"
+          docker push "$REGISTRY/$IMAGE_NAME:${{ github.sha }}"
+
+  deploy:
+    needs: build
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to registry
+        env:
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
         run: |
           export DOCKER_API_VERSION=1.43
-          docker rm -f $CONTAINER_NAME
+          test -n "${REGISTRY_USER:-}" || { echo "Missing secret REGISTRY_USER"; exit 1; }
+          test -n "${REGISTRY_PASSWORD:-}" || { echo "Missing secret REGISTRY_PASSWORD"; exit 1; }
+          echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
+
+      - name: Pull and run
+        run: |
+          export DOCKER_API_VERSION=1.43
+          IMAGE="$REGISTRY/$IMAGE_NAME:${{ github.sha }}"
+          docker pull "$IMAGE"
+          docker rm -f "$CONTAINER_NAME" || true
           docker run \
-            -d -p $TARGET_PORT:8080 \
+            -d -p "$TARGET_PORT:8080" \
             --volume /volume1/docker/$CONTAINER_NAME/etc:/app/etc:ro \
             --volume /volume1/docker/$CONTAINER_NAME/var:/app/var:rw \
-            --name $CONTAINER_NAME localhost/$CONTAINER_NAME:latest
+            --name "$CONTAINER_NAME" \
+            "$IMAGE"
+          docker ps --filter "name=$CONTAINER_NAME"

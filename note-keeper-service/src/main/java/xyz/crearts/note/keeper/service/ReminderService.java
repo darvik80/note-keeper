@@ -1,151 +1,113 @@
 package xyz.crearts.note.keeper.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import xyz.crearts.note.keeper.client.DingTalkClient;
 import xyz.crearts.note.keeper.client.TelegramClient;
+import xyz.crearts.note.keeper.client.TelegramMarkdownUtil;
 import xyz.crearts.note.keeper.mapper.TodoMapper;
+import xyz.crearts.note.keeper.mapper.UserSettingsMapper;
 import xyz.crearts.note.keeper.model.Todo;
 import xyz.crearts.note.keeper.model.UserSettings;
 
-import java.time.DayOfWeek;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.UUID;
 
 /**
- * Service for handling Todo reminders and sending notifications.
- * Checks for due reminders every minute and sends notifications via Telegram/DingTalk.
+ * Todo reminder scheduler.
+ * Every minute: rollover recurring periods, then notify due incomplete reminders.
+ * Telegram notifications use MarkdownV2 formatting with inline keyboard for quick actions.
+ * Notes have a reminder field but are NOT handled here (display-only).
  */
 @Slf4j
 @Service
 public class ReminderService {
 
-    private static final List<Integer> WEEKDAYS = List.of(1, 2, 3, 4, 5); // Mon–Fri (JS getDay)
+    private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm");
 
     private final TodoMapper todoMapper;
     private final TelegramClient telegramClient;
     private final DingTalkClient dingTalkClient;
     private final UserSettingsService userSettingsService;
+    private final UserSettingsMapper userSettingsMapper;
 
-    public ReminderService(TodoMapper todoMapper, TelegramClient telegramClient, DingTalkClient dingTalkClient, UserSettingsService userSettingsService) {
+    @Value("${app.telegram.webhook-base-url:}")
+    private String webhookBaseUrl;
+
+    public ReminderService(TodoMapper todoMapper, TelegramClient telegramClient,
+                           DingTalkClient dingTalkClient, UserSettingsService userSettingsService,
+                           UserSettingsMapper userSettingsMapper) {
         this.todoMapper = todoMapper;
         this.telegramClient = telegramClient;
         this.dingTalkClient = dingTalkClient;
         this.userSettingsService = userSettingsService;
+        this.userSettingsMapper = userSettingsMapper;
     }
 
     /**
-     * Check for due reminders every minute.
-     * Sends notifications for todos with reminder time in the past that haven't been notified yet.
+     * Every minute: rollover recurring periods, then notify due incomplete reminders.
+     * Notify does not advance reminder — next fire happens after rollover into a new slot.
      */
-    @Scheduled(fixedRate = 60000) // every 60 seconds
+    @Scheduled(fixedRate = 60000)
     public void checkReminders() {
         log.debug("Checking for due reminders...");
+        LocalDateTime now = Recurrence.nowUtc();
 
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        List<Todo> todosWithReminders = todoMapper.findWithDueReminders(now);
+        for (Todo todo : todoMapper.findRecurringActive(null)) {
+            if (Recurrence.rolloverIfNeeded(todo, now)) {
+                todoMapper.update(todo);
+                log.info("Rolled recurring todo {} to reminder={} completed={}",
+                        todo.getId(), todo.getReminder(), todo.isCompleted());
+            }
+        }
 
-        for (Todo todo : todosWithReminders) {
-            if (todo.getReminder() != null && !todo.isDeleted() && !todo.isArchived()) {
+        for (Todo todo : todoMapper.findWithDueReminders(now)) {
+            if (todo.getReminder() != null && !todo.isDeleted() && !todo.isArchived() && !todo.isCompleted()) {
                 sendReminderNotification(todo);
             }
         }
     }
 
-    /**
-     * Send reminder notification for a todo.
-     * Sends to selected channels (Telegram, DingTalk, or both).
-     */
     private void sendReminderNotification(Todo todo) {
-        String message = buildReminderMessage(todo);
-
         log.info("Sending reminder for todo: {} - {}", todo.getId(), todo.getTitle());
+        dispatchChannels(todo, buildReminderMessageMarkdownV2(todo), buildReminderMessagePlain(todo));
 
+        LocalDateTime notifiedAt = Recurrence.nowUtc();
+        todoMapper.markReminderNotified(todo.getId(), notifiedAt);
+        todo.setNotifiedAt(notifiedAt);
+    }
+
+    static boolean isRecurring(Todo todo) {
+        return Recurrence.isRecurring(todo);
+    }
+
+    static LocalDateTime advance(LocalDateTime from, String repeat) {
+        return Recurrence.advance(from, repeat);
+    }
+
+    static LocalDateTime advanceDueDate(LocalDateTime dueDate, LocalDateTime oldReminder, LocalDateTime newReminder) {
+        return Recurrence.advanceDueDate(dueDate, oldReminder, newReminder);
+    }
+
+    private void dispatchChannels(Todo todo, String markdownMessage, String plainMessage) {
         String channels = todo.getNotificationChannels();
         if (channels == null || channels.isBlank()) {
-            log.warn("No notification channels set for todo {}; skipping send", todo.getId());
-        } else {
-            String[] channelArray = channels.split(",");
-            for (String channel : channelArray) {
-                String trimmedChannel = channel.trim();
-                if ("telegram".equalsIgnoreCase(trimmedChannel)) {
-                    sendToTelegram(todo, message);
-                } else if ("dingtalk".equalsIgnoreCase(trimmedChannel)) {
-                    sendToDingTalk(todo, message);
-                }
+            channels = "telegram";
+        }
+        for (String channel : channels.split(",")) {
+            switch (channel.trim().toLowerCase()) {
+                case "telegram" -> sendToTelegram(todo, markdownMessage, plainMessage);
+                case "dingtalk" -> sendToDingTalk(todo, plainMessage);
+                default -> log.warn("Unknown notification channel '{}' for todo {}", channel, todo.getId());
             }
         }
-
-        LocalDateTime notifiedAt = LocalDateTime.now(ZoneOffset.UTC);
-        LocalDateTime next = computeNextReminder(todo);
-        if (next != null) {
-            todoMapper.advanceReminder(todo.getId(), next, notifiedAt);
-            log.info("Advanced recurring reminder for todo {} to {}", todo.getId(), next);
-        } else {
-            todoMapper.markReminderNotified(todo.getId(), notifiedAt);
-        }
     }
 
-    /**
-     * Next reminder from the series anchored at the current reminder datetime
-     * (which itself was seeded from due/start when the todo was created).
-     */
-    LocalDateTime computeNextReminder(Todo todo) {
-        LocalDateTime current = todo.getReminder();
-        if (current == null) {
-            return null;
-        }
-        Todo.Schedule schedule = todo.getSchedule();
-        if (schedule == null || schedule.getRepeat() == null || "none".equalsIgnoreCase(schedule.getRepeat())) {
-            return null;
-        }
-
-        LocalDateTime next = switch (schedule.getRepeat().toLowerCase()) {
-            case "daily" -> current.plusDays(1);
-            case "weekly" -> current.plusWeeks(1);
-            case "monthly" -> current.plusMonths(1);
-            case "weekdays" -> nextMatchingDay(current, WEEKDAYS);
-            case "custom" -> {
-                List<Integer> days = schedule.getDaysOfWeek();
-                yield (days == null || days.isEmpty()) ? null : nextMatchingDay(current, days);
-            }
-            default -> null;
-        };
-
-        if (next == null) {
-            return null;
-        }
-        LocalDateTime end = schedule.getEndDate();
-        if (end != null && next.toLocalDate().isAfter(end.toLocalDate())) {
-            return null;
-        }
-        return next;
-    }
-
-    /**
-     * Next datetime after {@code from} whose day-of-week is in {@code days}
-     * (0=Sun … 6=Sat, matching JS {@code Date.getDay()}).
-     */
-    private static LocalDateTime nextMatchingDay(LocalDateTime from, List<Integer> days) {
-        LocalDateTime candidate = from.plusDays(1);
-        for (int i = 0; i < 8; i++) {
-            int jsDow = toJsDayOfWeek(candidate.getDayOfWeek());
-            if (days.contains(jsDow)) {
-                return candidate;
-            }
-            candidate = candidate.plusDays(1);
-        }
-        return null;
-    }
-
-    private static int toJsDayOfWeek(DayOfWeek day) {
-        // Java Mon=1..Sun=7 → JS Sun=0..Sat=6
-        return day.getValue() % 7;
-    }
-
-    private void sendToTelegram(Todo todo, String message) {
+    private void sendToTelegram(Todo todo, String markdownMessage, String plainMessage) {
         String userId = todo.getOwnerId() != null ? todo.getOwnerId() : "default";
         UserSettings settings = userSettingsService.getDecryptedSettings(userId);
         if (settings == null || settings.getTelegramBotToken() == null || settings.getTelegramChatId() == null) {
@@ -153,18 +115,78 @@ public class ReminderService {
             return;
         }
 
+        // Ensure webhook is set for inline keyboard callbacks
+        ensureWebhookRegistered(settings);
+
+        // Build inline keyboard with "Done" button
+        List<List<TelegramClient.InlineButton>> keyboard = null;
+        if (settings.getTelegramWebhookSecret() != null && !settings.getTelegramWebhookSecret().isEmpty()) {
+            String callbackData = "done:" + todo.getId();
+            // Telegram callback_data max 64 bytes
+            if (callbackData.length() <= 64) {
+                keyboard = List.of(
+                        List.of(new TelegramClient.InlineButton("✅ Mark as Done", callbackData))
+                );
+            }
+        }
+
         log.info("Sending Telegram notification for todo: {}", todo.getId());
         boolean success = telegramClient.sendMessage(
-            settings.getTelegramBotToken(),
-            settings.getTelegramChatId(),
-            message
+                settings.getTelegramBotToken(),
+                settings.getTelegramChatId(),
+                markdownMessage,
+                "MarkdownV2",
+                keyboard
         );
+
+        // Fallback: if MarkdownV2 fails, try plain text
+        if (!success) {
+            log.warn("MarkdownV2 message failed, falling back to plain text for todo: {}", todo.getId());
+            success = telegramClient.sendMessage(
+                    settings.getTelegramBotToken(),
+                    settings.getTelegramChatId(),
+                    plainMessage
+            );
+        }
 
         if (success) {
             log.info("Telegram notification sent successfully for todo: {}", todo.getId());
         } else {
             log.error("Failed to send Telegram notification for todo: {}", todo.getId());
         }
+    }
+
+    /**
+     * Register the Telegram webhook if webhook-base-url is configured and user has a webhook secret.
+     * Generates a webhook secret if the user doesn't have one yet.
+     */
+    private void ensureWebhookRegistered(UserSettings settings) {
+        if (webhookBaseUrl == null || webhookBaseUrl.isBlank()) {
+            return;
+        }
+
+        // Generate webhook secret if not set
+        if (settings.getTelegramWebhookSecret() == null || settings.getTelegramWebhookSecret().isEmpty()) {
+            String secret = UUID.randomUUID().toString().replace("-", "");
+            settings.setTelegramWebhookSecret(secret);
+
+            // Persist the secret (encrypt before storing)
+            UserSettings toSave = new UserSettings();
+            toSave.setId(settings.getId());
+            toSave.setTelegramBotToken(settings.getTelegramBotToken());
+            toSave.setTelegramChatId(settings.getTelegramChatId());
+            toSave.setTelegramWebhookSecret(secret);
+            toSave.setDingtalkWebhook(settings.getDingtalkWebhook());
+            toSave.setDingtalkSecret(settings.getDingtalkSecret());
+            userSettingsService.saveSettings(toSave);
+
+            log.info("Generated Telegram webhook secret for user: {}", settings.getId());
+        }
+
+        String webhookUrl = webhookBaseUrl.replaceAll("/+$", "")
+                + "/api/v1/telegram/webhook/" + settings.getTelegramWebhookSecret();
+
+        telegramClient.setWebhook(settings.getTelegramBotToken(), webhookUrl);
     }
 
     private void sendToDingTalk(Todo todo, String message) {
@@ -177,9 +199,9 @@ public class ReminderService {
 
         log.info("Sending DingTalk notification for todo: {}", todo.getId());
         boolean success = dingTalkClient.sendMessage(
-            settings.getDingtalkWebhook(),
-            settings.getDingtalkSecret(),
-            message
+                settings.getDingtalkWebhook(),
+                settings.getDingtalkSecret(),
+                message
         );
 
         if (success) {
@@ -189,22 +211,69 @@ public class ReminderService {
         }
     }
 
-    private String buildReminderMessage(Todo todo) {
+    /**
+     * Build a MarkdownV2 formatted reminder message for Telegram.
+     * Uses bold text, proper formatting, and escaped special characters.
+     */
+    String buildReminderMessageMarkdownV2(Todo todo) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("⏰ ").append(TelegramMarkdownUtil.bold("Reminder")).append("\n\n");
+        sb.append("📋 ").append(TelegramMarkdownUtil.bold(todo.getTitle()));
+
+        if (todo.getDescription() != null && !todo.getDescription().isEmpty()) {
+            String desc = todo.getDescription();
+            if (desc.length() > 200) {
+                desc = desc.substring(0, 197) + "\\.\\.\\.";
+            }
+            sb.append("\n").append(TelegramMarkdownUtil.escapeMarkdownV2(desc));
+        }
+
+        if (todo.getDueDate() != null) {
+            sb.append("\n\n").append(TelegramMarkdownUtil.field("📅", "Due:", todo.getDueDate().format(DATE_TIME_FMT)));
+        }
+
+        if (todo.getPriority() != null) {
+            String priorityIcon = switch (todo.getPriority()) {
+                case "high" -> "🔴";
+                case "medium" -> "🟡";
+                case "low" -> "🟢";
+                default -> "⚪";
+            };
+            sb.append("\n").append(priorityIcon).append(" ")
+                    .append(TelegramMarkdownUtil.field("", "Priority:", todo.getPriority()));
+        }
+
+        if (isRecurring(todo)) {
+            sb.append("\n").append(TelegramMarkdownUtil.field("🔁", "Repeat:", todo.getSchedule().getRepeat()));
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Build a plain text reminder message (fallback for DingTalk or if MarkdownV2 fails).
+     */
+    private String buildReminderMessagePlain(Todo todo) {
         StringBuilder sb = new StringBuilder();
         sb.append("⏰ Reminder: ").append(todo.getTitle());
 
         if (todo.getDescription() != null && !todo.getDescription().isEmpty()) {
-            sb.append("\n").append(todo.getDescription().substring(0, Math.min(100, todo.getDescription().length())));
+            sb.append("\n").append(todo.getDescription(), 0, Math.min(100, todo.getDescription().length()));
         }
 
         if (todo.getDueDate() != null) {
-            sb.append("\n📅 Due: ").append(todo.getDueDate());
+            sb.append("\n📅 Due: ").append(todo.getDueDate().format(DATE_TIME_FMT));
         }
 
         if (todo.getPriority() != null) {
             sb.append("\nPriority: ").append(todo.getPriority());
         }
 
+        if (isRecurring(todo)) {
+            sb.append("\n🔁 Repeats: ").append(todo.getSchedule().getRepeat());
+        }
+
         return sb.toString();
     }
+
 }

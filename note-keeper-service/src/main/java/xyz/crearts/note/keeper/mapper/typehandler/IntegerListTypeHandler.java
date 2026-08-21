@@ -1,8 +1,8 @@
 package xyz.crearts.note.keeper.mapper.typehandler;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 
@@ -18,7 +18,7 @@ import java.util.List;
  */
 public class IntegerListTypeHandler extends BaseTypeHandler<List<Integer>> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
     private static final TypeReference<List<Integer>> TYPE_REF = new TypeReference<>() {};
 
     @Override
@@ -26,7 +26,7 @@ public class IntegerListTypeHandler extends BaseTypeHandler<List<Integer>> {
             throws SQLException {
         try {
             ps.setString(i, MAPPER.writeValueAsString(parameter));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new SQLException("Error converting List<Integer> to JSON", e);
         }
     }
@@ -52,7 +52,7 @@ public class IntegerListTypeHandler extends BaseTypeHandler<List<Integer>> {
         }
         try {
             return MAPPER.readValue(json, TYPE_REF);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new SQLException("Error converting JSON to List<Integer>", e);
         }
     }

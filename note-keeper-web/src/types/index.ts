@@ -108,7 +108,7 @@ export interface Todo {
   dueDate?: Date;
   /** Optional reminder datetime. */
   reminder?: Date;
-  /** When the last reminder notification was sent (ISO from API). */
+  /** When the last reminder notification was sent (server-managed). */
   notifiedAt?: Date | string;
   /** Optional recurrence configuration. */
   schedule?: {
@@ -135,14 +135,30 @@ export interface Todo {
    */
   sharedWith: string;
   /**
-   * Comma-separated list of notification channels to alert on due date.
+   * Comma-separated list of notification channels for reminders.
    * @example "telegram,dingtalk"
    */
   notificationChannels?: string;
+  /** When this recurring todo was last completed (for display). */
+  lastCompletedAt?: Date;
   /** When the todo was created. */
   createdAt: Date;
   /** When the todo was last saved. */
   updatedAt: Date;
+}
+
+/** A single completion event for a recurring todo. */
+export interface TodoCompletionLog {
+  /** Unique log entry identifier. */
+  id: string;
+  /** The todo that was completed. */
+  todoId: string;
+  /** When the user marked it as done. */
+  completedAt: Date;
+  /** The reminder value at time of completion. */
+  occurrenceReminder?: Date;
+  /** The due date value at time of completion. */
+  occurrenceDueDate?: Date;
 }
 
 /** A reusable Markdown template for quickly creating notes. */

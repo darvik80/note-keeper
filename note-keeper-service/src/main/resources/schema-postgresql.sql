@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS todo (
     schedule_days TEXT,
     owner_id VARCHAR(255) REFERENCES users(id),
     shared_with TEXT DEFAULT '[]',
+    last_completed_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -97,6 +98,17 @@ CREATE INDEX IF NOT EXISTS idx_todo_is_archived ON todo(is_archived);
 CREATE INDEX IF NOT EXISTS idx_todo_due_date ON todo(due_date);
 CREATE INDEX IF NOT EXISTS idx_todo_created_at ON todo(created_at);
 CREATE INDEX IF NOT EXISTS idx_todo_owner ON todo(owner_id);
+
+CREATE TABLE IF NOT EXISTS todo_completion_log (
+    id VARCHAR(255) PRIMARY KEY,
+    todo_id VARCHAR(255) NOT NULL REFERENCES todo(id) ON DELETE CASCADE,
+    completed_at TIMESTAMP NOT NULL,
+    occurrence_reminder TIMESTAMP,
+    occurrence_due_date TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_completion_log_todo ON todo_completion_log(todo_id);
+CREATE INDEX IF NOT EXISTS idx_completion_log_date ON todo_completion_log(completed_at);
 
 CREATE TABLE IF NOT EXISTS attachment (
     id VARCHAR(255) PRIMARY KEY,
@@ -137,6 +149,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
     id VARCHAR(255) PRIMARY KEY DEFAULT 'default',
     telegram_bot_token TEXT,
     telegram_chat_id TEXT,
+    telegram_webhook_secret TEXT,
     dingtalk_webhook TEXT,
     dingtalk_secret TEXT,
     backup_auto_enabled BOOLEAN NOT NULL DEFAULT false,

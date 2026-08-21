@@ -32,7 +32,9 @@ public class DatabaseMigrationService {
         apply("004_saved_query_owner", this::addSavedQueryOwnerColumn);
         apply("005_template_owner", this::addTemplateOwnerColumn);
         apply("006_assign_orphan_records", this::assignOrphanRecordsToDefaultOwner);
-        apply("007_schedule_days_and_repeat", this::expandScheduleRepeat);
+        apply("007_telegram_webhook_secret", this::addTelegramWebhookSecretColumn);
+        apply("008_recurring_completion", this::addRecurringCompletion);
+        apply("009_schedule_days_and_repeat", this::expandScheduleRepeat);
     }
 
     private void apply(String id, Runnable migration) {
@@ -165,7 +167,7 @@ public class DatabaseMigrationService {
         }
         // SQLite: rebuild table to expand CHECK on schedule_repeat
         jdbcTemplate.execute("""
-            CREATE TABLE IF NOT EXISTS todo_mig_007 (
+            CREATE TABLE IF NOT EXISTS todo_mig_009 (
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
                 description TEXT NOT NULL DEFAULT '',
@@ -188,18 +190,19 @@ public class DatabaseMigrationService {
                 schedule_days TEXT,
                 owner_id TEXT NOT NULL REFERENCES users(id),
                 shared_with TEXT DEFAULT '[]',
+                last_completed_at TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
             """);
         jdbcTemplate.execute("""
-            INSERT INTO todo_mig_007 (
+            INSERT INTO todo_mig_009 (
                 id, title, description, completed, tags, priority,
                 is_favorite, is_archived, is_deleted, deleted_at,
                 due_date, reminder, notified_at, notification_channels,
                 location_lat, location_lng, location_address,
                 schedule_repeat, schedule_end_date, schedule_days,
-                owner_id, shared_with, created_at, updated_at
+                owner_id, shared_with, last_completed_at, created_at, updated_at
             )
             SELECT
                 id, title, description, completed, tags, priority,
@@ -207,11 +210,11 @@ public class DatabaseMigrationService {
                 due_date, reminder, notified_at, notification_channels,
                 location_lat, location_lng, location_address,
                 schedule_repeat, schedule_end_date, schedule_days,
-                owner_id, shared_with, created_at, updated_at
+                owner_id, shared_with, last_completed_at, created_at, updated_at
             FROM todo
             """);
         jdbcTemplate.execute("DROP TABLE todo");
-        jdbcTemplate.execute("ALTER TABLE todo_mig_007 RENAME TO todo");
+        jdbcTemplate.execute("ALTER TABLE todo_mig_009 RENAME TO todo");
         jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_completed ON todo(completed)");
         jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_is_deleted ON todo(is_deleted)");
         jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_is_archived ON todo(is_archived)");
@@ -242,6 +245,52 @@ public class DatabaseMigrationService {
                 "Assigned {} template(s) and {} saved query/queries to {}",
                 templates, queries, DEFAULT_OWNER_EMAIL
         );
+    }
+
+    private void addTelegramWebhookSecretColumn() {
+        addColumnIfMissing("user_settings", "telegram_webhook_secret",
+                "ALTER TABLE user_settings ADD COLUMN telegram_webhook_secret TEXT");
+    }
+
+    private void addRecurringCompletion() {
+        // Create completion log table for recurring todos (calendar view)
+        if (postgres) {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS todo_completion_log (
+                    id VARCHAR(255) PRIMARY KEY,
+                    todo_id VARCHAR(255) NOT NULL REFERENCES todo(id) ON DELETE CASCADE,
+                    completed_at TIMESTAMP NOT NULL,
+                    occurrence_reminder TIMESTAMP,
+                    occurrence_due_date TIMESTAMP
+                )
+                """);
+        } else {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS todo_completion_log (
+                    id TEXT PRIMARY KEY,
+                    todo_id TEXT NOT NULL REFERENCES todo(id) ON DELETE CASCADE,
+                    completed_at TEXT NOT NULL,
+                    occurrence_reminder TEXT,
+                    occurrence_due_date TEXT
+                )
+                """);
+        }
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_completion_log_todo ON todo_completion_log(todo_id)");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_completion_log_date ON todo_completion_log(completed_at)");
+
+        // Add last_completed_at column to todo table
+        addColumnIfMissing("todo", "last_completed_at",
+                postgres
+                        ? "ALTER TABLE todo ADD COLUMN last_completed_at TIMESTAMP"
+                        : "ALTER TABLE todo ADD COLUMN last_completed_at TEXT");
+
+        // Fix existing stuck recurring todos: reset completed so they become visible again
+        jdbcTemplate.update("""
+            UPDATE todo SET completed = 0, notified_at = NULL
+            WHERE schedule_repeat IN ('daily', 'weekly', 'monthly', 'weekdays', 'custom')
+              AND completed = 1
+              AND is_deleted = 0
+            """);
     }
 
     private void addColumnIfMissing(String table, String column, String ddl) {

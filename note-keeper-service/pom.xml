@@ -12,10 +12,16 @@
 	<name>note-keeper-service</name>
 	<description>NoteKeeper backend service (Spring Boot + MyBatis + SQLite)</description>
 
+	<properties>
+		<skipNativeBuild>false</skipNativeBuild>
+		<skipNativeTests>false</skipNativeTests>
+		<spring-boot.aot.skip>false</spring-boot.aot.skip>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -27,11 +33,15 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webflux</artifactId>
+			<artifactId>spring-boot-starter-restclient</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-websocket</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jackson</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
@@ -75,15 +85,24 @@
 			<artifactId>note-keeper-web</artifactId>
 		</dependency>
 
-		<!-- Google OAuth2 via Spring Security -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-client</artifactId>
+			<artifactId>spring-boot-starter-security-oauth2-client</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jdbc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -107,6 +126,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<mainClass>xyz.crearts.note.keeper.NotekeeperApplication</mainClass>
 					<jvmArguments>
 						--enable-native-access=ALL-UNNAMED
 						--sun-misc-unsafe-memory-access=allow
@@ -120,6 +140,24 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.graalvm.buildtools</groupId>
+				<artifactId>native-maven-plugin</artifactId>
+				<configuration>
+					<imageName>note-keeper</imageName>
+					<outputDirectory>${project.build.directory}</outputDirectory>
+					<mainClass>xyz.crearts.note.keeper.NotekeeperApplication</mainClass>
+					<metadataRepository>
+						<enabled>true</enabled>
+					</metadataRepository>
+					<buildArgs>
+						<buildArg>--enable-url-protocols=http,https,jar</buildArg>
+						<buildArg>-Djavax.xml.accessExternalDTD=all</buildArg>
+						<buildArg>--features=org.sqlite.nativeimage.SqliteJdbcFeature</buildArg>
+						<buildArg>-H:+ReportExceptionStackTraces</buildArg>
+					</buildArgs>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

@@ -17,7 +17,7 @@
     <select id="findAll" resultMap="templateResultMap">
         SELECT * FROM note_template
         <where>
-            owner_id = #{ownerId}
+            (owner_id = #{ownerId} OR owner_id = 'system')
             <if test="category != null">AND category = #{category}</if>
         </where>
         ORDER BY created_at DESC
