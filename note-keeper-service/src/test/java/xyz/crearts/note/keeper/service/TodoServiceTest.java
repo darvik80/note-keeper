@@ -118,20 +118,21 @@ class TodoServiceTest {
     }
 
     @Test
-    void create_withLocation_shouldSetLocation() {
+    void update_scheduleNone_shouldWriteNoneRepeat() {
+        Todo existing = buildTodo("todo-1", "owner-1");
+        Todo.Schedule daily = new Todo.Schedule();
+        daily.setRepeat("daily");
+        existing.setSchedule(daily);
+        when(todoMapper.findById("todo-1")).thenReturn(existing);
+
         TodoInput input = new TodoInput();
-        input.setTitle("Location Todo");
-        input.setLocation(java.util.Map.of("lat", 51.5, "lng", -0.1, "address", "London"));
+        input.setTitle("Updated Todo");
+        input.setSchedule(java.util.Map.of("repeat", "none"));
 
-        Todo created = buildTodo("new-id", "owner-1");
-        when(todoMapper.findById(anyString())).thenReturn(created);
+        todoService.update("todo-1", input, "owner-1");
 
-        todoService.create(input, "owner-1");
-
-        verify(todoMapper).insert(argThat(todo ->
-                todo.getLocation() != null &&
-                todo.getLocation().getLat() == 51.5 &&
-                "London".equals(todo.getLocation().getAddress())));
+        verify(todoMapper).update(argThat(todo ->
+                todo.getSchedule() != null && "none".equals(todo.getSchedule().getRepeat())));
     }
 
     @Test

@@ -23,7 +23,7 @@ type CalendarItem = {
   description?: string;
   dueDate?: Date | string;
   reminder?: Date | string;
-  schedule?: { repeat: string; endDate?: string };
+  schedule?: { repeat: string; endDate?: string; daysOfWeek?: number[] };
   lastCompletedAt?: Date | string;
   createdAt?: Date | string;
 };
@@ -34,7 +34,10 @@ export const Calendar: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [items, setItems] = useState<CalendarItem[]>([]);
   const [completionLogs, setCompletionLogs] = useState<Map<string, Date[]>>(new Map()); // todoId -> array of completedAt dates
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  });
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -197,8 +200,15 @@ export const Calendar: React.FC = () => {
           case 'weekly':
             return diffDays >= 0 && diffDays % 7 === 0;
           case 'monthly': {
-            // Same day-of-month as start date
             return dateOnly.getDate() === startDate.getDate() && diffDays >= 0;
+          }
+          case 'weekdays': {
+            const dow = dateOnly.getDay();
+            return diffDays >= 0 && dow >= 1 && dow <= 5;
+          }
+          case 'custom': {
+            const days = item.schedule.daysOfWeek || [];
+            return diffDays >= 0 && days.includes(dateOnly.getDay());
           }
           default:
             return false;
@@ -226,7 +236,7 @@ export const Calendar: React.FC = () => {
            currentDate.getFullYear() === today.getFullYear();
   };
 
-  const selectedDateItems = selectedDate ? getItemsForDate(selectedDate) : [];
+  const selectedDateItems = getItemsForDate(selectedDate);
 
   return (
     <PageShell error={error} onDismissError={() => setError(null)}>
@@ -246,7 +256,11 @@ export const Calendar: React.FC = () => {
                   <i className="fas fa-chevron-left"></i>
                 </button>
                 <button
-                  onClick={() => setCurrentDate(new Date())}
+                  onClick={() => {
+                    const now = new Date();
+                    setCurrentDate(now);
+                    setSelectedDate(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+                  }}
                   className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
                 >
                   Today
@@ -331,11 +345,14 @@ export const Calendar: React.FC = () => {
             </div>
           </div>
 
-          {selectedDate && selectedDateItems.length > 0 && (
+          {selectedDate && (
             <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
               <h3 className="text-lg font-bold text-text mb-4">
                 Items for {selectedDate.toLocaleDateString()}
               </h3>
+              {selectedDateItems.length === 0 ? (
+                <p className="text-sm text-text-secondary">No items for this day.</p>
+              ) : (
               <div className="space-y-3">
                 {selectedDateItems.map(item => {
                   // Check if this recurring todo was completed on the selected date
@@ -378,6 +395,7 @@ export const Calendar: React.FC = () => {
                   );
                 })}
               </div>
+              )}
             </div>
           )}
         </div>

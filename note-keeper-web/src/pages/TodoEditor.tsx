@@ -1,7 +1,7 @@
 /**
  * @module TodoEditor
  * @category Pages
- * @description Todo editor page — edit title, description, tags, schedule, location, and attachments.
+ * @description Todo editor page — edit title, description, tags, schedule, and attachments.
  */
 import React, {useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
@@ -28,10 +28,36 @@ const emptyTodo = (): Todo => ({
   createdAt: new Date(),
   updatedAt: new Date(),
   attachments: [],
-  schedule: { repeat: 'none', endDate: undefined }
+  schedule: { repeat: 'none', endDate: undefined, daysOfWeek: undefined }
 });
 
-/** Todo editor page. Supports Markdown description, tags, due date, reminder, recurrence schedule, geolocation, Telegram/DingTalk send, and attachments. */
+const WEEKDAY_DEFAULT = [1, 2, 3, 4, 5]; // Mon–Fri
+const DAY_LABELS = [
+  { value: 0, label: 'Sun' },
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' }
+];
+
+/** Format Date as local datetime string without UTC shift (YYYY-MM-DDTHH:mm:ss). */
+const toLocalISO = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+};
+
+const defaultChannelsFromSettings = (): string => {
+  const n = storage.getSettings().notifications;
+  const channels: string[] = [];
+  if (n?.telegram) channels.push('telegram');
+  if (n?.dingtalk) channels.push('dingtalk');
+  return channels.join(',');
+};
+
+/** Todo editor page. Supports Markdown description, tags, due date, reminder, recurrence schedule, Telegram/DingTalk send, and attachments. */
 export const TodoEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -118,6 +144,19 @@ export const TodoEditor: React.FC = () => {
         }
       }
 
+      // Repeating schedule needs dueDate or reminder as start anchor
+      const repeat = current.schedule?.repeat || 'none';
+      if (repeat !== 'none' && !current.dueDate && !current.reminder) {
+        setError('Set Due/Start Date or Reminder before using a repeating schedule');
+        return;
+      }
+
+      // Anchor reminder on due/start date when repeating and reminder empty
+      let reminderValue = current.reminder;
+      if (repeat !== 'none' && !reminderValue && current.dueDate) {
+        reminderValue = current.dueDate;
+      }
+
       const input: TodoInput = {
         title: current.title,
         description: current.description,
@@ -125,14 +164,20 @@ export const TodoEditor: React.FC = () => {
         priority: current.priority,
         isFavorite: current.isFavorite,
         completed: current.completed,
-        dueDate: current.dueDate ? (typeof current.dueDate === 'string' ? current.dueDate : current.dueDate.toISOString()) : undefined,
-        reminder: current.reminder ? (typeof current.reminder === 'string' ? current.reminder : current.reminder.toISOString()) : undefined,
-        location: current.location,
-        schedule: current.schedule && current.schedule.repeat !== 'none' ? {
-          repeat: current.schedule.repeat,
-          endDate: current.schedule.endDate ? (typeof current.schedule.endDate === 'string' ? current.schedule.endDate : new Date(current.schedule.endDate).toISOString()) : undefined
-        } : undefined,
-        notificationChannels: current.notificationChannels || undefined,
+        dueDate: current.dueDate ? (typeof current.dueDate === 'string' ? current.dueDate : toLocalISO(current.dueDate)) : undefined,
+        reminder: reminderValue ? (typeof reminderValue === 'string' ? reminderValue : toLocalISO(reminderValue)) : undefined,
+        schedule: {
+          repeat,
+          endDate: repeat !== 'none' && current.schedule?.endDate
+            ? (typeof current.schedule.endDate === 'string' ? current.schedule.endDate : toLocalISO(new Date(current.schedule.endDate)))
+            : undefined,
+          daysOfWeek: repeat === 'custom'
+            ? (current.schedule?.daysOfWeek || [])
+            : repeat === 'weekdays'
+              ? WEEKDAY_DEFAULT
+              : undefined
+        },
+        notificationChannels: current.notificationChannels ?? '',
         attachments: uploadedAttachments.map(att => ({
           id: att.id,
           name: att.name,
@@ -396,7 +441,10 @@ export const TodoEditor: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">Due Date</label>
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Due / Start Date
+              </label>
+              <p className="text-xs text-text-secondary mb-1">Deadline and recurrence start (required for repeating schedule).</p>
               <input
                 type="datetime-local"
                 value={todo.dueDate ? formatDateTimeLocal(todo.dueDate) : ''}
@@ -407,12 +455,43 @@ export const TodoEditor: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-2">Reminder</label>
+              <p className="text-xs text-text-secondary mb-1">When to notify. Enables default channels from Settings.</p>
               <input
                 type="datetime-local"
                 value={todo.reminder ? formatDateTimeLocal(todo.reminder) : ''}
-                onChange={(e) => { const v = e.target.value ? new Date(e.target.value) : undefined; setTodo(prev => prev ? { ...prev, reminder: v } : prev); }}
+                onChange={(e) => {
+                  const v = e.target.value ? new Date(e.target.value) : undefined;
+                  setTodo(prev => {
+                    if (!prev) return prev;
+                    const next: Todo = { ...prev, reminder: v };
+                    if (v && !prev.notificationChannels) {
+                      next.notificationChannels = defaultChannelsFromSettings();
+                    }
+                    if (!v) {
+                      next.notificationChannels = '';
+                    }
+                    return next;
+                  });
+                }}
                 className="w-full px-4 py-2 border border-border rounded-lg"
               />
+              {todo.reminder && (!todo.schedule || todo.schedule.repeat === 'none') && (
+                <p className="text-xs mt-2 text-text-secondary">
+                  {(() => {
+                    const rem = typeof todo.reminder === 'string' ? new Date(todo.reminder) : todo.reminder;
+                    const notified = todo.notifiedAt
+                      ? (typeof todo.notifiedAt === 'string' ? new Date(todo.notifiedAt) : new Date(todo.notifiedAt))
+                      : null;
+                    if (notified && !isNaN(notified.getTime())) {
+                      return <>Fired at {notified.toLocaleString()}</>;
+                    }
+                    if (rem > new Date()) {
+                      return <>Will notify at {rem.toLocaleString()}</>;
+                    }
+                    return <>Reminder time passed ({rem.toLocaleString()}) — not notified yet or missed</>;
+                  })()}
+                </p>
+              )}
             </div>
           </div>
 
@@ -476,13 +555,34 @@ export const TodoEditor: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <select
                 value={todo.schedule?.repeat || 'none'}
-                onChange={(e) => { const v = e.target.value as any; setTodo(prev => prev ? { ...prev, schedule: { ...prev.schedule, repeat: v } } : prev); }}
+                onChange={(e) => {
+                  const v = e.target.value as 'none' | 'daily' | 'weekly' | 'monthly' | 'weekdays' | 'custom';
+                  setTodo(prev => {
+                    if (!prev) return prev;
+                    const daysOfWeek = v === 'weekdays'
+                      ? WEEKDAY_DEFAULT
+                      : v === 'custom'
+                        ? (prev.schedule?.daysOfWeek?.length ? prev.schedule.daysOfWeek : WEEKDAY_DEFAULT)
+                        : undefined;
+                    return {
+                      ...prev,
+                      schedule: {
+                        ...prev.schedule,
+                        repeat: v,
+                        daysOfWeek,
+                        endDate: v === 'none' ? undefined : prev.schedule?.endDate
+                      }
+                    };
+                  });
+                }}
                 className="px-4 py-2 border border-border rounded-lg"
               >
                 <option value="none">No Repeat</option>
                 <option value="daily">Daily</option>
+                <option value="weekdays">Weekdays (Mon–Fri)</option>
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
+                <option value="custom">Custom days</option>
               </select>
               {todo.schedule?.repeat !== 'none' && (
                 <div>
@@ -497,17 +597,38 @@ export const TodoEditor: React.FC = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">Location</label>
-            <input
-              type="text"
-              value={todo.location?.address || ''}
-              onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, location: v ? { lat: 0, lng: 0, address: v } : undefined } : prev); }}
-              className="w-full px-4 py-2 border border-border rounded-lg"
-              placeholder="Add location..."
-            />
+            {todo.schedule?.repeat === 'custom' && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {DAY_LABELS.map(day => {
+                  const selected = todo.schedule?.daysOfWeek?.includes(day.value) ?? false;
+                  return (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() => {
+                        setTodo(prev => {
+                          if (!prev?.schedule) return prev;
+                          const current = new Set(prev.schedule.daysOfWeek || []);
+                          if (current.has(day.value)) current.delete(day.value);
+                          else current.add(day.value);
+                          return {
+                            ...prev,
+                            schedule: { ...prev.schedule, daysOfWeek: Array.from(current).sort() }
+                          };
+                        });
+                      }}
+                      className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                        selected
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-surface text-text border-border hover:border-primary'
+                      }`}
+                    >
+                      {day.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div>

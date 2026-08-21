@@ -141,12 +141,6 @@ export const TodoCard: React.FC<TodoCardProps> = ({
                 {new Date(todo.dueDate).toLocaleDateString()}
               </span>
             )}
-            {todo.location && (
-              <span>
-                <i className="fas fa-location-dot mr-1" aria-hidden="true"></i>
-                {todo.location.address}
-              </span>
-            )}
             {isRecurring && (
               <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span>

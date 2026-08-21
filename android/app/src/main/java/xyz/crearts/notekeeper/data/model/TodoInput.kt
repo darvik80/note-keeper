@@ -10,18 +10,12 @@ data class TodoInput(
     val dueDate: String? = null,
     val reminder: String? = null,
     val notificationChannels: String? = null,
-    val location: LocationInput? = null,
     val schedule: ScheduleInput? = null,
     val attachments: List<AttachmentInput>? = null
 )
 
-data class LocationInput(
-    val lat: Double? = null,
-    val lng: Double? = null,
-    val address: String? = null
-)
-
 data class ScheduleInput(
     val repeat: String,
-    val endDate: String? = null
+    val endDate: String? = null,
+    val daysOfWeek: List<Int>? = null
 )

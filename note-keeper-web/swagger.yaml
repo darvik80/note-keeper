@@ -1389,31 +1389,22 @@ components:
           format: date-time
           description: Reminder date and time
           example: "2026-04-19T09:00:00Z"
-        location:
-          type: object
-          properties:
-            lat:
-              type: number
-              format: double
-              example: 37.7749
-            lng:
-              type: number
-              format: double
-              example: -122.4194
-            address:
-              type: string
-              example: "Office Building A, Room 301"
         schedule:
           type: object
           properties:
             repeat:
               type: string
-              enum: [none, daily, weekly, monthly]
+              enum: [none, daily, weekly, monthly, weekdays, custom]
               example: "weekly"
             endDate:
               type: string
               format: date-time
               example: "2026-12-31T23:59:59Z"
+            daysOfWeek:
+              type: array
+              items:
+                type: integer
+              description: Day-of-week indices for custom/weekdays (0=Sun … 6=Sat)
         attachments:
           type: array
           items:
@@ -1476,27 +1467,20 @@ components:
           format: date-time
           description: Reminder date and time
           example: "2026-04-19T09:00:00Z"
-        location:
-          type: object
-          properties:
-            lat:
-              type: number
-              format: double
-            lng:
-              type: number
-              format: double
-            address:
-              type: string
         schedule:
           type: object
           properties:
             repeat:
               type: string
-              enum: [none, daily, weekly, monthly]
+              enum: [none, daily, weekly, monthly, weekdays, custom]
               default: "none"
             endDate:
               type: string
               format: date-time
+            daysOfWeek:
+              type: array
+              items:
+                type: integer
         attachments:
           type: array
           items:

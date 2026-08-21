@@ -315,6 +315,50 @@ export const Settings: React.FC = () => {
           {activeTab === 'integrations' && (
             <div className="space-y-8">
               <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+                <h3 className="text-xl font-bold text-text flex items-center gap-2 mb-2">
+                  <i className="fas fa-bell text-primary"></i>
+                  Default Reminder Notifications
+                </h3>
+                <p className="text-sm text-text-secondary mb-4">
+                  When you set a reminder on a todo, these channels turn on automatically.
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-hover">
+                    <input
+                      type="checkbox"
+                      checked={settings.notifications?.telegram ?? true}
+                      onChange={(e) => setSettings({
+                        ...settings,
+                        notifications: {
+                          telegram: e.target.checked,
+                          dingtalk: settings.notifications?.dingtalk ?? false
+                        }
+                      })}
+                      className="text-primary focus:ring-primary"
+                    />
+                    <i className="fab fa-telegram text-blue-500"></i>
+                    <span className="text-text">Telegram</span>
+                  </label>
+                  <label className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg cursor-pointer hover:bg-hover">
+                    <input
+                      type="checkbox"
+                      checked={settings.notifications?.dingtalk ?? false}
+                      onChange={(e) => setSettings({
+                        ...settings,
+                        notifications: {
+                          telegram: settings.notifications?.telegram ?? true,
+                          dingtalk: e.target.checked
+                        }
+                      })}
+                      className="text-primary focus:ring-primary"
+                    />
+                    <i className="fas fa-comment text-blue-600"></i>
+                    <span className="text-text">DingTalk</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-xl font-bold text-text flex items-center gap-2">

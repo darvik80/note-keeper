@@ -34,6 +34,7 @@ public class DatabaseMigrationService {
         apply("006_assign_orphan_records", this::assignOrphanRecordsToDefaultOwner);
         apply("007_telegram_webhook_secret", this::addTelegramWebhookSecretColumn);
         apply("008_recurring_completion", this::addRecurringCompletion);
+        apply("009_schedule_days_and_repeat", this::expandScheduleRepeat);
     }
 
     private void apply(String id, Runnable migration) {
@@ -153,6 +154,74 @@ public class DatabaseMigrationService {
         jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_note_template_owner ON note_template(owner_id)");
     }
 
+    private void expandScheduleRepeat() {
+        addColumnIfMissing("todo", "schedule_days",
+                "ALTER TABLE todo ADD COLUMN schedule_days TEXT");
+        if (postgres) {
+            jdbcTemplate.execute("ALTER TABLE todo DROP CONSTRAINT IF EXISTS todo_schedule_repeat_check");
+            jdbcTemplate.execute("""
+                ALTER TABLE todo ADD CONSTRAINT todo_schedule_repeat_check
+                CHECK (schedule_repeat IN ('none','daily','weekly','monthly','weekdays','custom'))
+                """);
+            return;
+        }
+        // SQLite: rebuild table to expand CHECK on schedule_repeat
+        jdbcTemplate.execute("""
+            CREATE TABLE IF NOT EXISTS todo_mig_009 (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL DEFAULT '',
+                completed INTEGER NOT NULL DEFAULT 0,
+                tags TEXT DEFAULT '[]',
+                priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('low','medium','high')),
+                is_favorite INTEGER NOT NULL DEFAULT 0,
+                is_archived INTEGER NOT NULL DEFAULT 0,
+                is_deleted INTEGER NOT NULL DEFAULT 0,
+                deleted_at TEXT,
+                due_date TEXT,
+                reminder TEXT,
+                notified_at TEXT,
+                notification_channels TEXT,
+                location_lat REAL,
+                location_lng REAL,
+                location_address TEXT,
+                schedule_repeat TEXT DEFAULT 'none' CHECK(schedule_repeat IN ('none','daily','weekly','monthly','weekdays','custom')),
+                schedule_end_date TEXT,
+                schedule_days TEXT,
+                owner_id TEXT NOT NULL REFERENCES users(id),
+                shared_with TEXT DEFAULT '[]',
+                last_completed_at TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """);
+        jdbcTemplate.execute("""
+            INSERT INTO todo_mig_009 (
+                id, title, description, completed, tags, priority,
+                is_favorite, is_archived, is_deleted, deleted_at,
+                due_date, reminder, notified_at, notification_channels,
+                location_lat, location_lng, location_address,
+                schedule_repeat, schedule_end_date, schedule_days,
+                owner_id, shared_with, last_completed_at, created_at, updated_at
+            )
+            SELECT
+                id, title, description, completed, tags, priority,
+                is_favorite, is_archived, is_deleted, deleted_at,
+                due_date, reminder, notified_at, notification_channels,
+                location_lat, location_lng, location_address,
+                schedule_repeat, schedule_end_date, schedule_days,
+                owner_id, shared_with, last_completed_at, created_at, updated_at
+            FROM todo
+            """);
+        jdbcTemplate.execute("DROP TABLE todo");
+        jdbcTemplate.execute("ALTER TABLE todo_mig_009 RENAME TO todo");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_completed ON todo(completed)");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_is_deleted ON todo(is_deleted)");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_is_archived ON todo(is_archived)");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_due_date ON todo(due_date)");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_todo_created_at ON todo(created_at)");
+    }
+
     private void assignOrphanRecordsToDefaultOwner() {
         List<String> userIds = jdbcTemplate.query(
                 "SELECT id FROM users WHERE email = ? LIMIT 1",
@@ -218,7 +287,7 @@ public class DatabaseMigrationService {
         // Fix existing stuck recurring todos: reset completed so they become visible again
         jdbcTemplate.update("""
             UPDATE todo SET completed = 0, notified_at = NULL
-            WHERE schedule_repeat IN ('daily', 'weekly', 'monthly')
+            WHERE schedule_repeat IN ('daily', 'weekly', 'monthly', 'weekdays', 'custom')
               AND completed = 1
               AND is_deleted = 0
             """);

@@ -23,7 +23,6 @@ public class TodoInput {
     private String reminder;
     private String notificationChannels;
     
-    private Map<String, Object> location;
     private Map<String, Object> schedule;
     private List<Map<String, Object>> attachments;
 }

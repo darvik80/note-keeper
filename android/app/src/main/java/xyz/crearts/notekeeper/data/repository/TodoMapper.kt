@@ -5,7 +5,6 @@ import com.google.gson.reflect.TypeToken
 import xyz.crearts.notekeeper.data.local.entity.TodoEntity
 import xyz.crearts.notekeeper.data.model.Attachment
 import xyz.crearts.notekeeper.data.model.AttachmentInput
-import xyz.crearts.notekeeper.data.model.LocationInput
 import xyz.crearts.notekeeper.data.model.ScheduleInput
 import xyz.crearts.notekeeper.data.model.SyncStatus
 import xyz.crearts.notekeeper.data.model.Todo
@@ -78,10 +77,6 @@ object TodoMapper {
     }
 
     fun toInput(todo: Todo): TodoInput {
-        val locationInput = if (todo.locationLat != null || todo.locationLng != null || todo.locationAddress != null) {
-            LocationInput(lat = todo.locationLat, lng = todo.locationLng, address = todo.locationAddress)
-        } else null
-
         return TodoInput(
             title = todo.title,
             description = todo.description,
@@ -92,10 +87,10 @@ object TodoMapper {
             dueDate = todo.dueDate,
             reminder = todo.reminder,
             notificationChannels = todo.notificationChannels,
-            location = locationInput,
-            schedule = if ((todo.scheduleRepeat ?: "none") != "none") {
-                ScheduleInput(repeat = todo.scheduleRepeat ?: "none", endDate = todo.scheduleEndDate)
-            } else null,
+            schedule = ScheduleInput(
+                repeat = todo.scheduleRepeat ?: "none",
+                endDate = if ((todo.scheduleRepeat ?: "none") != "none") todo.scheduleEndDate else null
+            ),
             attachments = todo.attachments?.map { att ->
                 AttachmentInput(
                     id = att.id,

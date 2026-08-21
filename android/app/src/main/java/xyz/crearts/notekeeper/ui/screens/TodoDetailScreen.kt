@@ -329,7 +329,7 @@ fun TodoDetailScreen(
                 Text("Repeat", style = MaterialTheme.typography.labelMedium)
                 Spacer(modifier = Modifier.height(4.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("none", "daily", "weekly", "monthly").forEach { r ->
+                    listOf("none", "daily", "weekdays", "weekly", "monthly", "custom").forEach { r ->
                         FilterChip(
                             selected = scheduleRepeat == r,
                             onClick = { scheduleRepeat = r },

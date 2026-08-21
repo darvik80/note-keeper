@@ -26,6 +26,7 @@ import xyz.crearts.note.keeper.mapper.UserCredentialsMapper;
 import xyz.crearts.note.keeper.mapper.UserMapper;
 import xyz.crearts.note.keeper.mapper.UserSettingsMapper;
 import xyz.crearts.note.keeper.mapper.UserTagMapper;
+import xyz.crearts.note.keeper.mapper.typehandler.IntegerListTypeHandler;
 import xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler;
 import xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler;
 import xyz.crearts.note.keeper.model.Attachment;
@@ -60,7 +61,7 @@ public class NativeRuntimeHints implements RuntimeHintsRegistrar {
         for (Class<?> type : new Class<?>[] {
                 User.class, UserCredentials.class, UserSettings.class,
                 Note.class, NoteHistory.class, NoteTemplate.class,
-                Todo.class, Todo.Schedule.class, Todo.Location.class, TodoCompletionLog.class,
+                Todo.class, Todo.Schedule.class, TodoCompletionLog.class,
                 Attachment.class, SavedQuery.class,
                 AuthRequest.class, AuthResponse.class, ErrorResponse.class,
                 NoteInput.class, TodoInput.class, NoteTemplateInput.class, SavedQueryInput.class,
@@ -68,7 +69,7 @@ public class NativeRuntimeHints implements RuntimeHintsRegistrar {
                 AnalyticsResponse.class, AnalyticsResponse.TagCount.class,
                 TelegramClient.TelegramResponse.class, TelegramClient.InlineButton.class,
                 DingTalkClient.DingTalkResponse.class,
-                LocalDateTimeTypeHandler.class, StringListTypeHandler.class
+                LocalDateTimeTypeHandler.class, StringListTypeHandler.class, IntegerListTypeHandler.class
         }) {
             hints.reflection().registerType(type, members);
         }

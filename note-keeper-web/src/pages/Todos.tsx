@@ -84,8 +84,9 @@ export const Todos: React.FC = () => {
     completed: todo.completed,
     dueDate: todo.dueDate ? (typeof todo.dueDate === 'string' ? todo.dueDate : todo.dueDate.toISOString()) : undefined,
     reminder: todo.reminder ? (typeof todo.reminder === 'string' ? todo.reminder : todo.reminder.toISOString()) : undefined,
-    location: todo.location,
-    schedule: todo.schedule ? { repeat: todo.schedule.repeat, endDate: todo.schedule.endDate || undefined } : undefined,
+    schedule: todo.schedule
+      ? { repeat: todo.schedule.repeat, endDate: todo.schedule.endDate || undefined, daysOfWeek: todo.schedule.daysOfWeek }
+      : { repeat: 'none' },
     ...overrides,
   });
 
