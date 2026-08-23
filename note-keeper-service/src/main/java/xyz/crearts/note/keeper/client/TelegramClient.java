@@ -1,7 +1,9 @@
 package xyz.crearts.note.keeper.client;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -21,8 +23,13 @@ public class TelegramClient {
 
     private final RestClient restClient;
 
-    public TelegramClient() {
-        this.restClient = RestClient.create();
+    public TelegramClient(ObjectMapper objectMapper) {
+        this.restClient = RestClient.builder()
+                .messageConverters(converters -> {
+                    converters.removeIf(c -> c instanceof MappingJackson2HttpMessageConverter);
+                    converters.add(new MappingJackson2HttpMessageConverter(objectMapper));
+                })
+                .build();
     }
 
     /**

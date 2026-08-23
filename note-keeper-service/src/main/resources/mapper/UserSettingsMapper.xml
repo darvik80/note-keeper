@@ -10,6 +10,12 @@
         <result property="telegramWebhookSecret" column="telegram_webhook_secret"/>
         <result property="dingtalkWebhook" column="dingtalk_webhook"/>
         <result property="dingtalkSecret" column="dingtalk_secret"/>
+        <result property="dailyReportEnabled" column="daily_report_enabled"/>
+        <result property="dailyReportTime" column="daily_report_time"/>
+        <result property="dailyReportChannels" column="daily_report_channels"/>
+        <result property="dailyReportTemplate" column="daily_report_template"/>
+        <result property="dailyReportItemTemplate" column="daily_report_item_template"/>
+        <result property="dailyReportLastSent" column="daily_report_last_sent"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
@@ -21,11 +27,26 @@
         SELECT * FROM user_settings WHERE telegram_webhook_secret = #{secret} LIMIT 1
     </select>
 
+    <select id="findDailyReportEnabled" resultMap="userSettingsResultMap">
+        SELECT * FROM user_settings WHERE daily_report_enabled = 1
+    </select>
+
+    <update id="updateDailyReportLastSent">
+        UPDATE user_settings SET daily_report_last_sent = #{date}, updated_at = #{date}
+        WHERE id = #{id}
+    </update>
+
     <insert id="insert" parameterType="xyz.crearts.note.keeper.model.UserSettings">
         INSERT INTO user_settings (id, telegram_bot_token, telegram_chat_id,
-            telegram_webhook_secret, dingtalk_webhook, dingtalk_secret, updated_at)
+            telegram_webhook_secret, dingtalk_webhook, dingtalk_secret,
+            daily_report_enabled, daily_report_time, daily_report_channels,
+            daily_report_template, daily_report_item_template, daily_report_last_sent,
+            updated_at)
         VALUES (#{id}, #{telegramBotToken}, #{telegramChatId},
-            #{telegramWebhookSecret}, #{dingtalkWebhook}, #{dingtalkSecret}, #{updatedAt})
+            #{telegramWebhookSecret}, #{dingtalkWebhook}, #{dingtalkSecret},
+            #{dailyReportEnabled}, #{dailyReportTime}, #{dailyReportChannels},
+            #{dailyReportTemplate}, #{dailyReportItemTemplate}, #{dailyReportLastSent},
+            #{updatedAt})
     </insert>
 
     <update id="update" parameterType="xyz.crearts.note.keeper.model.UserSettings">
@@ -35,21 +56,39 @@
             telegram_webhook_secret = #{telegramWebhookSecret},
             dingtalk_webhook = #{dingtalkWebhook},
             dingtalk_secret = #{dingtalkSecret},
+            daily_report_enabled = #{dailyReportEnabled},
+            daily_report_time = #{dailyReportTime},
+            daily_report_channels = #{dailyReportChannels},
+            daily_report_template = #{dailyReportTemplate},
+            daily_report_item_template = #{dailyReportItemTemplate},
+            daily_report_last_sent = #{dailyReportLastSent},
             updated_at = #{updatedAt}
         WHERE id = #{id}
     </update>
 
     <insert id="upsert">
         INSERT INTO user_settings (id, telegram_bot_token, telegram_chat_id,
-            telegram_webhook_secret, dingtalk_webhook, dingtalk_secret, updated_at)
+            telegram_webhook_secret, dingtalk_webhook, dingtalk_secret,
+            daily_report_enabled, daily_report_time, daily_report_channels,
+            daily_report_template, daily_report_item_template, daily_report_last_sent,
+            updated_at)
         VALUES (#{id}, #{telegramBotToken}, #{telegramChatId},
-            #{telegramWebhookSecret}, #{dingtalkWebhook}, #{dingtalkSecret}, #{updatedAt})
+            #{telegramWebhookSecret}, #{dingtalkWebhook}, #{dingtalkSecret},
+            #{dailyReportEnabled}, #{dailyReportTime}, #{dailyReportChannels},
+            #{dailyReportTemplate}, #{dailyReportItemTemplate}, #{dailyReportLastSent},
+            #{updatedAt})
         ON CONFLICT(id) DO UPDATE SET
             telegram_bot_token = excluded.telegram_bot_token,
             telegram_chat_id = excluded.telegram_chat_id,
             telegram_webhook_secret = excluded.telegram_webhook_secret,
             dingtalk_webhook = excluded.dingtalk_webhook,
             dingtalk_secret = excluded.dingtalk_secret,
+            daily_report_enabled = excluded.daily_report_enabled,
+            daily_report_time = excluded.daily_report_time,
+            daily_report_channels = excluded.daily_report_channels,
+            daily_report_template = excluded.daily_report_template,
+            daily_report_item_template = excluded.daily_report_item_template,
+            daily_report_last_sent = excluded.daily_report_last_sent,
             updated_at = excluded.updated_at
     </insert>
 

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type SettingsTab = 'integrations' | 'shortcuts' | 'api' | 'backup';
+export type SettingsTab = 'integrations' | 'shortcuts' | 'daily-report' | 'api' | 'backup';
 
 interface SettingsTabBarProps {
   activeTab: SettingsTab;
@@ -10,6 +10,7 @@ interface SettingsTabBarProps {
 const TABS: { id: SettingsTab; label: string; icon: string }[] = [
   { id: 'integrations', label: 'Integrations', icon: 'fa-plug' },
   { id: 'shortcuts', label: 'Shortcuts', icon: 'fa-keyboard' },
+  { id: 'daily-report', label: 'Daily Report', icon: 'fa-bell' },
   { id: 'api', label: 'API Documentation', icon: 'fa-code' },
   { id: 'backup', label: 'Backup', icon: 'fa-database' },
 ];

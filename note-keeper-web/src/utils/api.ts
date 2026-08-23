@@ -744,6 +744,36 @@ export const api = {
   },
 
   /**
+   * Daily report endpoints.
+   * @category API
+   */
+  dailyReport: {
+    /**
+     * Preview the rendered daily report text without sending.
+     */
+    preview: async (): Promise<string> => {
+      const res = await fetch(`${API_BASE}/daily-report/preview`, {
+        headers: { ...getAuthHeaders() }
+      });
+      return handleResponse(res);
+    },
+
+    /**
+     * Send a test daily report immediately.
+     */
+    test: async (): Promise<void> => {
+      const res = await fetch(`${API_BASE}/daily-report/test`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders() }
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+    }
+  },
+
+  /**
    * Tag endpoints — fetch distinct tags across notes and todos.
    * @category API
    */

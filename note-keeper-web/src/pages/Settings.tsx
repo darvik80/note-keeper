@@ -8,6 +8,7 @@ import {Header} from '../components/Header';
 import {PageShell} from '../components/PageShell';
 import {SettingsTabBar, SettingsTab} from '../components/settings/SettingsTabBar';
 import {ApiTab} from '../components/settings/ApiTab';
+import {DailyReportTab} from '../components/settings/DailyReportTab';
 import {useToast} from '../contexts/ToastContext';
 import {storage} from '../utils/storage';
 import {IntegrationRequest, IntegrationResponse, Settings as SettingsType} from '../types';
@@ -63,6 +64,13 @@ export const Settings: React.FC = () => {
               enabled: !!backendSettings.dingtalkWebhook,
               webhook: backendSettings.dingtalkWebhook || '',
               secret: backendSettings.dingtalkSecret || ''
+            },
+            dailyReport: {
+              enabled: !!backendSettings.dailyReportEnabled,
+              time: backendSettings.dailyReportTime || '09:00',
+              channels: backendSettings.dailyReportChannels || 'telegram',
+              template: backendSettings.dailyReportTemplate || '',
+              itemTemplate: backendSettings.dailyReportItemTemplate || ''
             }
           }));
         } else {
@@ -97,7 +105,12 @@ export const Settings: React.FC = () => {
         telegramBotToken: settings.telegram.botToken || null,
         telegramChatId: settings.telegram.chatId || null,
         dingtalkWebhook: settings.dingtalk.webhook || null,
-        dingtalkSecret: settings.dingtalk.secret || null
+        dingtalkSecret: settings.dingtalk.secret || null,
+        dailyReportEnabled: settings.dailyReport?.enabled ?? false,
+        dailyReportTime: settings.dailyReport?.time ?? '09:00',
+        dailyReportChannels: settings.dailyReport?.channels ?? 'telegram',
+        dailyReportTemplate: settings.dailyReport?.template || null,
+        dailyReportItemTemplate: settings.dailyReport?.itemTemplate || null
       });
     } catch (err) {
       console.error('Failed to save integration settings:', err);
@@ -296,7 +309,7 @@ export const Settings: React.FC = () => {
       <Header
         title="Settings"
         actions={
-          (activeTab === 'integrations' || activeTab === 'shortcuts') && (
+          (activeTab === 'integrations' || activeTab === 'shortcuts' || activeTab === 'daily-report') && (
             <button
               onClick={saveSettings}
               className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
@@ -686,6 +699,10 @@ export const Settings: React.FC = () => {
           )}
 
           {activeTab === 'api' && <ApiTab />}
+
+          {activeTab === 'daily-report' && (
+            <DailyReportTab settings={settings} onSettingsChange={setSettings} />
+          )}
 
           {activeTab === 'backup' && (
             <div className="space-y-8">

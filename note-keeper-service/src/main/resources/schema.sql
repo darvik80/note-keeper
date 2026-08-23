@@ -126,6 +126,12 @@ CREATE TABLE IF NOT EXISTS user_settings (
     backup_auto_enabled INTEGER NOT NULL DEFAULT 0,
     backup_cron TEXT DEFAULT '0 0 2 * * *',
     backup_retention_days INTEGER NOT NULL DEFAULT 30,
+    daily_report_enabled INTEGER NOT NULL DEFAULT 0,
+    daily_report_time TEXT DEFAULT '09:00',
+    daily_report_channels TEXT DEFAULT 'telegram',
+    daily_report_template TEXT,
+    daily_report_item_template TEXT,
+    daily_report_last_sent TEXT,
     updated_at TEXT NOT NULL
 );
 

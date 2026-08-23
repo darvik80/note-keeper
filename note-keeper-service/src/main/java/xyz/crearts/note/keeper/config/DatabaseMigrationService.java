@@ -35,6 +35,7 @@ public class DatabaseMigrationService {
         apply("007_telegram_webhook_secret", this::addTelegramWebhookSecretColumn);
         apply("008_recurring_completion", this::addRecurringCompletion);
         apply("009_schedule_days_and_repeat", this::expandScheduleRepeat);
+        apply("010_daily_report", this::addDailyReportColumns);
     }
 
     private void apply(String id, Runnable migration) {
@@ -291,6 +292,23 @@ public class DatabaseMigrationService {
               AND completed = 1
               AND is_deleted = 0
             """);
+    }
+
+    private void addDailyReportColumns() {
+        addColumnIfMissing("user_settings", "daily_report_enabled",
+                postgres
+                        ? "ALTER TABLE user_settings ADD COLUMN daily_report_enabled BOOLEAN NOT NULL DEFAULT FALSE"
+                        : "ALTER TABLE user_settings ADD COLUMN daily_report_enabled INTEGER NOT NULL DEFAULT 0");
+        addColumnIfMissing("user_settings", "daily_report_time",
+                "ALTER TABLE user_settings ADD COLUMN daily_report_time TEXT DEFAULT '09:00'");
+        addColumnIfMissing("user_settings", "daily_report_channels",
+                "ALTER TABLE user_settings ADD COLUMN daily_report_channels TEXT DEFAULT 'telegram'");
+        addColumnIfMissing("user_settings", "daily_report_template",
+                "ALTER TABLE user_settings ADD COLUMN daily_report_template TEXT");
+        addColumnIfMissing("user_settings", "daily_report_item_template",
+                "ALTER TABLE user_settings ADD COLUMN daily_report_item_template TEXT");
+        addColumnIfMissing("user_settings", "daily_report_last_sent",
+                "ALTER TABLE user_settings ADD COLUMN daily_report_last_sent TEXT");
     }
 
     private void addColumnIfMissing(String table, String column, String ddl) {

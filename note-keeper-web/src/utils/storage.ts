@@ -60,7 +60,8 @@ export const storage = {
       notifications: {
         telegram: true,
         dingtalk: false
-      }
+      },
+      dailyReport: { enabled: false, time: '09:00', channels: 'telegram', template: '', itemTemplate: '' }
     };
 
     if (!data) return defaultSettings;
@@ -71,7 +72,8 @@ export const storage = {
       ...parsed,
       email: parsed.email || defaultSettings.email,
       shortcuts: parsed.shortcuts || defaultSettings.shortcuts,
-      notifications: { ...defaultSettings.notifications, ...(parsed.notifications || {}) }
+      notifications: { ...defaultSettings.notifications, ...(parsed.notifications || {}) },
+      dailyReport: { ...defaultSettings.dailyReport, ...(parsed.dailyReport || {}) }
     };
   },
 

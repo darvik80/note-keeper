@@ -257,6 +257,19 @@ export interface Settings {
     /** Enable DingTalk by default on new reminders. */
     dingtalk: boolean;
   };
+  /** Daily report configuration for uncompleted todo summaries. */
+  dailyReport: {
+    /** Whether the daily report is enabled. */
+    enabled: boolean;
+    /** Time to send the report ("HH:mm" format). */
+    time: string;
+    /** Comma-separated notification channels (e.g. "telegram,dingtalk"). */
+    channels: string;
+    /** Body template with variable placeholders. */
+    template: string;
+    /** Per-item template with variable placeholders. */
+    itemTemplate: string;
+  };
 }
 
 /**
