@@ -1,11 +1,11 @@
 package xyz.crearts.note.keeper.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -22,14 +22,11 @@ public class TelegramClient {
     private static final Logger log = LoggerFactory.getLogger(TelegramClient.class);
 
     private final RestClient restClient;
+    private final ObjectMapper objectMapper;
 
     public TelegramClient(ObjectMapper objectMapper) {
-        this.restClient = RestClient.builder()
-                .messageConverters(converters -> {
-                    converters.removeIf(c -> c instanceof MappingJackson2HttpMessageConverter);
-                    converters.add(new MappingJackson2HttpMessageConverter(objectMapper));
-                })
-                .build();
+        this.restClient = RestClient.builder().build();
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -68,9 +65,13 @@ public class TelegramClient {
                 body.put("reply_markup", buildReplyMarkup(inlineKeyboard));
             }
 
+            String jsonBody = objectMapper.writeValueAsString(body);
+            log.debug("Telegram sendMessage request: {}", jsonBody);
+
             TelegramResponse response = restClient.post()
                     .uri("https://api.telegram.org/bot{token}/sendMessage", botToken)
-                    .body(body)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(jsonBody)
                     .retrieve()
                     .body(TelegramResponse.class);
 

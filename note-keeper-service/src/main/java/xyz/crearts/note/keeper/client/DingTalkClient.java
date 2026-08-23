@@ -2,8 +2,10 @@ package xyz.crearts.note.keeper.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.ObjectMapper;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -23,9 +25,11 @@ public class DingTalkClient {
     private static final Logger log = LoggerFactory.getLogger(DingTalkClient.class);
 
     private final RestClient restClient;
+    private final ObjectMapper objectMapper;
 
-    public DingTalkClient() {
-        this.restClient = RestClient.create();
+    public DingTalkClient(ObjectMapper objectMapper) {
+        this.restClient = RestClient.builder().build();
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -51,9 +55,12 @@ public class DingTalkClient {
             textContent.put("content", text);
             body.put("text", textContent);
 
+            String jsonBody = objectMapper.writeValueAsString(body);
+
             DingTalkResponse response = restClient.post()
                     .uri(url)
-                    .body(body)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(jsonBody)
                     .retrieve()
                     .body(DingTalkResponse.class);
 
