@@ -8,6 +8,7 @@ import {useNavigate} from 'react-router-dom';
 import {Header} from '../components/Header';
 import {PageShell} from '../components/PageShell';
 import {NoteCard} from '../components/NoteCard';
+import {MarkdownPreview} from '../components/MarkdownPreview';
 import {StatCardsSkeleton} from '../components/LoadingSkeleton';
 import {api} from '../utils/api';
 import {Note, Todo} from '../types';
@@ -167,7 +168,7 @@ export const Dashboard: React.FC = () => {
                       )}
                     </div>
                     {todo.description && (
-                      <p className="text-sm text-text-secondary leading-relaxed line-clamp-2">{todo.description}</p>
+                      <MarkdownPreview content={todo.description} maxLines={3} className="text-sm text-text-secondary" />
                     )}
                     {todo.dueDate && (
                       <p className="text-xs text-text-secondary mt-2">

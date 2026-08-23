@@ -6,6 +6,7 @@
 import React, {useEffect, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {Header} from '../components/Header';
+import {MarkdownPreview} from '../components/MarkdownPreview';
 import {PageShell} from '../components/PageShell';
 import {api} from '../utils/api';
 import {Note, Todo} from '../types';
@@ -79,7 +80,7 @@ export const Archive: React.FC = () => {
                     <i className="fas fa-box-open"></i>
                   </button>
                 </div>
-                <p className="text-text-secondary text-sm mb-4 line-clamp-3">{note.content || 'No content'}</p>
+                <MarkdownPreview content={note.content || ''} maxLines={3} className="text-text-secondary text-sm mb-4" emptyText="No content" />
                 <div className="flex flex-wrap gap-2">
                   {note.tags.slice(0, 3).map(tag => (
                     <span key={tag} className="text-xs bg-hover px-2 py-1 rounded">
@@ -118,7 +119,7 @@ export const Archive: React.FC = () => {
                   </button>
                 </div>
                 {todo.description && (
-                  <p className="text-text-secondary mb-3">{todo.description}</p>
+                  <MarkdownPreview content={todo.description} maxLines={3} className="text-text-secondary mb-3" />
                 )}
                 <div className="flex flex-wrap gap-2">
                   {todo.tags.map(tag => (

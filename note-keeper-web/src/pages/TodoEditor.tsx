@@ -42,13 +42,6 @@ const DAY_LABELS = [
   { value: 6, label: 'Sat' }
 ];
 
-/** Format Date as local datetime string without UTC shift (YYYY-MM-DDTHH:mm:ss). */
-const toLocalISO = (date: Date | string): string => {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
-};
-
 const defaultChannelsFromSettings = (): string => {
   const n = storage.getSettings().notifications;
   const channels: string[] = [];
@@ -164,12 +157,12 @@ export const TodoEditor: React.FC = () => {
         priority: current.priority,
         isFavorite: current.isFavorite,
         completed: current.completed,
-        dueDate: current.dueDate ? (typeof current.dueDate === 'string' ? current.dueDate : toLocalISO(current.dueDate)) : undefined,
-        reminder: reminderValue ? (typeof reminderValue === 'string' ? reminderValue : toLocalISO(reminderValue)) : undefined,
+        dueDate: current.dueDate ? (typeof current.dueDate === 'string' ? current.dueDate : current.dueDate.toISOString()) : undefined,
+        reminder: reminderValue ? (typeof reminderValue === 'string' ? reminderValue : reminderValue.toISOString()) : undefined,
         schedule: {
           repeat,
           endDate: repeat !== 'none' && current.schedule?.endDate
-            ? (typeof current.schedule.endDate === 'string' ? current.schedule.endDate : toLocalISO(new Date(current.schedule.endDate)))
+            ? (typeof current.schedule.endDate === 'string' ? current.schedule.endDate : new Date(current.schedule.endDate).toISOString())
             : undefined,
           daysOfWeek: repeat === 'custom'
             ? (current.schedule?.daysOfWeek || [])

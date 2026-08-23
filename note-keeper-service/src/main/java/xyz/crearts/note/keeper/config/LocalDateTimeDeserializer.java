@@ -5,6 +5,7 @@ import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.ValueDeserializer;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -12,10 +13,10 @@ import java.time.format.DateTimeParseException;
 
 /**
  * Custom deserializer for LocalDateTime that handles multiple date formats.
- * Supports:
- * - ISO-8601 with 'Z' suffix (e.g., "2026-04-17T12:25:00Z") — converted from UTC
- * - ISO-8601 local format (e.g., "2026-04-17T16:25:00") — used as-is
- * - JavaScript Date format (e.g., "Fri Apr 17 2026 16:25:00 GMT+0700 (Indochina Time)")
+ * All values are normalized to UTC for consistent storage:
+ * - ISO-8601 with 'Z' suffix (e.g., "2026-04-17T12:25:00Z") — already UTC
+ * - ISO-8601 local format (e.g., "2026-04-17T16:25:00") — treated as system local, converted to UTC
+ * - JavaScript Date format (e.g., "Fri Apr 17 2026 16:25:00 GMT+0700 (Indochina Time)") — converted to UTC
  */
 public class LocalDateTimeDeserializer extends ValueDeserializer<LocalDateTime> {
 
@@ -41,7 +42,11 @@ public class LocalDateTimeDeserializer extends ValueDeserializer<LocalDateTime> 
         }
 
         try {
-            return LocalDateTime.parse(dateStr, ISO_FORMATTER);
+            // Local datetime without timezone — treat as system local, convert to UTC
+            return LocalDateTime.parse(dateStr, ISO_FORMATTER)
+                    .atZone(ZoneId.systemDefault())
+                    .withZoneSameInstant(ZoneOffset.UTC)
+                    .toLocalDateTime();
         } catch (DateTimeParseException e) {
             try {
                 ZonedDateTime zonedDateTime = ZonedDateTime.parse(dateStr, JS_DATE_FORMATTER);

@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { Header } from '../components/Header';
 import { PageShell } from '../components/PageShell';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { MarkdownPreview } from '../components/MarkdownPreview';
 import { EmptyState } from '../components/EmptyState';
 import { useToast } from '../contexts/ToastContext';
 import { api } from '../utils/api';
@@ -167,7 +168,7 @@ export const Trash: React.FC = () => {
                           </button>
                         </div>
                       </div>
-                      <p className="text-text-secondary text-sm mb-3 line-clamp-3">{note.content || 'No content'}</p>
+                      <MarkdownPreview content={note.content || ''} maxLines={3} className="text-text-secondary text-sm mb-3" emptyText="No content" />
                       {note.deletedAt && (
                         <p className="text-xs text-text-secondary">
                           Deleted {new Date(note.deletedAt).toLocaleDateString()}
@@ -207,7 +208,7 @@ export const Trash: React.FC = () => {
                         </div>
                       </div>
                       {todo.description && (
-                        <p className="text-text-secondary mb-3">{todo.description}</p>
+                        <MarkdownPreview content={todo.description} maxLines={3} className="text-text-secondary mb-3" />
                       )}
                       {todo.deletedAt && (
                         <p className="text-xs text-text-secondary">

@@ -9,6 +9,7 @@ import {useNavigate} from 'react-router-dom';
 import {Header} from '../components/Header';
 import {PageShell} from '../components/PageShell';
 import {PriorityBadge} from '../components/PriorityBadge';
+import {MarkdownPreview} from '../components/MarkdownPreview';
 import {api} from '../utils/api';
 import {useWebSocket} from '../hooks/useWebSocket';
 import {TodoCompletionLog} from '../types';
@@ -382,7 +383,7 @@ export const Calendar: React.FC = () => {
                           <span className="text-xs px-2 py-1 rounded bg-blue-500/15 text-blue-400">Note</span>
                         )}
                       </div>
-                      {item.description && <p className="text-sm text-text-secondary mb-2">{item.description}</p>}
+                      {item.description && <MarkdownPreview content={item.description} maxLines={3} className="text-sm text-text-secondary mb-2" />}
                       <div className="flex items-center gap-2">
                         <PriorityBadge priority={item.priority} />
                         {item.tags.slice(0, 3).map(tag => (

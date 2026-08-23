@@ -8,6 +8,7 @@ import {useNavigate} from 'react-router-dom';
 import {Header} from '../components/Header';
 import {PageShell} from '../components/PageShell';
 import {Modal} from '../components/Modal';
+import {MarkdownPreview} from '../components/MarkdownPreview';
 import {useToast} from '../contexts/ToastContext';
 import {api} from '../utils/api';
 import {Note, SavedQuery, SavedQueryInput, Todo} from '../types';
@@ -190,7 +191,7 @@ export const Search: React.FC = () => {
                       <h4 className="font-semibold text-dark">{note.title}</h4>
                       {note.isFavorite && <i className="fas fa-star text-yellow-500"></i>}
                     </div>
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-2">{note.content}</p>
+                    <MarkdownPreview content={note.content} maxLines={3} className="text-sm text-text-secondary mb-2" />
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs text-gray-500">
                         <i className="fas fa-folder mr-1"></i>
@@ -222,7 +223,7 @@ export const Search: React.FC = () => {
                       <h4 className="font-semibold text-dark">{todo.title}</h4>
                       {todo.isFavorite && <i className="fas fa-star text-yellow-500"></i>}
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{todo.description}</p>
+                    <MarkdownPreview content={todo.description} maxLines={3} className="text-sm text-text-secondary mb-2" />
                     <div className="flex items-center gap-3 text-xs text-gray-500">
                       {todo.dueDate && (
                         <span>

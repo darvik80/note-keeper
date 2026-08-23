@@ -11,6 +11,7 @@ import xyz.crearts.note.keeper.model.TodoCompletionLog;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -97,7 +98,7 @@ public class TodoService {
             todo.setSchedule(schedule);
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = Recurrence.nowUtc();
         todo.setCreatedAt(now);
         todo.setUpdatedAt(now);
 
@@ -143,7 +144,7 @@ public class TodoService {
             existing.setSchedule(convertToSchedule(input.getSchedule()));
         }
 
-        existing.setUpdatedAt(LocalDateTime.now());
+        existing.setUpdatedAt(Recurrence.nowUtc());
         todoMapper.update(existing);
 
         if (input.getAttachments() != null) {
@@ -167,7 +168,7 @@ public class TodoService {
             todoMapper.permanentDelete(id);
             tagSyncService.removeTagsIfUnused(ownerId, tags);
         } else {
-            todoMapper.softDelete(id, LocalDateTime.now());
+            todoMapper.softDelete(id, Recurrence.nowUtc());
         }
         notificationService.notifyTodoDeleted(id, ownerId);
     }
@@ -348,10 +349,12 @@ public class TodoService {
                 schedule.setEndDate(java.time.Instant.parse(dateStr).atZone(java.time.ZoneOffset.UTC).toLocalDateTime());
             } catch (Exception e) {
                 try {
-                    schedule.setEndDate(LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    schedule.setEndDate(LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                            .atZone(ZoneId.systemDefault()).withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime());
                 } catch (Exception e2) {
                     try {
-                        schedule.setEndDate(LocalDate.parse(dateStr).atStartOfDay());
+                        schedule.setEndDate(LocalDate.parse(dateStr).atStartOfDay(ZoneId.systemDefault())
+                                .withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime());
                     } catch (Exception ignored) {
                     }
                 }
@@ -381,14 +384,21 @@ public class TodoService {
     private LocalDateTime parseDate(String dateStr) {
         if (dateStr == null || dateStr.isEmpty()) return null;
         try {
+            // ISO-8601 with 'Z' (UTC) — already UTC, store directly
             java.time.Instant instant = java.time.Instant.parse(dateStr);
             return LocalDateTime.ofInstant(instant, java.time.ZoneOffset.UTC);
         } catch (Exception e1) {
             try {
-                return LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                // Local datetime without timezone — interpret as system local time, convert to UTC
+                return LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        .atZone(ZoneId.systemDefault())
+                        .withZoneSameInstant(java.time.ZoneOffset.UTC)
+                        .toLocalDateTime();
             } catch (Exception e2) {
                 try {
-                    return LocalDate.parse(dateStr).atStartOfDay();
+                    return LocalDate.parse(dateStr).atStartOfDay(ZoneId.systemDefault())
+                            .withZoneSameInstant(java.time.ZoneOffset.UTC)
+                            .toLocalDateTime();
                 } catch (Exception e3) {
                     return null;
                 }
@@ -401,7 +411,7 @@ public class TodoService {
             return;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = Recurrence.nowUtc();
         for (Map<String, Object> attachmentData : attachments) {
             xyz.crearts.note.keeper.model.Attachment attachment = new xyz.crearts.note.keeper.model.Attachment();
             attachment.setId(UUID.randomUUID().toString());
