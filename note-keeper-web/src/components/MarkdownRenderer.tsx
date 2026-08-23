@@ -78,13 +78,13 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
             }
             
             return !inline ? (
-              <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto">
+              <pre className="bg-hover p-4 rounded-lg overflow-x-auto">
                 <code className={className} {...props}>
                   {children}
                 </code>
               </pre>
             ) : (
-              <code className="bg-gray-100 px-2 py-1 rounded text-sm" {...props}>
+              <code className="bg-hover px-2 py-1 rounded text-sm" {...props}>
                 {children}
               </code>
             );
@@ -96,24 +96,24 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
           ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-2">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-2">{children}</ol>,
           blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-primary pl-4 italic my-4 text-gray-700">
+            <blockquote className="border-l-4 border-primary pl-4 italic my-4 text-text-secondary">
               {children}
             </blockquote>
           ),
           table: ({ children }) => (
             <div className="overflow-x-auto mb-4">
-              <table className="min-w-full border-collapse border border-gray-300">
+              <table className="min-w-full border-collapse border border-border">
                 {children}
               </table>
             </div>
           ),
           th: ({ children }) => (
-            <th className="border border-gray-300 px-4 py-2 bg-gray-100 font-bold">
+            <th className="border border-border px-4 py-2 bg-hover font-bold">
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td className="border border-gray-300 px-4 py-2">
+            <td className="border border-border px-4 py-2">
               {children}
             </td>
           )

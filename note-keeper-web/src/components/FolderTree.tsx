@@ -72,7 +72,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
       <div key={folder.path}>
         <div
           className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-            isSelected ? 'bg-primary text-white' : 'hover:bg-gray-100'
+            isSelected ? 'bg-primary text-white' : 'hover:bg-hover'
           }`}
           style={{ paddingLeft: `${level * 16 + 12}px` }}
         >
@@ -111,7 +111,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
             className="flex items-center gap-2 px-3 py-2"
             style={{ paddingLeft: `${(level + 1) * 16 + 12}px` }}
           >
-            <i className="fas fa-folder text-sm text-gray-400"></i>
+            <i className="fas fa-folder text-sm text-text-secondary"></i>
             <input
               type="text"
               value={newFolderName}

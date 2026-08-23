@@ -98,13 +98,13 @@ export const Search: React.FC = () => {
           <form onSubmit={handleSearch} className="mb-6">
             <div className="flex gap-3 mb-4">
               <div className="flex-1 relative">
-                <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary"></i>
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search notes and todos..."
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary"
+                  className="w-full pl-12 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:border-primary bg-background text-text"
                   autoFocus
                 />
               </div>
@@ -118,7 +118,7 @@ export const Search: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowSaveDialog(true)}
-                  className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-3 border border-border rounded-lg hover:bg-hover text-text"
                   title="Save Query"
                 >
                   <i className="fas fa-bookmark"></i>
@@ -135,7 +135,7 @@ export const Search: React.FC = () => {
                   className={`px-4 py-2 rounded-lg transition-colors ${
                     searchType === type
                       ? 'bg-primary text-white'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'bg-surface border border-border text-text hover:bg-hover'
                   }`}
                 >
                   {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -146,12 +146,12 @@ export const Search: React.FC = () => {
 
           {savedQueries.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-sm font-bold text-gray-700 mb-3">Saved Queries</h3>
+              <h3 className="text-sm font-bold text-text mb-3">Saved Queries</h3>
               <div className="flex flex-wrap gap-2">
                 {savedQueries.map(sq => (
                   <div
                     key={sq.id}
-                    className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2"
+                    className="flex items-center gap-2 bg-surface border border-border rounded-lg px-3 py-2"
                   >
                     <button
                       onClick={() => loadSavedQuery(sq)}
@@ -161,7 +161,7 @@ export const Search: React.FC = () => {
                     </button>
                     <button
                       onClick={() => deleteSavedQuery(sq.id)}
-                      className="text-gray-400 hover:text-red-500"
+                      className="text-text-secondary hover:text-red-500"
                     >
                       <i className="fas fa-times text-xs"></i>
                     </button>
@@ -172,28 +172,28 @@ export const Search: React.FC = () => {
           )}
 
           {query && (
-            <div className="mb-4 text-sm text-gray-600">
+            <div className="mb-4 text-sm text-text-secondary">
               Found {results.notes.length} notes and {results.todos.length} todos
             </div>
           )}
 
           {results.notes.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-lg font-bold text-dark mb-4">Notes</h3>
+              <h3 className="text-lg font-bold text-text mb-4">Notes</h3>
               <div className="space-y-3">
                 {results.notes.map(note => (
                   <div
                     key={note.id}
-                    className="bg-white p-4 rounded-lg border border-gray-200 hover:border-primary transition-colors cursor-pointer"
+                    className="bg-surface p-4 rounded-lg border border-border hover:border-primary transition-colors cursor-pointer"
                     onClick={() => navigate(`/notes/${note.id}`)}
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold text-dark">{note.title}</h4>
+                      <h4 className="font-semibold text-text">{note.title}</h4>
                       {note.isFavorite && <i className="fas fa-star text-yellow-500"></i>}
                     </div>
                     <MarkdownPreview content={note.content} maxLines={3} className="text-sm text-text-secondary mb-2" />
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-text-secondary">
                         <i className="fas fa-folder mr-1"></i>
                         {note.folder}
                       </span>
@@ -211,20 +211,20 @@ export const Search: React.FC = () => {
 
           {results.todos.length > 0 && (
             <div>
-              <h3 className="text-lg font-bold text-dark mb-4">Todos</h3>
+              <h3 className="text-lg font-bold text-text mb-4">Todos</h3>
               <div className="space-y-3">
                 {results.todos.map(todo => (
                   <div
                     key={todo.id}
-                    className="bg-white p-4 rounded-lg border border-gray-200 hover:border-primary transition-colors cursor-pointer"
+                    className="bg-surface p-4 rounded-lg border border-border hover:border-primary transition-colors cursor-pointer"
                     onClick={() => navigate(`/todos/${todo.id}`)}
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold text-dark">{todo.title}</h4>
+                      <h4 className="font-semibold text-text">{todo.title}</h4>
                       {todo.isFavorite && <i className="fas fa-star text-yellow-500"></i>}
                     </div>
                     <MarkdownPreview content={todo.description} maxLines={3} className="text-sm text-text-secondary mb-2" />
-                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                    <div className="flex items-center gap-3 text-xs text-text-secondary">
                       {todo.dueDate && (
                         <span>
                           <i className="fas fa-calendar mr-1"></i>
@@ -232,7 +232,7 @@ export const Search: React.FC = () => {
                         </span>
                       )}
                       <span className={`px-2 py-1 rounded ${
-                        todo.completed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                        todo.completed ? 'bg-green-500/15 text-green-500' : 'bg-yellow-500/15 text-yellow-500'
                       }`}>
                         {todo.completed ? 'Completed' : 'Pending'}
                       </span>
@@ -244,7 +244,7 @@ export const Search: React.FC = () => {
           )}
 
           {query && results.notes.length === 0 && results.todos.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-text-secondary">
               <i className="fas fa-search text-4xl mb-4"></i>
               <p>No results found for "{query}"</p>
             </div>
