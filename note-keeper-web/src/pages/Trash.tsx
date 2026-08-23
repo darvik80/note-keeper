@@ -3,15 +3,15 @@
  * @category Pages
  * @description Trash page — view, restore, and permanently delete soft-deleted items.
  */
-import React, { useEffect, useState } from 'react';
-import { Header } from '../components/Header';
-import { PageShell } from '../components/PageShell';
-import { ConfirmDialog } from '../components/ConfirmDialog';
-import { MarkdownPreview } from '../components/MarkdownPreview';
-import { EmptyState } from '../components/EmptyState';
-import { useToast } from '../contexts/ToastContext';
-import { api } from '../utils/api';
-import { Note, Todo } from '../types';
+import React, {useEffect, useState} from 'react';
+import {Header} from '../components/Header';
+import {PageShell} from '../components/PageShell';
+import {ConfirmDialog} from '../components/ConfirmDialog';
+import {MarkdownPreview} from '../components/MarkdownPreview';
+import {EmptyState} from '../components/EmptyState';
+import {useToast} from '../contexts/ToastContext';
+import {api} from '../utils/api';
+import {Note, Todo} from '../types';
 
 interface ConfirmState {
   title: string;

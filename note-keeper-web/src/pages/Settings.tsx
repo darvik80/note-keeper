@@ -6,13 +6,27 @@
 import React, {useEffect, useState} from 'react';
 import {Header} from '../components/Header';
 import {PageShell} from '../components/PageShell';
-import {SettingsTabBar, SettingsTab} from '../components/settings/SettingsTabBar';
+import {SettingsTab, SettingsTabBar} from '../components/settings/SettingsTabBar';
 import {ApiTab} from '../components/settings/ApiTab';
 import {DailyReportTab} from '../components/settings/DailyReportTab';
 import {useToast} from '../contexts/ToastContext';
 import {storage} from '../utils/storage';
 import {IntegrationRequest, IntegrationResponse, Settings as SettingsType} from '../types';
 import {api} from '../utils/api';
+
+/** Convert local "HH:mm" to UTC "HH:mm" (same pattern as todo reminder times). */
+const localTimeToUtc = (localTime: string): string => {
+  const [h, m] = localTime.split(':').map(Number);
+  const local = new Date(2000, 0, 1, h, m);
+  return `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
+};
+
+/** Convert UTC "HH:mm" to local "HH:mm" for display in the time picker. */
+const utcTimeToLocal = (utcTime: string): string => {
+  const [h, m] = utcTime.split(':').map(Number);
+  const d = new Date(Date.UTC(2000, 0, 1, h, m));
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+};
 
 /** Settings page for configuring Telegram, DingTalk, email integrations, keyboard shortcuts, and backup. */
 export const Settings: React.FC = () => {
@@ -67,7 +81,8 @@ export const Settings: React.FC = () => {
             },
             dailyReport: {
               enabled: !!backendSettings.dailyReportEnabled,
-              time: backendSettings.dailyReportTime || '09:00',
+              // Backend stores time as UTC — convert to local for the time picker
+              time: utcTimeToLocal(backendSettings.dailyReportTime || '06:00'),
               channels: backendSettings.dailyReportChannels || 'telegram',
               template: backendSettings.dailyReportTemplate || '',
               itemTemplate: backendSettings.dailyReportItemTemplate || ''
@@ -107,7 +122,8 @@ export const Settings: React.FC = () => {
         dingtalkWebhook: settings.dingtalk.webhook || null,
         dingtalkSecret: settings.dingtalk.secret || null,
         dailyReportEnabled: settings.dailyReport?.enabled ?? false,
-        dailyReportTime: settings.dailyReport?.time ?? '09:00',
+        // Time picker gives local time — convert to UTC before storing (same as todo reminders)
+        dailyReportTime: localTimeToUtc(settings.dailyReport?.time ?? '09:00'),
         dailyReportChannels: settings.dailyReport?.channels ?? 'telegram',
         dailyReportTemplate: settings.dailyReport?.template || null,
         dailyReportItemTemplate: settings.dailyReport?.itemTemplate || null

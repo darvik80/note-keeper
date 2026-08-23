@@ -3,16 +3,16 @@
  * @category Pages
  * @description Note templates page — browse, create, and apply templates.
  */
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Header } from '../components/Header';
-import { PageShell } from '../components/PageShell';
-import { ConfirmDialog } from '../components/ConfirmDialog';
-import { EmptyState } from '../components/EmptyState';
-import { MarkdownPreview } from '../components/MarkdownPreview';
-import { useToast } from '../contexts/ToastContext';
-import { api } from '../utils/api';
-import { NoteInput, NoteTemplate, NoteTemplateInput } from '../types';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {Header} from '../components/Header';
+import {PageShell} from '../components/PageShell';
+import {ConfirmDialog} from '../components/ConfirmDialog';
+import {EmptyState} from '../components/EmptyState';
+import {MarkdownPreview} from '../components/MarkdownPreview';
+import {useToast} from '../contexts/ToastContext';
+import {api} from '../utils/api';
+import {NoteInput, NoteTemplate, NoteTemplateInput} from '../types';
 
 export const Templates: React.FC = () => {
   const navigate = useNavigate();

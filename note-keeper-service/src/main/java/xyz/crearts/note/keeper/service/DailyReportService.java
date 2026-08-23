@@ -69,7 +69,8 @@ public class DailyReportService {
 
         if (enabledUsers.isEmpty()) return;
 
-        LocalDateTime now = LocalDateTime.now();
+        // Use UTC (same pattern as ReminderService) — frontend stores time as UTC
+        LocalDateTime now = Recurrence.nowUtc();
         String currentTime = now.toLocalTime().format(TIME_FMT);
         String today = now.toLocalDate().format(DATE_KEY_FMT);
 
@@ -103,7 +104,7 @@ public class DailyReportService {
         if (settings == null) {
             return "No settings found for user";
         }
-        return buildReportText(settings, LocalDate.now().format(DATE_KEY_FMT));
+        return buildReportText(settings, Recurrence.nowUtc().toLocalDate().format(DATE_KEY_FMT));
     }
 
     /**
@@ -114,7 +115,7 @@ public class DailyReportService {
         if (settings == null) {
             throw new IllegalArgumentException("No settings found for user");
         }
-        String reportText = buildReportText(settings, LocalDate.now().format(DATE_KEY_FMT));
+        String reportText = buildReportText(settings, Recurrence.nowUtc().toLocalDate().format(DATE_KEY_FMT));
         dispatchChannels(settings, reportText);
     }
 
