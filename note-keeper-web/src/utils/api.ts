@@ -752,17 +752,21 @@ export const api = {
      * Preview the rendered daily report text without sending.
      */
     preview: async (): Promise<string> => {
-      const res = await fetch(`${API_BASE}/daily-report/preview`, {
+      const res = await fetch(`${API_BASE}/settings/daily-report/preview`, {
         headers: { ...getAuthHeaders() }
       });
-      return handleResponse(res);
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+      return res.text();
     },
 
     /**
      * Send a test daily report immediately.
      */
     test: async (): Promise<void> => {
-      const res = await fetch(`${API_BASE}/daily-report/test`, {
+      const res = await fetch(`${API_BASE}/settings/daily-report/test`, {
         method: 'POST',
         headers: { ...getAuthHeaders() }
       });
