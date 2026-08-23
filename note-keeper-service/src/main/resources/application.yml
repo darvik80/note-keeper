@@ -44,6 +44,16 @@ jwt:
   secret: ${JWT_SECRET:}
   expiration: ${JWT_EXPIRY_MS:86400000}
 
+# springdoc-openapi (Swagger UI)
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    doc-expansion: none
+
 # Common configuration (applies to all profiles)
 mybatis:
   mapper-locations: classpath*:mapper/*.xml

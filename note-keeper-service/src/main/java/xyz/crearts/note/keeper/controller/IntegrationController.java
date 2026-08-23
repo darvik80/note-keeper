@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,6 +12,7 @@ import xyz.crearts.note.keeper.service.IntegrationService;
 
 @RestController
 @RequestMapping("/api/v1/integrations")
+@Tag(name = "Integrations")
 public class IntegrationController {
 
     private final IntegrationService integrationService;

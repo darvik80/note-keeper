@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
@@ -21,6 +22,7 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/backup")
+@Tag(name = "Backup")
 public class BackupController {
 
     @Autowired

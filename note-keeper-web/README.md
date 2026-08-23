@@ -29,9 +29,12 @@ Open-source Evernote alternative with powerful features for notes and todos mana
 
 ## API Documentation
 
-Full REST API documentation is available in `swagger.yaml`. You can view it using:
-- [Swagger Editor](https://editor.swagger.io/)
-- [Swagger UI](https://swagger.io/tools/swagger-ui/)
+Interactive OpenAPI 3.0 documentation is available at runtime via **Swagger UI**:
+- **Swagger UI**: `http://localhost:8081/swagger-ui/index.html`
+- **OpenAPI JSON**: `http://localhost:8081/v3/api-docs`
+- **OpenAPI YAML**: `http://localhost:8081/v3/api-docs.yaml`
+
+Start the backend and open Swagger UI in your browser to explore and test all endpoints.
 
 ### API Endpoints
 

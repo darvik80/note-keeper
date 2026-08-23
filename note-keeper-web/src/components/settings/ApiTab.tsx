@@ -1,74 +1,71 @@
 import React from 'react';
 
-export const ApiTab: React.FC = () => (
-  <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
-    <div className="mb-6">
-      <h3 className="text-2xl font-bold text-text mb-2">REST API Documentation</h3>
-      <p className="text-text-secondary">
-        Complete OpenAPI 3.0 specification for NoteKeeper REST API
-      </p>
-    </div>
+export const ApiTab: React.FC = () => {
+  const apiDocsJson = `${window.location.origin}/v3/api-docs`;
+  const apiDocsYaml = `${window.location.origin}/v3/api-docs.yaml`;
 
-    <div className="bg-background rounded-lg p-6 mb-6">
-      <h4 className="text-lg font-bold text-text mb-4">API Endpoints</h4>
-      <div className="space-y-4">
-        <div className="border-l-4 border-primary pl-4">
-          <h5 className="font-bold text-text mb-2">Notes API</h5>
-          <div className="space-y-2 text-sm">
-            {[
-              ['GET', 'bg-green-500/15 text-green-700', '/api/v1/notes', 'Get all notes'],
-              ['POST', 'bg-blue-500/15 text-blue-700', '/api/v1/notes', 'Create note'],
-              ['GET', 'bg-green-500/15 text-green-700', '/api/v1/notes/:id', 'Get note by ID'],
-              ['PUT', 'bg-yellow-500/15 text-yellow-700', '/api/v1/notes/:id', 'Update note'],
-              ['DELETE', 'bg-red-500/15 text-red-600', '/api/v1/notes/:id', 'Delete note'],
-              ['POST', 'bg-blue-500/15 text-blue-700', '/api/v1/notes/import', 'Import from file'],
-            ].map(([method, cls, path, desc]) => (
-              <div key={path + method} className="flex items-center gap-3 flex-wrap">
-                <span className={`px-2 py-1 rounded font-mono text-xs ${cls}`}>{method}</span>
-                <code className="text-text-secondary">{path}</code>
-                <span className="text-text-secondary">- {desc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="border-l-4 border-secondary pl-4">
-          <h5 className="font-bold text-text mb-2">Todos API</h5>
-          <div className="space-y-2 text-sm">
-            {[
-              ['GET', '/api/v1/todos', 'Get all todos'],
-              ['POST', '/api/v1/todos', 'Create todo'],
-              ['GET', '/api/v1/todos/:id', 'Get todo by ID'],
-              ['PUT', '/api/v1/todos/:id', 'Update todo'],
-              ['DELETE', '/api/v1/todos/:id', 'Delete todo'],
-            ].map(([method, path, desc]) => (
-              <div key={path + method} className="flex items-center gap-3 flex-wrap">
-                <span className="px-2 py-1 bg-green-500/15 text-green-700 rounded font-mono text-xs">{method}</span>
-                <code className="text-text-secondary">{path}</code>
-                <span className="text-text-secondary">- {desc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+  return (
+    <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+      <div className="mb-6">
+        <h3 className="text-2xl font-bold text-text mb-2">REST API Documentation</h3>
+        <p className="text-text-secondary">
+          Interactive OpenAPI 3.0 documentation powered by springdoc-openapi
+        </p>
       </div>
-    </div>
 
-    <div className="bg-background rounded-lg p-6">
-      <h4 className="text-lg font-bold text-text mb-4">Full Swagger Specification</h4>
-      <p className="text-text-secondary mb-4">
-        The complete OpenAPI 3.0 specification is available in the project root:
-      </p>
-      <div className="bg-surface border border-border rounded-lg p-4 flex items-center justify-between gap-4 flex-wrap">
-        <code className="text-primary font-mono text-sm">swagger.yaml</code>
+      <div className="bg-background rounded-lg p-6 mb-6">
+        <h4 className="text-lg font-bold text-text mb-4">Swagger UI</h4>
+        <p className="text-text-secondary mb-4">
+          Explore and test all API endpoints directly from the interactive Swagger UI.
+          Authentication is supported via the <code className="bg-surface px-1 rounded">Authorize</code> button (JWT Bearer token).
+        </p>
         <a
-          href="/swagger.yaml"
-          download="swagger.yaml"
-          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm"
+          href="/swagger-ui/index.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm"
         >
-          <i className="fas fa-download mr-2"></i>
-          Download
+          <i className="fas fa-external-link-alt mr-2"></i>
+          Open Swagger UI
         </a>
       </div>
+
+      <div className="bg-background rounded-lg p-6">
+        <h4 className="text-lg font-bold text-text mb-4">OpenAPI Specification</h4>
+        <p className="text-text-secondary mb-4">
+          Machine-readable OpenAPI 3.0 specification is available in JSON and YAML formats:
+        </p>
+        <div className="space-y-3">
+          <div className="bg-surface border border-border rounded-lg p-4 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <code className="text-primary font-mono text-sm">/v3/api-docs</code>
+              <span className="text-text-secondary text-sm">(JSON)</span>
+            </div>
+            <a
+              href={apiDocsJson}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors text-sm"
+            >
+              View JSON
+            </a>
+          </div>
+          <div className="bg-surface border border-border rounded-lg p-4 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <code className="text-primary font-mono text-sm">/v3/api-docs.yaml</code>
+              <span className="text-text-secondary text-sm">(YAML)</span>
+            </div>
+            <a
+              href={apiDocsYaml}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors text-sm"
+            >
+              View YAML
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
