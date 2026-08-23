@@ -79,6 +79,13 @@ public class UserSettingsService {
         encrypted.setTelegramWebhookSecret(settings.getTelegramWebhookSecret());
         encrypted.setDingtalkWebhook(encryptSafe(settings.getDingtalkWebhook()));
         encrypted.setDingtalkSecret(encryptSafe(settings.getDingtalkSecret()));
+        // Daily report fields are not sensitive — copy as-is
+        encrypted.setDailyReportEnabled(settings.isDailyReportEnabled());
+        encrypted.setDailyReportTime(settings.getDailyReportTime());
+        encrypted.setDailyReportChannels(settings.getDailyReportChannels());
+        encrypted.setDailyReportTemplate(settings.getDailyReportTemplate());
+        encrypted.setDailyReportItemTemplate(settings.getDailyReportItemTemplate());
+        encrypted.setDailyReportLastSent(settings.getDailyReportLastSent());
         encrypted.setUpdatedAt(settings.getUpdatedAt());
         return encrypted;
     }
@@ -92,6 +99,13 @@ public class UserSettingsService {
         decrypted.setTelegramWebhookSecret(settings.getTelegramWebhookSecret());
         decrypted.setDingtalkWebhook(decryptSafe(settings.getDingtalkWebhook()));
         decrypted.setDingtalkSecret(decryptSafe(settings.getDingtalkSecret()));
+        // Daily report fields are not sensitive — copy as-is
+        decrypted.setDailyReportEnabled(settings.isDailyReportEnabled());
+        decrypted.setDailyReportTime(settings.getDailyReportTime());
+        decrypted.setDailyReportChannels(settings.getDailyReportChannels());
+        decrypted.setDailyReportTemplate(settings.getDailyReportTemplate());
+        decrypted.setDailyReportItemTemplate(settings.getDailyReportItemTemplate());
+        decrypted.setDailyReportLastSent(settings.getDailyReportLastSent());
         decrypted.setUpdatedAt(settings.getUpdatedAt());
         return decrypted;
     }
