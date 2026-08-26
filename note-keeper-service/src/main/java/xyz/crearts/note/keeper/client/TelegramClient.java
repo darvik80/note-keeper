@@ -1,6 +1,7 @@
 package xyz.crearts.note.keeper.client;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -19,11 +20,9 @@ import java.util.Map;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class TelegramClient {
-
-    private static final Logger log = LoggerFactory.getLogger(TelegramClient.class);
-
-    private final RestClient restClient;
+    private final RestClient restClient = RestClient.builder().build();
     private final ObjectMapper objectMapper;
 
     /**
