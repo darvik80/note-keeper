@@ -1,9 +1,9 @@
 name: Deploy JDK
 
 on:
-#  push:
-#    branches:
-#      - master
+  push:
+    branches:
+      - jdk
   workflow_dispatch:
 
 env:
