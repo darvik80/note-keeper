@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import xyz.crearts.note.keeper.mapper.UserSettingsMapper;
@@ -14,15 +15,11 @@ import java.time.LocalDateTime;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserSettingsService {
 
     private final UserSettingsMapper userSettingsMapper;
     private final EncryptionService encryptionService;
-
-    public UserSettingsService(UserSettingsMapper userSettingsMapper, EncryptionService encryptionService) {
-        this.userSettingsMapper = userSettingsMapper;
-        this.encryptionService = encryptionService;
-    }
 
     /**
      * Get user settings with decrypted sensitive fields.
@@ -43,13 +40,6 @@ public class UserSettingsService {
         encrypted.setUpdatedAt(LocalDateTime.now());
         userSettingsMapper.upsert(encrypted);
         log.info("User settings saved for user: {}", settings.getId());
-    }
-
-    /**
-     * Get decrypted settings for internal use (e.g., ReminderService).
-     */
-    public UserSettings getDecryptedSettings(String userId) {
-        return getSettings(userId);
     }
 
     /**
@@ -127,7 +117,7 @@ public class UserSettingsService {
             return encryptionService.decrypt(value);
         } catch (Exception e) {
             // Value might not be encrypted yet (migration case)
-            log.debug("Failed to decrypt settings field, returning as-is (may be unencrypted legacy data)");
+            log.warn("Failed to decrypt settings field, returning as-is (may be unencrypted legacy data)");
             return value;
         }
     }

@@ -1,6 +1,7 @@
 package xyz.crearts.note.keeper.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,13 +18,10 @@ import xyz.crearts.note.keeper.service.AuthService;
 @RestController
 @RequestMapping("/api/v1/auth")
 @Tag(name = "Auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
-
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
 
     /**
      * Register with email and password.

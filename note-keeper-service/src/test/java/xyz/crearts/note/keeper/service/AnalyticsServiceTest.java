@@ -9,9 +9,11 @@ import xyz.crearts.note.keeper.dto.AnalyticsResponse;
 import xyz.crearts.note.keeper.mapper.NoteMapper;
 import xyz.crearts.note.keeper.mapper.TodoMapper;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AnalyticsServiceTest {

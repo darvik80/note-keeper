@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class IntegrationService {
 
     private final TelegramClient telegramClient;
@@ -23,13 +25,6 @@ public class IntegrationService {
 
     @Value("${app.telegram.webhook-base-url:}")
     private String webhookBaseUrl;
-
-    public IntegrationService(TelegramClient telegramClient, DingTalkClient dingTalkClient,
-                              UserSettingsService userSettingsService) {
-        this.telegramClient = telegramClient;
-        this.dingTalkClient = dingTalkClient;
-        this.userSettingsService = userSettingsService;
-    }
 
     public IntegrationResponse sendToTelegram(IntegrationRequest request) {
         log.info("Telegram integration called with message: {}", request.getMessage());
@@ -71,7 +66,7 @@ public class IntegrationService {
      * @param userId authenticated user ID from JWT
      */
     public IntegrationResponse sendTestTodoToTelegram(String userId) {
-        UserSettings settings = userSettingsService.getDecryptedSettings(userId);
+        UserSettings settings = userSettingsService.getSettings(userId);
         if (settings == null || settings.getTelegramBotToken() == null || settings.getTelegramChatId() == null) {
             return new IntegrationResponse(false, "Telegram credentials not configured. Save your bot token and chat ID first.");
         }

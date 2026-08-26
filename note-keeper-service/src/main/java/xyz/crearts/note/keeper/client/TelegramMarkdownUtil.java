@@ -12,10 +12,6 @@ public final class TelegramMarkdownUtil {
 
     private static final String SPECIAL_CHARS = "_*[]()~`>#+-=|{}.!\\";
 
-    private TelegramMarkdownUtil() {
-        // utility class
-    }
-
     /**
      * Escape special characters for Telegram MarkdownV2 parse mode.
      *

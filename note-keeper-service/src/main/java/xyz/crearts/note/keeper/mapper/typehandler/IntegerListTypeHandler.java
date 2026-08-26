@@ -1,10 +1,10 @@
 package xyz.crearts.note.keeper.mapper.typehandler;
 
+import org.apache.ibatis.type.BaseTypeHandler;
+import org.apache.ibatis.type.JdbcType;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
-import org.apache.ibatis.type.BaseTypeHandler;
-import org.apache.ibatis.type.JdbcType;
 
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;

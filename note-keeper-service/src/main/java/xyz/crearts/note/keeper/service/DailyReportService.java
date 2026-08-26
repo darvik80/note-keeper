@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,6 +25,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class DailyReportService {
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
@@ -43,16 +45,6 @@ public class DailyReportService {
 
     @Value("${app.public-base-url:}")
     private String publicBaseUrl;
-
-    public DailyReportService(TodoMapper todoMapper, UserSettingsMapper userSettingsMapper,
-                              UserSettingsService userSettingsService,
-                              TelegramClient telegramClient, DingTalkClient dingTalkClient) {
-        this.todoMapper = todoMapper;
-        this.userSettingsMapper = userSettingsMapper;
-        this.userSettingsService = userSettingsService;
-        this.telegramClient = telegramClient;
-        this.dingTalkClient = dingTalkClient;
-    }
 
     /**
      * Every 60 seconds: check if any user's daily report is due.
@@ -76,7 +68,7 @@ public class DailyReportService {
 
         for (UserSettings raw : enabledUsers) {
             try {
-                UserSettings settings = userSettingsService.getDecryptedSettings(raw.getId());
+                UserSettings settings = userSettingsService.getSettings(raw.getId());
                 if (settings == null || !settings.isDailyReportEnabled()) continue;
 
                 String reportTime = settings.getDailyReportTime();
@@ -100,7 +92,7 @@ public class DailyReportService {
      * Send a test daily report immediately (for preview/test from UI).
      */
     public String generateReport(String userId) {
-        UserSettings settings = userSettingsService.getDecryptedSettings(userId);
+        UserSettings settings = userSettingsService.getSettings(userId);
         if (settings == null) {
             return "No settings found for user";
         }
@@ -111,7 +103,7 @@ public class DailyReportService {
      * Send a test daily report to the user's configured channels.
      */
     public void sendTestReport(String userId) {
-        UserSettings settings = userSettingsService.getDecryptedSettings(userId);
+        UserSettings settings = userSettingsService.getSettings(userId);
         if (settings == null) {
             throw new IllegalArgumentException("No settings found for user");
         }

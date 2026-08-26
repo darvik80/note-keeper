@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.client;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -17,17 +18,13 @@ import java.util.Map;
  * API: https://core.telegram.org/bots/api
  */
 @Component
+@RequiredArgsConstructor
 public class TelegramClient {
 
     private static final Logger log = LoggerFactory.getLogger(TelegramClient.class);
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
-
-    public TelegramClient(ObjectMapper objectMapper) {
-        this.restClient = RestClient.builder().build();
-        this.objectMapper = objectMapper;
-    }
 
     /**
      * Send plain text message (backward-compatible, no parse mode).

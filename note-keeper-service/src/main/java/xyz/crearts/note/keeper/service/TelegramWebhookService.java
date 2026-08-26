@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import xyz.crearts.note.keeper.client.TelegramClient;
@@ -8,8 +9,6 @@ import xyz.crearts.note.keeper.mapper.TodoMapper;
 import xyz.crearts.note.keeper.model.Todo;
 import xyz.crearts.note.keeper.model.UserSettings;
 
-import java.time.LocalDateTime;
-
 /**
  * Processes Telegram webhook callback queries.
  * Handles inline button actions such as marking a todo as done.
@@ -17,6 +16,7 @@ import java.time.LocalDateTime;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class TelegramWebhookService {
 
     private static final String DONE_PREFIX = "done:";
@@ -25,14 +25,6 @@ public class TelegramWebhookService {
     private final TelegramClient telegramClient;
     private final UserSettingsService userSettingsService;
     private final TodoService todoService;
-
-    public TelegramWebhookService(TodoMapper todoMapper, TelegramClient telegramClient,
-                                  UserSettingsService userSettingsService, TodoService todoService) {
-        this.todoMapper = todoMapper;
-        this.telegramClient = telegramClient;
-        this.userSettingsService = userSettingsService;
-        this.todoService = todoService;
-    }
 
     /**
      * Process a callback query from Telegram inline keyboard.

@@ -2,6 +2,7 @@ package xyz.crearts.note.keeper.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,13 +17,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/search")
 @Tag(name = "Search")
+@RequiredArgsConstructor
 public class SearchController {
 
     private final SearchService searchService;
-
-    public SearchController(SearchService searchService) {
-        this.searchService = searchService;
-    }
 
     @GetMapping
     public SearchResult search(

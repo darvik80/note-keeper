@@ -8,8 +8,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import xyz.crearts.note.keeper.mapper.UserSettingsMapper;
 import xyz.crearts.note.keeper.model.UserSettings;
 
-import java.time.LocalDateTime;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;

@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import xyz.crearts.note.keeper.dto.NoteTemplateInput;
 import xyz.crearts.note.keeper.exception.AccessDeniedException;
@@ -13,15 +14,12 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class TemplateService {
 
     private final TemplateMapper templateMapper;
 
     private static final String SYSTEM_OWNER = "system";
-
-    public TemplateService(TemplateMapper templateMapper) {
-        this.templateMapper = templateMapper;
-    }
 
     public List<NoteTemplate> findAll(String category, String ownerId) {
         return templateMapper.findAll(category, ownerId);

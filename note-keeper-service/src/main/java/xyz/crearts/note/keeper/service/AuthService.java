@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import xyz.crearts.note.keeper.dto.AuthRequest;
@@ -18,20 +19,13 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
     private final UserMapper userMapper;
     private final UserCredentialsMapper credentialsMapper;
     private final JwtService jwtService;
     private final PasswordService passwordService;
-
-    public AuthService(UserMapper userMapper, UserCredentialsMapper credentialsMapper,
-                       JwtService jwtService, PasswordService passwordService) {
-        this.userMapper = userMapper;
-        this.credentialsMapper = credentialsMapper;
-        this.jwtService = jwtService;
-        this.passwordService = passwordService;
-    }
 
     /**
      * Register user with email and password.

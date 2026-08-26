@@ -1,6 +1,7 @@
 package xyz.crearts.note.keeper.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -10,7 +11,6 @@ import xyz.crearts.note.keeper.model.Attachment;
 import xyz.crearts.note.keeper.service.AttachmentService;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Controller for managing file attachments.
@@ -20,13 +20,10 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/attachments")
 @Tag(name = "Attachments")
+@RequiredArgsConstructor
 public class AttachmentController {
 
     private final AttachmentService attachmentService;
-
-    public AttachmentController(AttachmentService attachmentService) {
-        this.attachmentService = attachmentService;
-    }
 
     /**
      * Upload a file and create attachment record.

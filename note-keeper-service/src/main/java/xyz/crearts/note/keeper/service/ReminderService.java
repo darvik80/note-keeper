@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -8,7 +9,6 @@ import xyz.crearts.note.keeper.client.DingTalkClient;
 import xyz.crearts.note.keeper.client.TelegramClient;
 import xyz.crearts.note.keeper.client.TelegramMarkdownUtil;
 import xyz.crearts.note.keeper.mapper.TodoMapper;
-import xyz.crearts.note.keeper.mapper.UserSettingsMapper;
 import xyz.crearts.note.keeper.model.Todo;
 import xyz.crearts.note.keeper.model.UserSettings;
 
@@ -25,6 +25,7 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ReminderService {
 
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm");
@@ -33,20 +34,9 @@ public class ReminderService {
     private final TelegramClient telegramClient;
     private final DingTalkClient dingTalkClient;
     private final UserSettingsService userSettingsService;
-    private final UserSettingsMapper userSettingsMapper;
 
     @Value("${app.telegram.webhook-base-url:}")
     private String webhookBaseUrl;
-
-    public ReminderService(TodoMapper todoMapper, TelegramClient telegramClient,
-                           DingTalkClient dingTalkClient, UserSettingsService userSettingsService,
-                           UserSettingsMapper userSettingsMapper) {
-        this.todoMapper = todoMapper;
-        this.telegramClient = telegramClient;
-        this.dingTalkClient = dingTalkClient;
-        this.userSettingsService = userSettingsService;
-        this.userSettingsMapper = userSettingsMapper;
-    }
 
     /**
      * Every minute: rollover recurring periods, then notify due incomplete reminders.
@@ -109,7 +99,7 @@ public class ReminderService {
 
     private void sendToTelegram(Todo todo, String markdownMessage, String plainMessage) {
         String userId = todo.getOwnerId() != null ? todo.getOwnerId() : "default";
-        UserSettings settings = userSettingsService.getDecryptedSettings(userId);
+        UserSettings settings = userSettingsService.getSettings(userId);
         if (settings == null || settings.getTelegramBotToken() == null || settings.getTelegramChatId() == null) {
             log.warn("Telegram credentials not configured. Skipping notification for todo: {}", todo.getId());
             return;
@@ -191,7 +181,7 @@ public class ReminderService {
 
     private void sendToDingTalk(Todo todo, String message) {
         String userId = todo.getOwnerId() != null ? todo.getOwnerId() : "default";
-        UserSettings settings = userSettingsService.getDecryptedSettings(userId);
+        UserSettings settings = userSettingsService.getSettings(userId);
         if (settings == null || settings.getDingtalkWebhook() == null || settings.getDingtalkSecret() == null) {
             log.warn("DingTalk credentials not configured. Skipping notification for todo: {}", todo.getId());
             return;

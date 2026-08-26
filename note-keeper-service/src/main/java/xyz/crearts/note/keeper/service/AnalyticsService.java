@@ -1,29 +1,24 @@
 package xyz.crearts.note.keeper.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import xyz.crearts.note.keeper.dto.AnalyticsResponse;
 import xyz.crearts.note.keeper.mapper.NoteMapper;
 import xyz.crearts.note.keeper.mapper.TodoMapper;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class AnalyticsService {
 
     private final NoteMapper noteMapper;
     private final TodoMapper todoMapper;
-
-    public AnalyticsService(NoteMapper noteMapper, TodoMapper todoMapper) {
-        this.noteMapper = noteMapper;
-        this.todoMapper = todoMapper;
-    }
 
     public AnalyticsResponse getAnalytics(String timeRange, String ownerId) {
         LocalDate now = LocalDate.now();

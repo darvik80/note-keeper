@@ -1,15 +1,11 @@
 package xyz.crearts.note.keeper.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import xyz.crearts.note.keeper.dto.SavedQueryInput;
 import xyz.crearts.note.keeper.dto.SearchResult;
-import xyz.crearts.note.keeper.exception.AccessDeniedException;
 import xyz.crearts.note.keeper.exception.ResourceNotFoundException;
-import xyz.crearts.note.keeper.mapper.AttachmentMapper;
-import xyz.crearts.note.keeper.mapper.NoteHistoryMapper;
-import xyz.crearts.note.keeper.mapper.NoteMapper;
-import xyz.crearts.note.keeper.mapper.SavedQueryMapper;
-import xyz.crearts.note.keeper.mapper.TodoMapper;
+import xyz.crearts.note.keeper.mapper.*;
 import xyz.crearts.note.keeper.model.Note;
 import xyz.crearts.note.keeper.model.SavedQuery;
 import xyz.crearts.note.keeper.model.Todo;
@@ -20,6 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class SearchService {
 
     private final NoteMapper noteMapper;
@@ -27,16 +24,6 @@ public class SearchService {
     private final SavedQueryMapper savedQueryMapper;
     private final AttachmentMapper attachmentMapper;
     private final NoteHistoryMapper historyMapper;
-
-    public SearchService(NoteMapper noteMapper, TodoMapper todoMapper,
-                         SavedQueryMapper savedQueryMapper, AttachmentMapper attachmentMapper,
-                         NoteHistoryMapper historyMapper) {
-        this.noteMapper = noteMapper;
-        this.todoMapper = todoMapper;
-        this.savedQueryMapper = savedQueryMapper;
-        this.attachmentMapper = attachmentMapper;
-        this.historyMapper = historyMapper;
-    }
 
     public SearchResult search(String query, String type, String tags, String priority, String ownerId) {
         List<Note> notes = Collections.emptyList();

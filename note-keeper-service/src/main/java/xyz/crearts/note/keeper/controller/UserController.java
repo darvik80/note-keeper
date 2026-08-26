@@ -1,6 +1,7 @@
 package xyz.crearts.note.keeper.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import xyz.crearts.note.keeper.mapper.UserMapper;
@@ -17,15 +18,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/users")
 @Tag(name = "Users")
+@RequiredArgsConstructor
 public class UserController {
 
     private final AuthService authService;
     private final UserMapper userMapper;
-
-    public UserController(AuthService authService, UserMapper userMapper) {
-        this.authService = authService;
-        this.userMapper = userMapper;
-    }
 
     /**
      * Get current user profile.

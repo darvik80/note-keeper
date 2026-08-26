@@ -1,6 +1,7 @@
 package xyz.crearts.note.keeper.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,18 +17,12 @@ import xyz.crearts.note.keeper.service.UserSettingsService;
 @RestController
 @RequestMapping("/api/v1/settings")
 @Tag(name = "Settings")
+@RequiredArgsConstructor
 public class SettingsController {
 
     private final UserSettingsService userSettingsService;
     private final JwtService jwtService;
     private final DailyReportService dailyReportService;
-
-    public SettingsController(UserSettingsService userSettingsService, JwtService jwtService,
-                              DailyReportService dailyReportService) {
-        this.userSettingsService = userSettingsService;
-        this.jwtService = jwtService;
-        this.dailyReportService = dailyReportService;
-    }
 
     /**
      * Get current user's settings (sensitive fields are decrypted).

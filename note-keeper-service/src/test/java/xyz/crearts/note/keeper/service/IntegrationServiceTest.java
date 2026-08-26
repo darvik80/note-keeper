@@ -12,8 +12,6 @@ import xyz.crearts.note.keeper.dto.IntegrationRequest;
 import xyz.crearts.note.keeper.dto.IntegrationResponse;
 import xyz.crearts.note.keeper.model.UserSettings;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 

@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.client;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -20,17 +21,13 @@ import java.util.Map;
  * API: https://open.dingtalk.com/document/robots/custom-robot-access
  */
 @Component
+@RequiredArgsConstructor
 public class DingTalkClient {
 
     private static final Logger log = LoggerFactory.getLogger(DingTalkClient.class);
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
-
-    public DingTalkClient(ObjectMapper objectMapper) {
-        this.restClient = RestClient.builder().build();
-        this.objectMapper = objectMapper;
-    }
 
     /**
      * Send text message to DingTalk webhook.

@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import xyz.crearts.note.keeper.dto.TodoInput;
@@ -17,6 +18,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class TodoService {
 
     private final TodoMapper todoMapper;
@@ -24,16 +26,6 @@ public class TodoService {
     private final NotificationService notificationService;
     private final TagSyncService tagSyncService;
     private final ResourceAccessService resourceAccess;
-
-    public TodoService(TodoMapper todoMapper, AttachmentMapper attachmentMapper,
-                       NotificationService notificationService, TagSyncService tagSyncService,
-                       ResourceAccessService resourceAccess) {
-        this.todoMapper = todoMapper;
-        this.attachmentMapper = attachmentMapper;
-        this.notificationService = notificationService;
-        this.tagSyncService = tagSyncService;
-        this.resourceAccess = resourceAccess;
-    }
 
     public List<Todo> findAll(Boolean completed, String tag, String priority,
                               Boolean isFavorite, Boolean isArchived, Boolean isDeleted, String ownerId) {

@@ -2,6 +2,7 @@ package xyz.crearts.note.keeper.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,13 +24,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/todos")
 @Tag(name = "Todos")
+@RequiredArgsConstructor
 public class TodoController {
 
     private final TodoService todoService;
-
-    public TodoController(TodoService todoService) {
-        this.todoService = todoService;
-    }
 
     @GetMapping
     public List<Todo> getTodos(

@@ -1,6 +1,7 @@
 package xyz.crearts.note.keeper.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,13 +13,10 @@ import xyz.crearts.note.keeper.service.AnalyticsService;
 @RestController
 @RequestMapping("/api/v1/analytics")
 @Tag(name = "Analytics")
+@RequiredArgsConstructor
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
-
-    public AnalyticsController(AnalyticsService analyticsService) {
-        this.analyticsService = analyticsService;
-    }
 
     @GetMapping
     public AnalyticsResponse getAnalytics(

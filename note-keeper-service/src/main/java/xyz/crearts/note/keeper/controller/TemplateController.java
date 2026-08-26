@@ -2,6 +2,7 @@ package xyz.crearts.note.keeper.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,13 +16,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/templates")
 @Tag(name = "Templates")
+@RequiredArgsConstructor
 public class TemplateController {
 
     private final TemplateService templateService;
-
-    public TemplateController(TemplateService templateService) {
-        this.templateService = templateService;
-    }
 
     @GetMapping
     public List<NoteTemplate> getTemplates(@RequestParam(required = false) String category,

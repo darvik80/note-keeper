@@ -1,5 +1,6 @@
 package xyz.crearts.note.keeper.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class NoteService {
 
     private final NoteMapper noteMapper;
@@ -30,19 +32,6 @@ public class NoteService {
     private final NotificationService notificationService;
     private final TagSyncService tagSyncService;
     private final ResourceAccessService resourceAccess;
-
-    public NoteService(NoteMapper noteMapper, NoteHistoryMapper historyMapper, 
-                      AttachmentMapper attachmentMapper, EncryptionService encryptionService,
-                      NotificationService notificationService, TagSyncService tagSyncService,
-                      ResourceAccessService resourceAccess) {
-        this.noteMapper = noteMapper;
-        this.historyMapper = historyMapper;
-        this.attachmentMapper = attachmentMapper;
-        this.encryptionService = encryptionService;
-        this.notificationService = notificationService;
-        this.tagSyncService = tagSyncService;
-        this.resourceAccess = resourceAccess;
-    }
 
     public List<Note> findAll(String folder, String tag, String priority,
                               Boolean isFavorite, Boolean isEncrypted,
