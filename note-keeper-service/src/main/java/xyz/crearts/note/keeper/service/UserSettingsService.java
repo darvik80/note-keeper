@@ -26,16 +26,13 @@ public class UserSettingsService {
 
     /**
      * Get user settings with decrypted sensitive fields.
-     * Also migrates telegramWebhookSecret from encrypted to plain text if needed.
      */
     public UserSettings getSettings(String userId) {
         UserSettings settings = userSettingsMapper.findById(userId);
         if (settings == null) {
             return null;
         }
-        UserSettings decrypted = decryptSettings(settings);
-        migrateWebhookSecretIfNeeded(settings, decrypted);
-        return decrypted;
+        return decryptSettings(settings);
     }
 
     /**
@@ -108,28 +105,6 @@ public class UserSettingsService {
         decrypted.setDailyReportLastSent(settings.getDailyReportLastSent());
         decrypted.setUpdatedAt(settings.getUpdatedAt());
         return decrypted;
-    }
-
-    /**
-     * Migration: if the webhook secret is still encrypted in the DB (from before the fix),
-     * decrypt it and re-save as plain text so SQL lookup works.
-     */
-    private void migrateWebhookSecretIfNeeded(UserSettings raw, UserSettings decrypted) {
-        String rawSecret = raw.getTelegramWebhookSecret();
-        if (rawSecret == null || rawSecret.isEmpty()) {
-            return;
-        }
-        // Try to decrypt — if it succeeds, the value was still encrypted (legacy)
-        try {
-            String decryptedSecret = encryptionService.decrypt(rawSecret);
-            // It was encrypted — re-save as plain text
-            raw.setTelegramWebhookSecret(decryptedSecret);
-            userSettingsMapper.upsert(raw);
-            decrypted.setTelegramWebhookSecret(decryptedSecret);
-            log.info("Migrated telegramWebhookSecret from encrypted to plain text for user: {}", raw.getId());
-        } catch (Exception e) {
-            // Already plain text — nothing to migrate
-        }
     }
 
     private String encryptSafe(String value) {

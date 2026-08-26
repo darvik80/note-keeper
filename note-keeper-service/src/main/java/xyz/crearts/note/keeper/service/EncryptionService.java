@@ -106,7 +106,7 @@ public class EncryptionService {
             byte[] plaintext = cipher.doFinal(ciphertext);
             return new String(plaintext, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            log.error("Decryption failed", e);
+            log.debug("Decryption failed: {}", e.getMessage());
             throw new RuntimeException("Failed to decrypt content", e);
         }
     }
