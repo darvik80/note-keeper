@@ -93,7 +93,7 @@ class IntegrationServiceTest {
 
     @Test
     void sendTestTodoToTelegram_noSettings_shouldReturnFailure() {
-        when(userSettingsService.getDecryptedSettings("user-1")).thenReturn(null);
+        when(userSettingsService.getSettings("user-1")).thenReturn(null);
 
         IntegrationResponse response = integrationService.sendTestTodoToTelegram("user-1");
 
@@ -106,7 +106,7 @@ class IntegrationServiceTest {
         UserSettings settings = new UserSettings();
         settings.setId("user-1");
         settings.setTelegramChatId("chat-123");
-        when(userSettingsService.getDecryptedSettings("user-1")).thenReturn(settings);
+        when(userSettingsService.getSettings("user-1")).thenReturn(settings);
 
         IntegrationResponse response = integrationService.sendTestTodoToTelegram("user-1");
 
@@ -121,7 +121,7 @@ class IntegrationServiceTest {
         settings.setTelegramBotToken("bot-token");
         settings.setTelegramChatId("chat-123");
         settings.setTelegramWebhookSecret("webhook-secret");
-        when(userSettingsService.getDecryptedSettings("user-1")).thenReturn(settings);
+        when(userSettingsService.getSettings("user-1")).thenReturn(settings);
 
         when(telegramClient.sendMessage(eq("bot-token"), eq("chat-123"), anyString(), eq("MarkdownV2"), anyList()))
                 .thenReturn(true);
@@ -140,7 +140,7 @@ class IntegrationServiceTest {
         settings.setTelegramBotToken("bot-token");
         settings.setTelegramChatId("chat-123");
         // No webhook secret set
-        when(userSettingsService.getDecryptedSettings("user-1")).thenReturn(settings);
+        when(userSettingsService.getSettings("user-1")).thenReturn(settings);
 
         // No webhook base URL configured, so ensureWebhookRegistered is a no-op
         ReflectionTestUtils.setField(integrationService, "webhookBaseUrl", "");
@@ -162,7 +162,7 @@ class IntegrationServiceTest {
         settings.setTelegramBotToken("bot-token");
         settings.setTelegramChatId("chat-123");
         settings.setTelegramWebhookSecret("webhook-secret");
-        when(userSettingsService.getDecryptedSettings("user-1")).thenReturn(settings);
+        when(userSettingsService.getSettings("user-1")).thenReturn(settings);
 
         // MarkdownV2 fails
         when(telegramClient.sendMessage(eq("bot-token"), eq("chat-123"), anyString(), eq("MarkdownV2"), anyList()))

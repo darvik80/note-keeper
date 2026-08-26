@@ -36,7 +36,7 @@ class ReminderServiceTest {
 
     @BeforeEach
     void setUp() {
-        reminderService = new ReminderService(todoMapper, telegramClient, dingTalkClient, userSettingsService, userSettingsMapper);
+        reminderService = new ReminderService(todoMapper, telegramClient, dingTalkClient, userSettingsService);
     }
 
     private Todo dailyTodo(String id, LocalDateTime reminder, LocalDateTime notifiedAt) {
@@ -58,7 +58,7 @@ class ReminderServiceTest {
         settings.setTelegramBotToken("token");
         settings.setTelegramChatId("chat");
         settings.setTelegramWebhookSecret("webhook-secret");
-        when(userSettingsService.getDecryptedSettings("user-1")).thenReturn(settings);
+        when(userSettingsService.getSettings("user-1")).thenReturn(settings);
         when(telegramClient.sendMessage(anyString(), anyString(), anyString(), anyString(), any())).thenReturn(true);
     }
 

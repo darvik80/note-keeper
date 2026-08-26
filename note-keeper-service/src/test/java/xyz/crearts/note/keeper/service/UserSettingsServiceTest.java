@@ -113,7 +113,7 @@ class UserSettingsServiceTest {
     void getDecryptedSettings_shouldReturnSameAsGetSettings() {
         when(userSettingsMapper.findById("user-1")).thenReturn(null);
 
-        UserSettings result = userSettingsService.getDecryptedSettings("user-1");
+        UserSettings result = userSettingsService.getSettings("user-1");
 
         assertNull(result);
     }
