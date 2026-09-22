@@ -17,7 +17,7 @@ alwaysApply: false
 Recurring todo = **habit series**, not a one-shot row that mutates forever.
 
 ## Model
-- `reminder` time-of-day (+ weekday / day-of-month) = series template
+- `reminder` = next fire + series template (time-of-day, weekday, day-of-month). Never move it earlier than the stored value — a future start is not the previous period's slot
 - `completed` = done for **current period only** (today / this ISO week / this month)
 - `last_completed_at` + `todo_completion_log` = history (calendar green ticks)
 - `notified_at` = last notify for current `reminder` slot

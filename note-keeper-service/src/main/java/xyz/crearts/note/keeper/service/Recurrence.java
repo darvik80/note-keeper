@@ -10,10 +10,11 @@ import java.util.List;
  * Recurring todo = habit series, not a one-shot that mutates forever.
  *
  * <ul>
- *   <li>{@code reminder} time-of-day (and weekday / day-of-month) is the series template</li>
+ *   <li>{@code reminder} is the next fire and the series template (time-of-day, weekday, day-of-month)</li>
  *   <li>{@code completed} means done for the <em>current period</em> only</li>
  *   <li>{@code last_completed_at} + completion log = history</li>
  *   <li>Notify does not advance reminder; {@link #rolloverIfNeeded} aligns state to {@code now}</li>
+ *   <li>Rollover never moves {@code reminder} earlier than the stored value — a future start is not the previous slot</li>
  * </ul>
  */
 public final class Recurrence {
@@ -74,6 +75,20 @@ public final class Recurrence {
      * Occurrence datetime for the period containing {@code now}
      * (today / this ISO week / this month at the reminder clock time).
      */
+    public static LocalDateTime currentSlot(Todo todo, LocalDateTime now) {
+        if (todo == null) {
+            return null;
+        }
+        return currentSlot(todo.getReminder(), repeatOf(todo), now, daysOf(todo));
+    }
+
+    public static LocalDateTime advance(Todo todo, LocalDateTime from) {
+        if (todo == null) {
+            return null;
+        }
+        return advance(from, repeatOf(todo), daysOf(todo));
+    }
+
     public static LocalDateTime currentSlot(LocalDateTime reminder, String repeat, LocalDateTime now) {
         return currentSlot(reminder, repeat, now, null);
     }
@@ -171,6 +186,9 @@ public final class Recurrence {
 
     /**
      * Align {@code completed} / {@code reminder} / {@code notifiedAt} with the current period.
+     * {@code currentSlot} may land on an earlier occurrence in this week/month. If that instant
+     * is before the stored reminder, the series has not reached it yet (or reminder already
+     * points at the next fire) — leave the row unchanged.
      *
      * @return true if todo was mutated and should be persisted
      */
@@ -180,8 +198,9 @@ public final class Recurrence {
         }
         String repeat = repeatOf(todo);
         List<Integer> days = daysOf(todo);
-        LocalDateTime slot = currentSlot(todo.getReminder(), repeat, now, days);
-        if (pastEndDate(todo, slot)) {
+        LocalDateTime stored = todo.getReminder();
+        LocalDateTime slot = currentSlot(stored, repeat, now, days);
+        if (slot == null || slot.isBefore(stored) || pastEndDate(todo, slot)) {
             return false;
         }
 

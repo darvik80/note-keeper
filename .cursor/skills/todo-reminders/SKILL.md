@@ -11,8 +11,8 @@ description: >-
 
 ## Model (habit series)
 
-`completed` = current period only. `reminder` clock time is the template.
-`Recurrence.rolloverIfNeeded` aligns state to today. Notify does **not** advance reminder.
+`completed` = current period only. `reminder` is the next fire and the clock-time template.
+`Recurrence.rolloverIfNeeded` aligns state to today and never moves `reminder` earlier than the stored value. Notify does **not** advance reminder.
 
 ## Checklist
 

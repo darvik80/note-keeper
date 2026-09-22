@@ -238,8 +238,10 @@ public class TodoService {
      * Complete current period: log history, mark done, point reminder at next slot.
      */
     private Todo completeRecurringOccurrence(Todo todo, LocalDateTime now) {
-        String repeat = Recurrence.repeatOf(todo);
-        LocalDateTime slot = Recurrence.currentSlot(todo.getReminder(), repeat, now);
+        LocalDateTime slot = Recurrence.currentSlot(todo, now);
+        if (slot != null && todo.getReminder() != null && slot.isBefore(todo.getReminder())) {
+            slot = todo.getReminder();
+        }
 
         TodoCompletionLog log = new TodoCompletionLog();
         log.setId(UUID.randomUUID().toString());
@@ -249,7 +251,7 @@ public class TodoService {
         log.setOccurrenceDueDate(todo.getDueDate());
         todoMapper.insertCompletionLog(log);
 
-        LocalDateTime nextReminder = Recurrence.advance(slot, repeat);
+        LocalDateTime nextReminder = Recurrence.advance(todo, slot);
         LocalDateTime nextDueDate = Recurrence.advanceDueDate(todo.getDueDate(), todo.getReminder(), nextReminder);
 
         todo.setLastCompletedAt(now);
@@ -273,8 +275,7 @@ public class TodoService {
     }
 
     private Todo uncompleteRecurringOccurrence(Todo todo, LocalDateTime now) {
-        String repeat = Recurrence.repeatOf(todo);
-        LocalDateTime slot = Recurrence.currentSlot(todo.getReminder(), repeat, now);
+        LocalDateTime slot = Recurrence.currentSlot(todo, now);
         LocalDateTime periodStart = slot.toLocalDate().atStartOfDay();
 
         todoMapper.deleteCompletionLogsSince(todo.getId(), periodStart);

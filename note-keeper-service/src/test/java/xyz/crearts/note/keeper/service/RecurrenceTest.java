@@ -4,19 +4,26 @@ import org.junit.jupiter.api.Test;
 import xyz.crearts.note.keeper.model.Todo;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class RecurrenceTest {
 
     private Todo daily(LocalDateTime reminder, boolean completed, LocalDateTime lastCompletedAt) {
+        Todo todo = recurring("daily", reminder, null);
+        todo.setCompleted(completed);
+        todo.setLastCompletedAt(lastCompletedAt);
+        return todo;
+    }
+
+    private Todo recurring(String repeat, LocalDateTime reminder, List<Integer> daysOfWeek) {
         Todo todo = new Todo();
         todo.setId("t1");
         todo.setReminder(reminder);
-        todo.setCompleted(completed);
-        todo.setLastCompletedAt(lastCompletedAt);
         Todo.Schedule schedule = new Todo.Schedule();
-        schedule.setRepeat("daily");
+        schedule.setRepeat(repeat);
+        schedule.setDaysOfWeek(daysOfWeek);
         todo.setSchedule(schedule);
         return todo;
     }
@@ -80,6 +87,68 @@ class RecurrenceTest {
     void rollover_noChange_returnsFalse() {
         Todo todo = daily(LocalDateTime.of(2026, 8, 9, 15, 30), false, null);
         assertFalse(Recurrence.rolloverIfNeeded(todo, LocalDateTime.of(2026, 8, 9, 10, 0)));
+    }
+
+    @Test
+    void rollover_dailyFutureStart_keepsReminder() {
+        Todo todo = daily(LocalDateTime.of(2026, 9, 23, 9, 0), false, null);
+        assertFalse(Recurrence.rolloverIfNeeded(todo, LocalDateTime.of(2026, 9, 22, 15, 0)));
+        assertEquals(LocalDateTime.of(2026, 9, 23, 9, 0), todo.getReminder());
+        assertFalse(todo.isCompleted());
+    }
+
+    @Test
+    void rollover_weeklyFutureStart_doesNotRewindToPreviousMonday() {
+        // 2026-09-27 Sunday → start Monday 2026-09-28. ISO week of Sunday is the previous Monday.
+        Todo todo = recurring("weekly", LocalDateTime.of(2026, 9, 28, 9, 0), null);
+        assertFalse(Recurrence.rolloverIfNeeded(todo, LocalDateTime.of(2026, 9, 27, 12, 0)));
+        assertEquals(LocalDateTime.of(2026, 9, 28, 9, 0), todo.getReminder());
+        assertNull(todo.getNotifiedAt());
+    }
+
+    @Test
+    void rollover_weekdaysFutureStart_doesNotSnapToToday() {
+        // Tuesday 15:00, series starts Wednesday 09:00. Matching-day slot would be today.
+        Todo todo = recurring("weekdays", LocalDateTime.of(2026, 9, 23, 9, 0), List.of(1, 2, 3, 4, 5));
+        assertFalse(Recurrence.rolloverIfNeeded(todo, LocalDateTime.of(2026, 9, 22, 15, 0)));
+        assertEquals(LocalDateTime.of(2026, 9, 23, 9, 0), todo.getReminder());
+    }
+
+    @Test
+    void rollover_customFutureStart_doesNotUsePreviousSunday() {
+        // Tuesday, custom Sundays only, first fire next Sunday.
+        Todo todo = recurring("custom", LocalDateTime.of(2026, 9, 27, 9, 0), List.of(0));
+        assertFalse(Recurrence.rolloverIfNeeded(todo, LocalDateTime.of(2026, 9, 22, 15, 0)));
+        assertEquals(LocalDateTime.of(2026, 9, 27, 9, 0), todo.getReminder());
+    }
+
+    @Test
+    void rollover_completedWithNextFireStillAhead_keepsCompleted() {
+        Todo todo = daily(
+                LocalDateTime.of(2026, 8, 9, 15, 30),
+                true,
+                LocalDateTime.of(2026, 8, 8, 3, 10));
+        assertFalse(Recurrence.rolloverIfNeeded(todo, LocalDateTime.of(2026, 8, 8, 18, 0)));
+        assertTrue(todo.isCompleted());
+        assertEquals(LocalDateTime.of(2026, 8, 9, 15, 30), todo.getReminder());
+    }
+
+    @Test
+    void rollover_nextDay_clearsCompletedWhenReminderAlreadyOnToday() {
+        Todo todo = daily(
+                LocalDateTime.of(2026, 8, 9, 15, 30),
+                true,
+                LocalDateTime.of(2026, 8, 8, 3, 10));
+        assertTrue(Recurrence.rolloverIfNeeded(todo, LocalDateTime.of(2026, 8, 9, 1, 37)));
+        assertFalse(todo.isCompleted());
+        assertEquals(LocalDateTime.of(2026, 8, 9, 15, 30), todo.getReminder());
+    }
+
+    @Test
+    void advance_customUsesSelectedDays() {
+        // Friday 2026-09-25 → next selected day is Sunday, not Monday.
+        LocalDateTime friday = LocalDateTime.of(2026, 9, 25, 9, 0);
+        assertEquals(LocalDateTime.of(2026, 9, 27, 9, 0), Recurrence.advance(friday, "custom", List.of(0)));
     }
 
     @Test
