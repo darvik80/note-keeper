@@ -140,8 +140,8 @@ Package `dev.cogitor.notekeeper.v2`, minSdk 31. Point the client at your server 
 Bottom nav: **Notes | Todos | Vault | Search**. Settings from the overflow.
 
 - Pull to sync. Notes/todos also sync in the background (Room + WorkManager).
-- Swipe a note → archive. Swipe a todo → done or archive.
-- Note editor: **Edit | Preview** chips in the top bar. Existing notes open in Preview (rendered Markdown); new notes open in Edit. Toolbar + ~800 ms autosave. Keyboard resizes the editor (does not pan the title off-screen).
+- List chips: notes **All | Archive | Trash**; todos **Active | Done | Archive | Trash**. Swipe a note left → archive. Swipe a todo right → done, left → archive. In Archive/Trash, swipe to restore.
+- Note editor: **Edit | Preview** chips in the top bar. Existing notes open in Preview (rendered Markdown); new notes open in Edit. Amber check FAB saves (snackbar **Saved**); notes also autosave ~800 ms. Keyboard resizes the editor (does not pan the title off-screen).
 - Sign-in: email/password, Google, Yandex.
 
 Details: [android/README.md](../android/README.md).

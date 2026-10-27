@@ -7,8 +7,11 @@ import dev.cogitor.notekeeper.data.model.Attachment
 import dev.cogitor.notekeeper.data.model.Note
 import dev.cogitor.notekeeper.data.model.SyncStatus
 import dev.cogitor.notekeeper.data.repository.NoteRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -28,6 +31,12 @@ class NoteDetailViewModel(
     private val _shareResult = MutableStateFlow<String>("")
     val shareResult: StateFlow<String> = _shareResult.asStateFlow()
 
+    private val _saveLabel = MutableStateFlow("")
+    val saveLabel: StateFlow<String> = _saveLabel.asStateFlow()
+
+    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val messages: SharedFlow<String> = _messages.asSharedFlow()
+
     fun loadNote(id: String) {
         viewModelScope.launch {
             val note = repository.getNoteById(id)
@@ -45,8 +54,12 @@ class NoteDetailViewModel(
     ) {
         viewModelScope.launch {
             _isSaving.value = true
-            repository.createNote(title, content, folder, tags, priority)
+            _saveLabel.value = "Saving…"
+            val created = repository.createNote(title, content, folder, tags, priority)
+            _note.value = created
             _isSaving.value = false
+            _saveLabel.value = "Saved"
+            _messages.emit("Saved")
         }
     }
 
@@ -54,11 +67,13 @@ class NoteDetailViewModel(
         title: String,
         content: String,
         tags: List<String> = emptyList(),
-        priority: String = "medium"
+        priority: String = "medium",
+        announce: Boolean = false
     ) {
         viewModelScope.launch {
             _note.value?.let { existing ->
                 _isSaving.value = true
+                _saveLabel.value = "Saving…"
                 val updated = existing.copy(
                     title = title,
                     content = content,
@@ -69,6 +84,8 @@ class NoteDetailViewModel(
                 repository.updateNote(updated)
                 _note.value = updated.copy(syncStatus = SyncStatus.PENDING_UPDATE)
                 _isSaving.value = false
+                _saveLabel.value = "Saved"
+                if (announce) _messages.emit("Saved")
             }
         }
     }
@@ -78,6 +95,18 @@ class NoteDetailViewModel(
             _note.value?.let { note ->
                 repository.deleteNote(note)
                 _note.value = null
+                _messages.emit("Moved to Trash")
+            }
+        }
+    }
+
+    fun restoreNote() {
+        viewModelScope.launch {
+            _note.value?.let { note ->
+                repository.restoreNote(note)
+                _note.value = note.copy(isArchived = false, isDeleted = false, syncStatus = SyncStatus.PENDING_UPDATE)
+                _saveLabel.value = "Restored"
+                _messages.emit("Restored")
             }
         }
     }

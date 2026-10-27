@@ -49,6 +49,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -62,6 +64,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +82,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -89,8 +93,11 @@ fun TodoDetailScreen(
 ) {
     val todo by viewModel.todo.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
+    val saveLabel by viewModel.saveLabel.collectAsState()
     val attachments by viewModel.attachments.collectAsState()
     val shareResult by viewModel.shareResult.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -136,6 +143,10 @@ fun TodoDetailScreen(
         }
     }
 
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { snackbarHostState.showSnackbar(it) }
+    }
+
     LaunchedEffect(todo) {
         todo?.let {
             title = it.title
@@ -153,6 +164,7 @@ fun TodoDetailScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -180,7 +192,17 @@ fun TodoDetailScreen(
                     }
                 },
                 actions = {
-                    if (!isNewTodo) {
+                    if (saveLabel.isNotBlank()) {
+                        Text(
+                            saveLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
+                    }
+                    if (todo?.isDeleted == true || todo?.isArchived == true) {
+                        TextButton(onClick = { viewModel.restoreTodo() }) { Text("Restore") }
+                    } else if (!isNewTodo) {
                         IconButton(onClick = { viewModel.toggleComplete() }) {
                             Icon(
                                 if (todo?.completed == true) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
@@ -209,29 +231,37 @@ fun TodoDetailScreen(
         floatingActionButton = {
             NkFab(
                 onClick = {
-                    if (title.isNotBlank() && !isSaving) {
-                        val tagList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
-                        if (isNewTodo) {
-                            viewModel.createTodo(
-                                title,
-                                description,
-                                tagList,
-                                priority,
-                                dueDate,
-                                reminder,
-                                scheduleRepeat,
-                                serverNotificationChannels.ifBlank { null })
-                        } else {
-                            viewModel.updateTodo(
-                                title,
-                                description,
-                                tagList,
-                                priority,
-                                completed,
-                                dueDate,
-                                reminder,
-                                scheduleRepeat,
-                                serverNotificationChannels.ifBlank { null })
+                    when {
+                        isSaving -> Unit
+                        title.isBlank() -> scope.launch {
+                            snackbarHostState.showSnackbar("Title required")
+                        }
+                        else -> {
+                            val tagList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                            if (isNewTodo) {
+                                viewModel.createTodo(
+                                    title,
+                                    description,
+                                    tagList,
+                                    priority,
+                                    dueDate,
+                                    reminder,
+                                    scheduleRepeat,
+                                    serverNotificationChannels.ifBlank { null }
+                                )
+                            } else {
+                                viewModel.updateTodo(
+                                    title,
+                                    description,
+                                    tagList,
+                                    priority,
+                                    completed,
+                                    dueDate,
+                                    reminder,
+                                    scheduleRepeat,
+                                    serverNotificationChannels.ifBlank { null }
+                                )
+                            }
                         }
                     }
                 }

@@ -9,7 +9,10 @@ import dev.cogitor.notekeeper.data.sync.NetworkConnectivityObserver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
+
+enum class NoteListFilter { Active, Archive, Trash }
 
 class NoteListViewModel(
     private val repository: NoteRepository,
@@ -25,9 +28,18 @@ class NoteListViewModel(
     private val _syncStatus = MutableStateFlow<String>("")
     val syncStatus: StateFlow<String> = _syncStatus.asStateFlow()
 
+    private val _filter = MutableStateFlow(NoteListFilter.Active)
+    val filter: StateFlow<NoteListFilter> = _filter.asStateFlow()
+
     init {
         viewModelScope.launch {
-            repository.getAllActiveNotes().collect { list ->
+            _filter.flatMapLatest { current ->
+                when (current) {
+                    NoteListFilter.Active -> repository.getAllActiveNotes()
+                    NoteListFilter.Archive -> repository.getArchivedNotes()
+                    NoteListFilter.Trash -> repository.getDeletedNotes()
+                }
+            }.collect { list ->
                 _notes.value = list
             }
         }
@@ -68,6 +80,16 @@ class NoteListViewModel(
         viewModelScope.launch {
             repository.archiveNote(note)
         }
+    }
+
+    fun restoreNote(note: Note) {
+        viewModelScope.launch {
+            repository.restoreNote(note)
+        }
+    }
+
+    fun setFilter(filter: NoteListFilter) {
+        _filter.value = filter
     }
 
     class Factory(

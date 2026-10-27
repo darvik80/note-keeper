@@ -38,6 +38,8 @@ import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -47,6 +49,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,6 +70,7 @@ import dev.cogitor.notekeeper.ui.components.nkTopBarColors
 import dev.cogitor.notekeeper.ui.components.wrapMarkdown
 import dev.cogitor.notekeeper.ui.viewmodel.NoteDetailViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -77,8 +81,11 @@ fun NoteDetailScreen(
 ) {
     val note by viewModel.note.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
+    val saveLabel by viewModel.saveLabel.collectAsState()
     val attachments by viewModel.attachments.collectAsState()
     val shareResult by viewModel.shareResult.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     var title by remember { mutableStateOf(TextFieldValue("")) }
     var content by remember { mutableStateOf(TextFieldValue("")) }
@@ -102,6 +109,10 @@ fun NoteDetailScreen(
 
     LaunchedEffect(noteId) {
         if (noteId != null) viewModel.loadNote(noteId)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { snackbarHostState.showSnackbar(it) }
     }
 
     LaunchedEffect(note) {
@@ -129,6 +140,7 @@ fun NoteDetailScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -152,7 +164,23 @@ fun NoteDetailScreen(
                     }
                 },
                 actions = {
-                    if (!isNewNote) {
+                    if (saveLabel.isNotBlank()) {
+                        Text(
+                            saveLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
+                    }
+                    if (note?.isDeleted == true || note?.isArchived == true) {
+                        TextButton(onClick = { viewModel.restoreNote() }) { Text("Restore") }
+                    } else if (!isNewNote) {
+                        IconButton(onClick = {
+                            viewModel.deleteNote()
+                            onBack()
+                        }) {
+                            Icon(Icons.Outlined.Delete, contentDescription = "Delete")
+                        }
                         IconButton(onClick = { viewModel.toggleFavorite() }) {
                             Icon(
                                 if (note?.isFavorite == true) Icons.Outlined.Star else Icons.Outlined.StarBorder,
@@ -171,12 +199,24 @@ fun NoteDetailScreen(
         floatingActionButton = {
             NkFab(
                 onClick = {
-                    if (title.text.isNotBlank() && !isSaving) {
-                        commitTagDraft()
-                        if (isNewNote) {
-                            viewModel.createNote(title.text, content.text, tagList, priority)
-                        } else {
-                            viewModel.updateNote(title.text, content.text, tagList, priority)
+                    when {
+                        isSaving -> Unit
+                        title.text.isBlank() -> scope.launch {
+                            snackbarHostState.showSnackbar("Title required")
+                        }
+                        else -> {
+                            commitTagDraft()
+                            if (isNewNote) {
+                                viewModel.createNote(title.text, content.text, tagList, priority)
+                            } else {
+                                viewModel.updateNote(
+                                    title.text,
+                                    content.text,
+                                    tagList,
+                                    priority,
+                                    announce = true
+                                )
+                            }
                         }
                     }
                 }

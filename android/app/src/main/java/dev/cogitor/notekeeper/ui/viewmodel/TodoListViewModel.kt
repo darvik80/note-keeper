@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 
-enum class TodoListFilter { Active, Done }
+enum class TodoListFilter { Active, Done, Archive, Trash }
 
 class TodoListViewModel(
     private val repository: TodoRepository,
@@ -34,7 +34,12 @@ class TodoListViewModel(
     init {
         viewModelScope.launch {
             _filter.flatMapLatest { current ->
-                repository.getTodosByCompletion(completed = current == TodoListFilter.Done)
+                when (current) {
+                    TodoListFilter.Active -> repository.getTodosByCompletion(completed = false)
+                    TodoListFilter.Done -> repository.getTodosByCompletion(completed = true)
+                    TodoListFilter.Archive -> repository.getArchivedTodos()
+                    TodoListFilter.Trash -> repository.getDeletedTodos()
+                }
             }.collect { list ->
                 _todos.value = list
             }
@@ -74,6 +79,12 @@ class TodoListViewModel(
     fun archiveTodo(todo: Todo) {
         viewModelScope.launch {
             repository.archiveTodo(todo)
+        }
+    }
+
+    fun restoreTodo(todo: Todo) {
+        viewModelScope.launch {
+            repository.restoreTodo(todo)
         }
     }
 

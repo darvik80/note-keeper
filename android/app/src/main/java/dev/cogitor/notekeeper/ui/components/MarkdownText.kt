@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -22,15 +23,20 @@ import androidx.compose.ui.unit.sp
 fun MarkdownText(
     markdown: String,
     modifier: Modifier = Modifier,
-    style: TextStyle = MaterialTheme.typography.bodyLarge
+    style: TextStyle = MaterialTheme.typography.bodyLarge,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip,
+    compact: Boolean = false
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
     val codeBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
     Text(
-        text = parseAllBlocks(markdown, primaryColor, onSurfaceVariantColor, codeBg),
+        text = parseAllBlocks(markdown, primaryColor, onSurfaceVariantColor, codeBg, compact),
         style = style,
-        modifier = modifier.padding(vertical = 4.dp)
+        maxLines = maxLines,
+        overflow = overflow,
+        modifier = modifier.padding(vertical = if (compact) 0.dp else 4.dp)
     )
 }
 
@@ -38,13 +44,14 @@ private fun parseAllBlocks(
     markdown: String,
     primaryColor: Color,
     onSurfaceVariantColor: Color,
-    codeBg: Color
+    codeBg: Color,
+    compact: Boolean
 ): AnnotatedString = buildAnnotatedString {
     val blocks = parseBlocks(markdown)
     blocks.forEachIndexed { blockIndex, block ->
         when (block) {
             is Block.TextBlock -> {
-                append(parseMarkdownText(block.lines, primaryColor, onSurfaceVariantColor, codeBg))
+                append(parseMarkdownText(block.lines, primaryColor, onSurfaceVariantColor, codeBg, compact))
             }
 
             is Block.TableBlock -> {
@@ -172,11 +179,16 @@ private fun tryParseTable(lines: List<String>): List<List<String>>? {
 private val numberedList = Regex("""^\d+\.\s+""")
 private val taskList = Regex("""^[-*]\s+\[([ xX])]\s+(.*)""")
 
+private fun headingStyle(compact: Boolean, size: androidx.compose.ui.unit.TextUnit, primaryColor: Color) =
+    if (compact) SpanStyle(fontWeight = FontWeight.Bold, color = primaryColor)
+    else SpanStyle(fontSize = size, fontWeight = FontWeight.Bold, color = primaryColor)
+
 private fun parseMarkdownText(
     lines: List<String>,
     primaryColor: Color,
     onSurfaceVariantColor: Color,
-    codeBg: Color
+    codeBg: Color,
+    compact: Boolean
 ): AnnotatedString = buildAnnotatedString {
     lines.forEachIndexed { index, rawLine ->
         val line = rawLine.trimEnd()
@@ -187,25 +199,25 @@ private fun parseMarkdownText(
             }
 
             trimmed.startsWith("#### ") -> {
-                withStyle(SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = primaryColor)) {
+                withStyle(headingStyle(compact, 18.sp, primaryColor)) {
                     appendInlineMarkdown(trimmed.removePrefix("#### "), primaryColor, codeBg)
                 }
             }
 
             trimmed.startsWith("### ") -> {
-                withStyle(SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryColor)) {
+                withStyle(headingStyle(compact, 20.sp, primaryColor)) {
                     appendInlineMarkdown(trimmed.removePrefix("### "), primaryColor, codeBg)
                 }
             }
 
             trimmed.startsWith("## ") -> {
-                withStyle(SpanStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = primaryColor)) {
+                withStyle(headingStyle(compact, 24.sp, primaryColor)) {
                     appendInlineMarkdown(trimmed.removePrefix("## "), primaryColor, codeBg)
                 }
             }
 
             trimmed.startsWith("# ") -> {
-                withStyle(SpanStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold, color = primaryColor)) {
+                withStyle(headingStyle(compact, 28.sp, primaryColor)) {
                     appendInlineMarkdown(trimmed.removePrefix("# "), primaryColor, codeBg)
                 }
             }

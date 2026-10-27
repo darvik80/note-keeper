@@ -1,16 +1,20 @@
 package dev.cogitor.notekeeper.ui.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material.icons.outlined.TaskAlt
@@ -76,6 +80,8 @@ fun TodoListScreen(
                 subtitle = when {
                     todos.isEmpty() -> null
                     filter == TodoListFilter.Done -> "${todos.size} done"
+                    filter == TodoListFilter.Archive -> "${todos.size} archived"
+                    filter == TodoListFilter.Trash -> "${todos.size} in trash"
                     else -> "${todos.size} open"
                 }
             ) {
@@ -96,7 +102,9 @@ fun TodoListScreen(
                 )
             }
             Row(
-                Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilterChip(
@@ -109,6 +117,16 @@ fun TodoListScreen(
                     onClick = { viewModel.setFilter(TodoListFilter.Done) },
                     label = { Text("Done") }
                 )
+                FilterChip(
+                    selected = filter == TodoListFilter.Archive,
+                    onClick = { viewModel.setFilter(TodoListFilter.Archive) },
+                    label = { Text("Archive") }
+                )
+                FilterChip(
+                    selected = filter == TodoListFilter.Trash,
+                    onClick = { viewModel.setFilter(TodoListFilter.Trash) },
+                    label = { Text("Trash") }
+                )
             }
             PullToRefreshBox(
                 isRefreshing = isSyncing,
@@ -116,14 +134,23 @@ fun TodoListScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 if (todos.isEmpty()) {
-                    if (filter == TodoListFilter.Done) {
-                        NkEmptyState(
+                    when (filter) {
+                        TodoListFilter.Done -> NkEmptyState(
                             Icons.Outlined.TaskAlt,
                             "No completed tasks",
                             "Mark a todo done to see it here"
                         )
-                    } else {
-                        NkEmptyState(Icons.Outlined.TaskAlt, "No open tasks", "Tap + to add a task")
+                        TodoListFilter.Archive -> NkEmptyState(
+                            Icons.Outlined.Inventory2,
+                            "Archive is empty",
+                            "Swipe a todo left to archive it"
+                        )
+                        TodoListFilter.Trash -> NkEmptyState(
+                            Icons.Outlined.DeleteOutline,
+                            "Trash is empty",
+                            "Delete a todo to find it here. Swipe to restore."
+                        )
+                        else -> NkEmptyState(Icons.Outlined.TaskAlt, "No open tasks", "Tap + to add a task")
                     }
                 } else {
                     LazyColumn(
@@ -135,21 +162,29 @@ fun TodoListScreen(
                             SwipeToDismissBox(
                                 state = dismissState,
                                 modifier = Modifier.clip(MaterialTheme.shapes.medium),
+                                enableDismissFromStartToEnd = filter == TodoListFilter.Active || filter == TodoListFilter.Done,
                                 onDismiss = { value ->
-                                    when (value) {
-                                        SwipeToDismissBoxValue.EndToStart -> viewModel.archiveTodo(todo)
-                                        SwipeToDismissBoxValue.StartToEnd -> viewModel.toggleComplete(todo)
-                                        else -> Unit
+                                    when {
+                                        filter == TodoListFilter.Archive || filter == TodoListFilter.Trash ->
+                                            viewModel.restoreTodo(todo)
+                                        value == SwipeToDismissBoxValue.EndToStart -> viewModel.archiveTodo(todo)
+                                        value == SwipeToDismissBoxValue.StartToEnd -> viewModel.toggleComplete(todo)
                                     }
                                 },
                                 backgroundContent = {
                                     if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                                        val restoring = filter == TodoListFilter.Archive || filter == TodoListFilter.Trash
                                         val toStart =
                                             dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
                                         SwipeHint(
-                                            if (toStart) "Archive" else if (todo.completed) "Open" else "Done",
-                                            end = toStart,
-                                            color = if (toStart) MaterialTheme.colorScheme.secondaryContainer
+                                            when {
+                                                restoring -> "Restore"
+                                                toStart -> "Archive"
+                                                todo.completed -> "Open"
+                                                else -> "Done"
+                                            },
+                                            end = toStart || restoring,
+                                            color = if (toStart || restoring) MaterialTheme.colorScheme.secondaryContainer
                                             else MaterialTheme.colorScheme.tertiaryContainer
                                         )
                                     }

@@ -1,5 +1,6 @@
 package dev.cogitor.notekeeper.ui.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,16 +9,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,12 +42,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.cogitor.notekeeper.data.model.Note
 import dev.cogitor.notekeeper.data.model.SyncStatus
+import dev.cogitor.notekeeper.ui.components.MarkdownText
 import dev.cogitor.notekeeper.ui.components.NkCard
 import dev.cogitor.notekeeper.ui.components.NkEmptyState
 import dev.cogitor.notekeeper.ui.components.NkFab
 import dev.cogitor.notekeeper.ui.components.NkScreenHeader
 import dev.cogitor.notekeeper.ui.components.PriorityDot
 import dev.cogitor.notekeeper.ui.components.SwipeHint
+import dev.cogitor.notekeeper.ui.viewmodel.NoteListFilter
 import dev.cogitor.notekeeper.ui.viewmodel.NoteListViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +65,7 @@ fun NoteListScreen(
     val notes by viewModel.notes.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
     val syncStatus by viewModel.syncStatus.collectAsState()
+    val filter by viewModel.filter.collectAsState()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -72,7 +80,12 @@ fun NoteListScreen(
             .padding(padding)) {
             NkScreenHeader(
                 title = "Notes",
-                subtitle = if (notes.isEmpty()) null else "${notes.size}"
+                subtitle = when {
+                    notes.isEmpty() -> null
+                    filter == NoteListFilter.Archive -> "${notes.size} archived"
+                    filter == NoteListFilter.Trash -> "${notes.size} in trash"
+                    else -> "${notes.size}"
+                }
             ) {
                 IconButton(onClick = { viewModel.syncNotes() }) {
                     if (isSyncing) CircularProgressIndicator(
@@ -96,13 +109,47 @@ fun NoteListScreen(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 2.dp)
                 )
             }
+            Row(
+                Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = filter == NoteListFilter.Active,
+                    onClick = { viewModel.setFilter(NoteListFilter.Active) },
+                    label = { Text("All") }
+                )
+                FilterChip(
+                    selected = filter == NoteListFilter.Archive,
+                    onClick = { viewModel.setFilter(NoteListFilter.Archive) },
+                    label = { Text("Archive") }
+                )
+                FilterChip(
+                    selected = filter == NoteListFilter.Trash,
+                    onClick = { viewModel.setFilter(NoteListFilter.Trash) },
+                    label = { Text("Trash") }
+                )
+            }
             PullToRefreshBox(
                 isRefreshing = isSyncing,
                 onRefresh = { viewModel.syncNotes() },
                 modifier = Modifier.fillMaxSize()
             ) {
                 if (notes.isEmpty()) {
-                    NkEmptyState(Icons.AutoMirrored.Outlined.Notes, "No notes yet", "Tap + to write one")
+                    when (filter) {
+                        NoteListFilter.Archive -> NkEmptyState(
+                            Icons.Outlined.Inventory2,
+                            "Archive is empty",
+                            "Swipe a note left to archive it"
+                        )
+                        NoteListFilter.Trash -> NkEmptyState(
+                            Icons.Outlined.DeleteOutline,
+                            "Trash is empty",
+                            "Delete a note to find it here. Swipe to restore."
+                        )
+                        else -> NkEmptyState(Icons.AutoMirrored.Outlined.Notes, "No notes yet", "Tap + to write one")
+                    }
                 } else {
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
@@ -114,11 +161,14 @@ fun NoteListScreen(
                                 state = dismissState,
                                 modifier = Modifier.clip(MaterialTheme.shapes.medium),
                                 enableDismissFromStartToEnd = false,
-                                onDismiss = { viewModel.archiveNote(note) },
+                                onDismiss = {
+                                    if (filter == NoteListFilter.Active) viewModel.archiveNote(note)
+                                    else viewModel.restoreNote(note)
+                                },
                                 backgroundContent = {
                                     if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
                                         SwipeHint(
-                                            "Archive",
+                                            if (filter == NoteListFilter.Active) "Archive" else "Restore",
                                             end = true,
                                             color = MaterialTheme.colorScheme.secondaryContainer
                                         )
@@ -162,15 +212,25 @@ private fun NoteRow(note: Note, onClick: () -> Unit) {
                 }
                 PriorityDot(note.priority)
             }
-            val preview = (note.content ?: "").ifBlank { "Empty note" }.take(110)
+            val body = note.content.orEmpty()
             Spacer(Modifier.height(8.dp))
-            Text(
-                preview,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (body.isBlank()) {
+                Text(
+                    "Empty note",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                MarkdownText(
+                    markdown = body,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    compact = true
+                )
+            }
             val tags = note.tags.orEmpty()
             if (tags.isNotEmpty()) {
                 Spacer(Modifier.height(10.dp))

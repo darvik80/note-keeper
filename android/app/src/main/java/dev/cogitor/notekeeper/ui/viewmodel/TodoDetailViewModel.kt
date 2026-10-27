@@ -7,8 +7,11 @@ import dev.cogitor.notekeeper.data.model.Attachment
 import dev.cogitor.notekeeper.data.model.SyncStatus
 import dev.cogitor.notekeeper.data.model.Todo
 import dev.cogitor.notekeeper.data.repository.TodoRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -27,6 +30,12 @@ class TodoDetailViewModel(
 
     private val _shareResult = MutableStateFlow<String>("")
     val shareResult: StateFlow<String> = _shareResult.asStateFlow()
+
+    private val _saveLabel = MutableStateFlow("")
+    val saveLabel: StateFlow<String> = _saveLabel.asStateFlow()
+
+    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val messages: SharedFlow<String> = _messages.asSharedFlow()
 
     fun loadTodo(id: String) {
         viewModelScope.launch {
@@ -48,7 +57,8 @@ class TodoDetailViewModel(
     ) {
         viewModelScope.launch {
             _isSaving.value = true
-            repository.createTodo(
+            _saveLabel.value = "Saving…"
+            val created = repository.createTodo(
                 title,
                 description,
                 tags,
@@ -58,7 +68,10 @@ class TodoDetailViewModel(
                 scheduleRepeat,
                 notificationChannels
             )
+            _todo.value = created
             _isSaving.value = false
+            _saveLabel.value = "Saved"
+            _messages.emit("Saved")
         }
     }
 
@@ -88,9 +101,12 @@ class TodoDetailViewModel(
                     notificationChannels = notificationChannels,
                     updatedAt = java.time.Instant.now().toString()
                 )
+                _saveLabel.value = "Saving…"
                 repository.updateTodo(updated)
                 _todo.value = updated.copy(syncStatus = SyncStatus.PENDING_UPDATE)
                 _isSaving.value = false
+                _saveLabel.value = "Saved"
+                _messages.emit("Saved")
             }
         }
     }
@@ -100,6 +116,18 @@ class TodoDetailViewModel(
             _todo.value?.let { todo ->
                 repository.deleteTodo(todo)
                 _todo.value = null
+                _messages.emit("Moved to Trash")
+            }
+        }
+    }
+
+    fun restoreTodo() {
+        viewModelScope.launch {
+            _todo.value?.let { todo ->
+                repository.restoreTodo(todo)
+                _todo.value = todo.copy(isArchived = false, isDeleted = false, syncStatus = SyncStatus.PENDING_UPDATE)
+                _saveLabel.value = "Restored"
+                _messages.emit("Restored")
             }
         }
     }
