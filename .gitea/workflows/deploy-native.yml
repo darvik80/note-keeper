@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: deploy-only pushes image already on minipc (no Graal rebuild)
+        description: build-and-deploy runs Graal; deploy-only retags image already on minipc
         type: choice
-        default: deploy-only
+        default: build-and-deploy
         options:
-          - deploy-only
           - build-and-deploy
+          - deploy-only
       spring_profile:
         description: Spring profile
         required: true
@@ -45,7 +45,9 @@ jobs:
           echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
 
       - name: Build native image
-        if: github.event_name == 'push' || github.event.inputs.mode == 'build-and-deploy'
+        # Gitea often sends empty inputs on dispatch — only skip Graal when
+        # the operator explicitly picks deploy-only.
+        if: github.event_name == 'push' || github.event.inputs.mode != 'deploy-only'
         run: |
           docker build -f Dockerfile.native \
             -t "$REGISTRY/$IMAGE_NAME:latest" \
