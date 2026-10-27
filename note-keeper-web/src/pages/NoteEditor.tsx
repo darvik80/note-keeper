@@ -10,7 +10,7 @@ import {PageShell} from '../components/PageShell';
 import {ConfirmDialog} from '../components/ConfirmDialog';
 import {useToast} from '../contexts/ToastContext';
 import {MarkdownRenderer} from '../components/MarkdownRenderer';
-import {MarkdownEditor} from '../components/MarkdownEditor';
+import {MarkdownEditor, useHydrateAttachmentImages} from '../components/MarkdownEditor';
 import {ShareModal} from '../components/ShareModal';
 import {TagInput} from '../components/TagInput';
 import {useAutosave} from '../hooks/useAutosave';
@@ -32,6 +32,7 @@ export const NoteEditor: React.FC = () => {
   const [saveFailed, setSaveFailed] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const { toast } = useToast();
+  const previewRef = useHydrateAttachmentImages(note?.content ?? '');
 
   // Keep ref in sync with state so saveNote/addTag always see latest note
   noteRef.current = note;
@@ -259,7 +260,7 @@ export const NoteEditor: React.FC = () => {
           <select
             value={note.priority}
             onChange={(e) => { const v = e.target.value as any; setNote(prev => prev ? { ...prev, priority: v } : prev); }}
-            className="px-2 py-2 border border-border rounded-lg text-sm shrink-0"
+            className="px-2 py-2 border border-border rounded-lg text-sm shrink-0 bg-surface text-text"
           >
             <option value="low">Low</option>
             <option value="medium">Med</option>
@@ -314,7 +315,7 @@ export const NoteEditor: React.FC = () => {
           type="text"
           value={note.title}
           onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, title: v } : prev); setDirty(true); }}
-          className="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6 w-full border-none outline-none"
+          className="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6 w-full border-none outline-none bg-transparent text-text"
           placeholder="Note Title"
         />
 
@@ -323,25 +324,41 @@ export const NoteEditor: React.FC = () => {
             <MarkdownEditor
               value={note.content}
               onChange={(v) => { setNote(prev => prev ? { ...prev, content: v } : prev); setDirty(true); }}
-              placeholder="Start writing your note... (Markdown & Mermaid supported)"
+              placeholder="Write…"
               minHeight="24rem"
-              onImagePaste={async (file) => {
+              onImageUpload={async (file) => {
+                if (!note.id) throw new Error('Save note first, then upload images');
                 const uploaded = await api.attachments.upload(file, note.id, 'note');
-                return uploaded?.url as string;
+                if (!uploaded?.id) throw new Error('Upload failed');
+                api.attachments.rememberPreview(uploaded.id, file);
+                const url = api.attachments.markdownUrl(uploaded.id);
+                const attachment: Attachment = {
+                  id: uploaded.id,
+                  name: file.name || uploaded.name,
+                  size: uploaded.size || file.size,
+                  type: uploaded.type || file.type,
+                  url,
+                  uploadedAt: uploaded.uploadedAt ? new Date(uploaded.uploadedAt) : new Date(),
+                };
+                setNote(prev => prev ? { ...prev, attachments: [...(prev.attachments || []), attachment] } : prev);
+                setDirty(true);
+                return url;
               }}
             />
           )}
-          <div className={`border border-border rounded-lg p-6 bg-surface ${isFullscreen ? 'max-h-none' : 'min-h-96 max-h-[calc(100vh-400px)]'} overflow-y-auto ${!isPreview ? 'hidden lg:block' : ''}`}>
+          <div ref={previewRef} data-nk-preview className={`border border-border rounded-xl p-6 bg-surface text-text ${isFullscreen ? 'max-h-none' : 'min-h-96 max-h-[calc(100vh-400px)]'} overflow-y-auto ${!isPreview ? 'hidden lg:block' : ''}`}>
               <div className="flex justify-end mb-2">
                 <button
                   onClick={() => setIsFullscreen(!isFullscreen)}
-                  className="p-2 hover:bg-hover rounded-lg transition-colors"
+                  className="p-2 hover:bg-hover rounded-lg transition-colors text-text-secondary"
                   title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
                 >
                   <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`}></i>
                 </button>
               </div>
-              <MarkdownRenderer content={note.content} />
+              {note.content?.trim()
+                ? <MarkdownRenderer content={note.content} />
+                : <p className="text-text-secondary text-sm">Preview appears here as you write.</p>}
             </div>
         </div>
         {!isPreview && (
@@ -365,21 +382,21 @@ export const NoteEditor: React.FC = () => {
               type="text"
               value={note.folder}
               onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, folder: v } : prev); }}
-              className="px-4 py-2 border border-border rounded-lg w-full"
+              className="px-4 py-2 border border-border rounded-lg w-full bg-surface text-text"
               placeholder="Folder"
             />
             <input
               type="text"
               value={note.subfolder || ''}
               onChange={(e) => { const v = e.target.value || undefined; setNote(prev => prev ? { ...prev, subfolder: v } : prev); }}
-              className="px-4 py-2 border border-border rounded-lg w-full"
+              className="px-4 py-2 border border-border rounded-lg w-full bg-surface text-text"
               placeholder="Subfolder (optional)"
             />
             <input
               type="datetime-local"
               value={note.reminder ? formatDateTimeLocal(note.reminder) : ''}
               onChange={(e) => { const v = e.target.value ? new Date(e.target.value) : undefined; setNote(prev => prev ? { ...prev, reminder: v } : prev); }}
-              className="px-4 py-2 border border-border rounded-lg w-full"
+              className="px-4 py-2 border border-border rounded-lg w-full bg-surface text-text"
             />
           </div>
         </div>
@@ -389,36 +406,36 @@ export const NoteEditor: React.FC = () => {
             <i className="fas fa-paperclip mr-2"></i>
             Attachments
           </label>
-          <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
             {note.attachments?.map(attachment => (
-              <div key={attachment.id} className="flex items-center justify-between p-3 bg-hover rounded-lg border border-border">
-                <div className="flex items-center gap-3">
-                  <i className="fas fa-file text-text-secondary text-xl"></i>
-                  <div>
-                    <p className="text-sm font-medium text-text">{attachment.name}</p>
-                    <p className="text-xs text-text-secondary">{formatFileSize(attachment.size)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <a
-                    href={attachment.url}
-                    download={attachment.name}
-                    className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                  >
-                    <i className="fas fa-download"></i>
-                  </a>
-                  <button
-                    onClick={() => removeAttachment(attachment.id)}
-                    className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                  >
-                    <i className="fas fa-trash"></i>
-                  </button>
-                </div>
-              </div>
+              <span
+                key={attachment.id}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-hover border border-border text-sm text-text"
+                title={formatFileSize(attachment.size)}
+              >
+                <i className={`fas ${attachment.type?.startsWith('image/') ? 'fa-image' : 'fa-paperclip'} text-text-secondary`}></i>
+                <span className="max-w-[10rem] truncate">{attachment.name}</span>
+                <a
+                  href={attachment.url}
+                  download={attachment.name}
+                  className="text-primary hover:opacity-80"
+                  title="Download"
+                >
+                  <i className="fas fa-download"></i>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(attachment.id)}
+                  className="text-text-secondary hover:text-red-400"
+                  title="Remove"
+                >
+                  <i className="fas fa-xmark"></i>
+                </button>
+              </span>
             ))}
-            <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer">
-              <i className="fas fa-cloud-upload-alt text-text-secondary"></i>
-              <span className="text-sm text-text-secondary">Upload files</span>
+            <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-dashed border-border text-sm text-text-secondary hover:border-primary hover:text-primary cursor-pointer">
+              <i className="fas fa-plus"></i>
+              File
               <input
                 type="file"
                 multiple

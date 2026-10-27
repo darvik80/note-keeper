@@ -1,5 +1,16 @@
+const fs = require('fs');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+class CopyFaviconPlugin {
+  apply(compiler) {
+    compiler.hooks.afterEmit.tap('CopyFaviconPlugin', () => {
+      const from = path.resolve(__dirname, 'favicon.svg');
+      const to = path.join(compiler.options.output.path, 'favicon.svg');
+      fs.copyFileSync(from, to);
+    });
+  }
+}
 
 module.exports = (_env, argv) => {
   const isProd = argv.mode === 'production';
@@ -74,6 +85,7 @@ module.exports = (_env, argv) => {
         template: './index.html',
         inject: 'body',
       }),
+      new CopyFaviconPlugin(),
     ],
   };
 };

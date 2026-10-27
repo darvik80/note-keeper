@@ -92,62 +92,51 @@ export const Analytics: React.FC = () => {
 
   return (
     <PageShell>
-      <Header title="Analytics" />
-
-      <div className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden">
-        <div className="max-w-6xl mx-auto p-4 lg:p-8">
-          <div className="flex gap-2 mb-6">
+      <Header
+        title="Analytics"
+        subtitle="Activity over the selected range"
+        actions={
+          <div className="flex gap-1 p-1 rounded-full bg-hover">
             {(['week', 'month', 'year'] as const).map(range => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-4 py-2 rounded-lg transition-colors ${
+                className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors duration-[180ms] ${
                   timeRange === range
-                    ? 'bg-primary text-white'
-                    : 'btn-secondary border border-border'
+                    ? 'bg-surface text-primary'
+                    : 'text-text-secondary hover:text-text'
                 }`}
               >
                 {range.charAt(0).toUpperCase() + range.slice(1)}
               </button>
             ))}
           </div>
+        }
+      />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-text-secondary">Notes Created</span>
-                <i className="fas fa-note-sticky text-secondary text-xl"></i>
-              </div>
-              <p className="text-3xl font-bold text-text">{notesInRange.length}</p>
+      <div className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden">
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 pb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-8">
+            <div className="nk-card p-5">
+              <p className="text-3xl font-bold tracking-tight text-text">{notesInRange.length}</p>
+              <p className="text-[13px] text-text-secondary mt-1">Notes created</p>
             </div>
-
-            <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-text-secondary">Todos Created</span>
-                <i className="fas fa-list-check text-primary text-xl"></i>
-              </div>
-              <p className="text-3xl font-bold text-text">{todosInRange.length}</p>
+            <div className="nk-card p-5">
+              <p className="text-3xl font-bold tracking-tight text-text">{todosInRange.length}</p>
+              <p className="text-[13px] text-text-secondary mt-1">Todos created</p>
             </div>
-
-            <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-text-secondary">Completed Todos</span>
-                <i className="fas fa-check-circle text-primary text-xl"></i>
-              </div>
-              <p className="text-3xl font-bold text-text">{completedTodos}</p>
+            <div className="nk-card p-5">
+              <p className="text-3xl font-bold tracking-tight text-text">{completedTodos}</p>
+              <p className="text-[13px] text-text-secondary mt-1">Completed</p>
             </div>
-
-            <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-text-secondary">Completion Rate</span>
-                <i className="fas fa-chart-line text-purple-400 text-xl"></i>
-              </div>
-              <p className="text-3xl font-bold text-text">{completionRate}%</p>
+            <div className="nk-card p-5">
+              <p className="text-3xl font-bold tracking-tight text-text">{completionRate}%</p>
+              <p className="text-[13px] text-text-secondary mt-1">Completion</p>
             </div>
           </div>
 
-          <div className="bg-surface rounded-xl p-6 shadow-sm border border-border mb-6">
-            <h3 className="text-lg font-bold text-text mb-4">Activity Chart</h3>
+          <div className="nk-card p-6 mb-6">
+            <h3 className="text-[15px] font-medium text-text mb-4">Activity</h3>
             <div className="flex items-end gap-1 h-48 bg-background rounded-lg p-3">
               {dailyActivity.map((count, i) => (
                 <div
@@ -161,8 +150,8 @@ export const Analytics: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
-              <h3 className="text-lg font-bold text-text mb-4">Top Tags</h3>
+            <div className="nk-card p-6">
+              <h3 className="text-[15px] font-medium text-text mb-4">Top tags</h3>
               <div className="space-y-3">
                 {topTags.map(([tag, count]) => (
                   <div key={tag} className="flex items-center justify-between">
@@ -181,8 +170,8 @@ export const Analytics: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
-              <h3 className="text-lg font-bold text-text mb-4">Priority Distribution</h3>
+            <div className="nk-card p-6">
+              <h3 className="text-[15px] font-medium text-text mb-4">Priority</h3>
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">

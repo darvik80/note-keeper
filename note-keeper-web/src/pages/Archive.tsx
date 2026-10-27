@@ -55,19 +55,19 @@ export const Archive: React.FC = () => {
 
   return (
     <PageShell error={error} onDismissError={() => setError(null)}>
-      <Header title="Archive" />
+      <Header title="Archive" subtitle={`${notes.length + todos.length} items`} />
 
-      <div className="flex-1 overflow-auto p-4 lg:p-8">
-        <div className="mb-8">
+      <div className="flex-1 overflow-auto px-5 sm:px-8 lg:px-10 pb-8">
+        <div className="mb-10">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-text">Archived Notes</h3>
-            <span className="text-sm text-text-secondary">{notes.length} items</span>
+            <h3 className="text-[15px] font-medium text-text">Notes</h3>
+            <span className="text-[13px] text-text-secondary">{notes.length}</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {notes.map(note => (
               <div
                 key={note.id}
-                className="bg-surface rounded-xl p-5 lg:p-6 shadow-sm border border-border hover:shadow-md transition-shadow"
+                className="nk-card p-5"
               >
                 <div className="flex items-start justify-between mb-3">
                   <h4 className="font-bold text-text text-base lg:text-lg flex-1 pr-2">{note.title}</h4>
@@ -92,20 +92,20 @@ export const Archive: React.FC = () => {
             ))}
           </div>
           {notes.length === 0 && (
-            <p className="text-text-secondary text-center py-8">No archived notes</p>
+            <p className="text-text-secondary text-[15px] py-6">No archived notes.</p>
           )}
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-text">Archived Todos</h3>
-            <span className="text-sm text-text-secondary">{todos.length} items</span>
+            <h3 className="text-[15px] font-medium text-text">Todos</h3>
+            <span className="text-[13px] text-text-secondary">{todos.length}</span>
           </div>
-          <div className="max-w-4xl space-y-4">
+          <div className="max-w-3xl space-y-3">
             {todos.map(todo => (
               <div
                 key={todo.id}
-                className="bg-surface rounded-xl p-5 lg:p-6 shadow-sm border border-border hover:shadow-md transition-shadow"
+                className="nk-card p-5"
               >
                 <div className="flex items-start justify-between mb-2">
                   <h4 className="font-bold text-text text-base lg:text-lg flex-1 pr-2">{todo.title}</h4>
@@ -132,7 +132,7 @@ export const Archive: React.FC = () => {
             ))}
           </div>
           {todos.length === 0 && (
-            <p className="text-text-secondary text-center py-8">No archived todos</p>
+            <p className="text-text-secondary text-[15px] py-6">No archived todos.</p>
           )}
         </div>
       </div>

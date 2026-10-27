@@ -40,15 +40,15 @@ export const Favorites: React.FC = () => {
 
   return (
     <PageShell error={error} onDismissError={() => setError(null)}>
-      <Header title="Favorites" />
+      <Header title="Favorites" subtitle="Pinned notes and todos" />
 
-      <div className="flex-1 overflow-auto p-4 lg:p-8">
-        <div className="mb-8">
-          <h3 className="text-xl font-bold text-text mb-4">Favorite Notes</h3>
+      <div className="flex-1 overflow-auto px-5 sm:px-8 lg:px-10 pb-8">
+        <div className="mb-10">
+          <h3 className="text-[15px] font-medium text-text mb-4">Notes</h3>
           {loading ? (
             <CardGridSkeleton count={3} />
           ) : notes.length === 0 ? (
-            <p className="text-text-secondary text-center py-8">No favorite notes</p>
+            <p className="text-text-secondary text-[15px] py-6">No favorite notes.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               {notes.map(note => (
@@ -64,11 +64,11 @@ export const Favorites: React.FC = () => {
         </div>
 
         <div>
-          <h3 className="text-xl font-bold text-text mb-4">Favorite Todos</h3>
+          <h3 className="text-[15px] font-medium text-text mb-4">Todos</h3>
           {loading ? (
             <TodoListSkeleton count={2} />
           ) : todos.length === 0 ? (
-            <p className="text-text-secondary text-center py-8">No favorite todos</p>
+            <p className="text-text-secondary text-[15px] py-6">No favorite todos.</p>
           ) : (
             <div className="max-w-4xl space-y-4">
               {todos.map(todo => (

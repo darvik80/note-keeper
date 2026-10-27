@@ -33,17 +33,17 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <button
           onClick={onClose}
           disabled={loading}
-          className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-hover transition-colors text-text disabled:opacity-50"
+          className="flex-1 nk-btn nk-btn-ghost border border-border disabled:opacity-50"
         >
           {cancelLabel}
         </button>
         <button
           onClick={onConfirm}
           disabled={loading}
-          className={`flex-1 px-4 py-2 rounded-lg text-white transition-colors disabled:opacity-50 ${
+          className={`flex-1 nk-btn disabled:opacity-50 ${
             variant === 'danger'
-              ? 'bg-red-500 hover:bg-red-600'
-              : 'bg-primary hover:bg-primary/90'
+              ? 'bg-danger text-white'
+              : 'nk-btn-primary'
           }`}
         >
           {loading ? 'Processing...' : confirmLabel}

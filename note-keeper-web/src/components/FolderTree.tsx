@@ -1,40 +1,18 @@
 /**
  * @module FolderTree
  * @category Components
- * Recursive tree component that renders a {@link FolderStructure} hierarchy.
- *
- * - Nodes with children show a chevron toggle button (expand / collapse).
- * - The currently selected folder is highlighted with the primary colour.
- * - Hovering a folder reveals a `+` button for inline sub-folder creation.
- * - New folders are created by typing a name and pressing `Enter` or blurring
- *   the input; `Escape` cancels.
+ * Recursive folder tree.
  */
 import React, {useState} from 'react';
 import {FolderStructure} from '../types';
 
-/** Props for {@link FolderTree}. */
 interface FolderTreeProps {
-  /**
-   * Root-level folder nodes to render.  Typically a single-element array
-   * containing the `"All Notes"` root returned by {@link buildFolderTree}.
-   */
   folders: FolderStructure[];
-  /** Path of the currently selected folder (highlights the matching node). */
   selectedPath: string;
-  /** Called when the user clicks a folder node. */
   onSelectFolder: (path: string) => void;
-  /**
-   * Called when the user creates a new sub-folder.
-   * @param parentPath - Path of the parent folder.
-   * @param name - Name for the new sub-folder.
-   */
   onCreateFolder: (parentPath: string, name: string) => void;
 }
 
-/**
- * Recursive folder tree navigation component.
- * @param props - See {@link FolderTreeProps}.
- */
 export const FolderTree: React.FC<FolderTreeProps> = ({
   folders,
   selectedPath,
@@ -71,8 +49,8 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
     return (
       <div key={folder.path}>
         <div
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-            isSelected ? 'bg-primary text-white' : 'hover:bg-hover'
+          className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl cursor-pointer transition-colors duration-[180ms] ${
+            isSelected ? 'bg-primary/15 text-primary' : 'hover:bg-hover text-text'
           }`}
           style={{ paddingLeft: `${level * 16 + 12}px` }}
         >
@@ -82,15 +60,16 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                 e.stopPropagation();
                 toggleFolder(folder.path);
               }}
-              className="w-4 h-4 flex items-center justify-center"
+              className="w-4 h-4 flex items-center justify-center text-text-secondary"
+              aria-label={isExpanded ? 'Collapse folder' : 'Expand folder'}
             >
-              <i className={`fas fa-chevron-${isExpanded ? 'down' : 'right'} text-xs`}></i>
+              <i className={`fas fa-chevron-${isExpanded ? 'down' : 'right'} text-[10px]`}></i>
             </button>
           )}
           {!hasSubfolders && <div className="w-4"></div>}
-          <i className={`fas ${isExpanded ? 'fa-folder-open' : 'fa-folder'} text-sm`}></i>
+          <i className={`fas ${isExpanded ? 'fa-folder-open' : 'fa-folder'} text-xs ${isSelected ? 'text-primary' : 'text-text-secondary'}`}></i>
           <span
-            className="flex-1 text-sm font-medium"
+            className="flex-1 text-[14px]"
             onClick={() => onSelectFolder(folder.path)}
           >
             {folder.name}
@@ -100,7 +79,8 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
               e.stopPropagation();
               setCreatingFolder(folder.path);
             }}
-            className="opacity-0 group-hover:opacity-100 hover:text-primary"
+            className="opacity-0 group-hover:opacity-100 text-text-secondary hover:text-primary p-1"
+            aria-label="New folder"
           >
             <i className="fas fa-plus text-xs"></i>
           </button>
@@ -124,7 +104,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
                 if (newFolderName.trim()) handleCreateFolder(folder.path);
                 else setCreatingFolder(null);
               }}
-              className="flex-1 text-sm px-2 py-1 border border-primary rounded focus:outline-none"
+              className="flex-1 text-sm px-2 py-1 border border-primary rounded-xl focus:outline-none"
               placeholder="Folder name"
               autoFocus
             />
@@ -141,7 +121,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   };
 
   return (
-    <div className="space-y-1 group">
+    <div className="space-y-0.5">
       {folders.map(folder => renderFolder(folder))}
     </div>
   );

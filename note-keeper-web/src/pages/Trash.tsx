@@ -123,30 +123,30 @@ export const Trash: React.FC = () => {
     <PageShell error={error} onDismissError={() => setError(null)}>
       <Header
         title="Trash"
+        subtitle={totalItems === 0 ? 'Nothing here' : `${totalItems} items`}
         actions={
           totalItems > 0 && (
             <button
               onClick={emptyTrash}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              className="nk-btn bg-danger text-white"
             >
-              <i className="fas fa-trash-can mr-2"></i>
-              Empty Trash
+              Empty
             </button>
           )
         }
       />
 
-      <div className="flex-1 overflow-auto p-4 lg:p-8">
+      <div className="flex-1 overflow-auto px-5 sm:px-8 lg:px-10 pb-8">
         {totalItems === 0 ? (
-          <EmptyState icon="fa-trash" message="Trash is empty" />
+          <EmptyState icon="fa-trash" message="Trash is empty" hint="Deleted items land here." />
         ) : (
           <>
             {notes.length > 0 && (
               <div className="mb-8">
-                <h3 className="text-xl font-bold text-text mb-4">Deleted Notes ({notes.length})</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                <h3 className="text-[15px] font-medium text-text mb-4">Notes ({notes.length})</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {notes.map(note => (
-                    <div key={note.id} className="bg-surface rounded-xl p-5 lg:p-6 shadow-sm border border-border">
+                    <div key={note.id} className="nk-card p-5">
                       <div className="flex items-start justify-between mb-3">
                         <h4 className="font-bold text-text text-base lg:text-lg flex-1 pr-2">{note.title}</h4>
                         <div className="flex items-center gap-2">
@@ -182,10 +182,10 @@ export const Trash: React.FC = () => {
 
             {todos.length > 0 && (
               <div>
-                <h3 className="text-xl font-bold text-text mb-4">Deleted Todos ({todos.length})</h3>
-                <div className="max-w-4xl space-y-4">
+                <h3 className="text-[15px] font-medium text-text mb-4">Todos ({todos.length})</h3>
+                <div className="max-w-3xl space-y-3">
                   {todos.map(todo => (
-                    <div key={todo.id} className="bg-surface rounded-xl p-5 lg:p-6 shadow-sm border border-border">
+                    <div key={todo.id} className="nk-card p-5">
                       <div className="flex items-start justify-between mb-2">
                         <h4 className="font-bold text-text text-base lg:text-lg flex-1 pr-2">{todo.title}</h4>
                         <div className="flex items-center gap-2">

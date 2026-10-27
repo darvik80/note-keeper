@@ -172,11 +172,12 @@ export const Notes: React.FC = () => {
     <PageShell error={error} onDismissError={() => setError(null)}>
       <Header
         title="Notes"
+        subtitle={showSharedOnly ? 'Shared with you' : `${filteredNotes.length} in view`}
         actions={
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowFolderPanel(!showFolderPanel)}
-              className="p-2 hover:bg-hover rounded-lg transition-colors"
+              className="p-2 hover:bg-hover rounded-xl transition-colors duration-[180ms]"
               title="Toggle folders"
               aria-label="Toggle folders panel"
             >
@@ -185,53 +186,50 @@ export const Notes: React.FC = () => {
             <div className="relative hidden sm:block">
               <input
                 type="text"
-                placeholder="Search notes..."
+                placeholder="Filter…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-field pl-10 w-40 sm:w-56 lg:w-64 py-2"
+                className="input-field pl-9 w-40 sm:w-52 py-1.5"
               />
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"></i>
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-xs"></i>
             </div>
             <button
               onClick={() => setShowImport(!showImport)}
-              className="p-2 sm:px-4 sm:py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors"
+              className="nk-btn nk-btn-ghost"
               title="Import"
             >
-              <i className="fas fa-file-import sm:mr-2"></i>
+              <i className="fas fa-file-import"></i>
               <span className="hidden sm:inline">Import</span>
             </button>
             <button
               onClick={() => setShowSharedOnly(!showSharedOnly)}
-              className={`p-2 sm:px-4 sm:py-2 rounded-lg transition-colors ${
-                showSharedOnly ? 'bg-primary text-white' : 'btn-secondary'
-              }`}
+              className={`nk-btn ${showSharedOnly ? 'nk-btn-primary' : 'nk-btn-ghost'}`}
               title="Shared with Me"
             >
-              <i className="fas fa-share-alt sm:mr-2"></i>
-              <span className="hidden sm:inline">Shared</span>
+              Shared
             </button>
             <button
               onClick={createNote}
-              className="p-2 sm:px-4 sm:py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              className="nk-btn nk-btn-primary"
               title="New Note"
             >
-              <i className="fas fa-plus sm:mr-2"></i>
-              <span className="hidden sm:inline">New Note</span>
+              <i className="fas fa-plus"></i>
+              <span className="hidden sm:inline">New</span>
             </button>
           </div>
         }
       />
 
-      <div className="sm:hidden px-4 py-2 bg-surface border-b border-border">
+      <div className="sm:hidden px-5 pb-3">
         <div className="relative">
           <input
             type="text"
-            placeholder="Search notes..."
+            placeholder="Filter notes…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="input-field pl-10 py-2"
+            className="input-field pl-9 py-2"
           />
-          <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"></i>
+          <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-xs"></i>
         </div>
       </div>
 
@@ -257,10 +255,9 @@ export const Notes: React.FC = () => {
               onClick={() => setShowFolderPanel(false)}
               aria-hidden="true"
             />
-            <div className="fixed lg:static inset-y-0 left-0 z-30 lg:z-auto w-64 bg-surface border-r border-border overflow-y-auto p-4 shadow-lg lg:shadow-none">
+            <div className="fixed lg:static inset-y-0 left-0 z-30 lg:z-auto w-56 bg-background lg:bg-transparent overflow-y-auto p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-text flex items-center gap-2">
-                  <i className="fas fa-folder"></i>
+                <h3 className="text-[11px] font-medium uppercase tracking-wider text-text-secondary">
                   Folders
                 </h3>
                 <button
@@ -284,13 +281,20 @@ export const Notes: React.FC = () => {
           </>
         )}
 
-        <div className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <div className="flex-1 overflow-y-auto px-5 sm:px-8 lg:px-10 pb-8">
           {loading ? (
             <CardGridSkeleton />
           ) : filteredNotes.length === 0 ? (
-            <EmptyState icon="fa-note-sticky" message="No notes found" />
+            <EmptyState
+              icon="fa-note-sticky"
+              message={searchTerm ? 'No matching notes' : 'No notes yet'}
+              hint={searchTerm ? undefined : 'Write the first one.'}
+              action={!searchTerm ? (
+                <button onClick={createNote} className="nk-btn nk-btn-primary">New note</button>
+              ) : undefined}
+            />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
               {filteredNotes.map(note => (
                 <NoteCard
                   key={note.id}

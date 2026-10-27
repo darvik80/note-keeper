@@ -1,0 +1,91 @@
+.nk-md-editor,
+.nk-md-editor .cm-theme,
+.nk-md-editor .cm-theme-none,
+.nk-md-editor .cm-theme-light,
+.nk-md-editor .cm-theme-dark,
+.nk-md-editor .cm-editor,
+.nk-md-editor .cm-editor.cm-focused,
+.nk-md-editor .cm-scroller,
+.nk-md-editor .cm-content,
+.nk-md-editor .cm-gutters,
+.nk-md-editor .cm-gutter,
+.nk-md-editor .cm-line,
+.nk-md-editor .cm-contenteditable {
+  background: var(--color-surface) !important;
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  caret-color: var(--color-primary);
+}
+
+.nk-md-editor .cm-editor {
+  outline: none !important;
+  height: 100%;
+}
+
+.nk-md-editor .cm-focused {
+  outline: none !important;
+}
+
+.nk-md-editor .cm-placeholder {
+  color: var(--color-text-secondary) !important;
+  font-style: normal !important;
+  opacity: 0.85;
+}
+
+.nk-md-editor .cm-cursor,
+.nk-md-editor .cm-dropCursor {
+  border-left-color: var(--color-primary) !important;
+}
+
+.nk-md-editor .cm-selectionBackground,
+.nk-md-editor .cm-content ::selection {
+  background: color-mix(in srgb, var(--color-primary) 28%, transparent) !important;
+}
+
+.nk-md-editor .cm-activeLine {
+  background: color-mix(in srgb, var(--color-hover) 80%, transparent) !important;
+}
+
+.nk-md-editor .cm-matchingBracket {
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent) !important;
+  outline: 1px solid var(--color-border);
+}
+
+.nk-md-editor .cm-nonmatchingBracket {
+  background: color-mix(in srgb, #ff6b6b 28%, transparent) !important;
+}
+
+.nk-md-editor .cm-gutters {
+  display: none !important;
+  border: none !important;
+}
+
+.nk-md-editor .cm-scroller {
+  scrollbar-color: var(--color-border) var(--color-surface);
+}
+
+.nk-md-editor .cm-tooltip {
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.nk-md-editor .cm-tooltip-autocomplete ul li[aria-selected] {
+  background: var(--color-hover) !important;
+  color: var(--color-text) !important;
+}
+
+.nk-md-drop {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  border: 2px dashed var(--color-primary);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-background) 78%, transparent);
+  color: var(--color-primary);
+  font-weight: 600;
+}

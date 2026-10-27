@@ -146,46 +146,45 @@ export const Todos: React.FC = () => {
     <PageShell error={error} onDismissError={() => setError(null)}>
       <Header
         title="Todos"
+        subtitle={showSharedOnly ? 'Shared with you' : `${filteredTodos.length} in view`}
         actions={
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 cursor-pointer shrink-0">
-              <input
-                type="checkbox"
-                checked={showCompleted}
-                onChange={(e) => setShowCompleted(e.target.checked)}
-                className="w-4 h-4 accent-primary"
-              />
-              <span className="text-sm font-medium hidden sm:inline">Show Completed</span>
-              <span className="text-sm font-medium sm:hidden">Done</span>
-            </label>
+            <button
+              onClick={() => setShowCompleted(!showCompleted)}
+              className={`nk-btn ${showCompleted ? 'nk-btn-primary' : 'nk-btn-ghost'}`}
+            >
+              Done
+            </button>
             <button
               onClick={() => setShowSharedOnly(!showSharedOnly)}
-              className={`p-2 sm:px-4 sm:py-2 rounded-lg transition-colors ${
-                showSharedOnly ? 'bg-primary text-white' : 'btn-secondary'
-              }`}
+              className={`nk-btn ${showSharedOnly ? 'nk-btn-primary' : 'nk-btn-ghost'}`}
               title="Shared with Me"
             >
-              <i className="fas fa-share-alt sm:mr-2"></i>
-              <span className="hidden sm:inline">Shared</span>
+              Shared
             </button>
             <button
               onClick={createTodo}
-              className="p-2 sm:px-4 sm:py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              className="nk-btn nk-btn-primary"
               title="New Todo"
             >
-              <i className="fas fa-plus sm:mr-2"></i>
-              <span className="hidden sm:inline">New Todo</span>
+              <i className="fas fa-plus"></i>
+              <span className="hidden sm:inline">New</span>
             </button>
           </div>
         }
       />
 
       <div className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden">
-        <div className="mx-auto w-full max-w-4xl px-4 sm:px-8 py-4 sm:py-8 space-y-4">
+        <div className="mx-auto w-full max-w-3xl px-5 sm:px-8 pb-8 space-y-3">
         {loading ? (
           <TodoListSkeleton />
         ) : filteredTodos.length === 0 ? (
-          <EmptyState icon="fa-list-check" message="No todos found" />
+          <EmptyState
+            icon="fa-list-check"
+            message="No todos"
+            hint="Capture the next thing."
+            action={<button onClick={createTodo} className="nk-btn nk-btn-primary">New todo</button>}
+          />
         ) : (
             filteredTodos.map(todo => (
               <TodoCard

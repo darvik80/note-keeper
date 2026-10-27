@@ -97,22 +97,23 @@ export const Templates: React.FC = () => {
     <PageShell error={error} onDismissError={() => setError(null)}>
       <Header
         title="Templates"
+        subtitle="Reusable note starters"
         actions={
           <button
             onClick={() => setShowCreate(!showCreate)}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            className="nk-btn nk-btn-primary"
           >
-            <i className="fas fa-plus mr-2"></i>
-            New Template
+            <i className="fas fa-plus"></i>
+            New
           </button>
         }
       />
 
       <div className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden">
-        <div className="p-4 lg:p-8">
+        <div className="px-5 sm:px-8 lg:px-10 pb-8">
           {showCreate && (
-            <div className="bg-surface rounded-xl p-6 shadow-sm border border-border mb-6">
-              <h3 className="text-lg font-bold text-text mb-4">Create New Template</h3>
+            <div className="nk-card p-6 mb-6">
+              <h3 className="text-[17px] font-semibold tracking-tight text-text mb-4">New template</h3>
               <div className="space-y-4">
                 <input
                   type="text"
@@ -140,13 +141,13 @@ export const Templates: React.FC = () => {
                 <div className="flex gap-3">
                   <button
                     onClick={saveNewTemplate}
-                    className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+                    className="nk-btn nk-btn-primary"
                   >
                     Save Template
                   </button>
                   <button
                     onClick={() => setShowCreate(false)}
-                    className="px-6 py-2 btn-secondary rounded-lg"
+                    className="nk-btn nk-btn-ghost"
                   >
                     Cancel
                   </button>
@@ -156,18 +157,23 @@ export const Templates: React.FC = () => {
           )}
 
           {templates.length === 0 && !showCreate ? (
-            <EmptyState icon="fa-file-lines" message="No templates yet" />
+            <EmptyState
+              icon="fa-file-lines"
+              message="No templates yet"
+              hint="Save a structure you reuse."
+              action={<button onClick={() => setShowCreate(true)} className="nk-btn nk-btn-primary">New template</button>}
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               {templates.map(template => (
                 <div
                   key={template.id}
-                  className="bg-surface rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow flex flex-col"
+                  className="nk-card p-6 flex flex-col"
                 >
                   <div className="flex items-start justify-between mb-3 gap-2">
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-text text-lg mb-1 truncate">{template.name}</h4>
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                      <span className="nk-tag text-primary">
                         {template.category}
                       </span>
                     </div>
@@ -191,14 +197,14 @@ export const Templates: React.FC = () => {
                   <div className="flex items-center justify-between gap-2 mt-auto">
                     <div className="flex flex-wrap gap-2">
                       {template.tags.slice(0, 3).map(tag => (
-                        <span key={tag} className="text-xs bg-hover px-2 py-1 rounded">
+                        <span key={tag} className="nk-tag">
                           #{tag}
                         </span>
                       ))}
                     </div>
                     <button
                       onClick={() => createFromTemplate(template)}
-                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 text-sm shrink-0"
+                      className="nk-btn nk-btn-primary text-sm shrink-0"
                     >
                       <i className="fas fa-file-circle-plus mr-2"></i>
                       Use

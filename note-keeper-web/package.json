@@ -18,8 +18,10 @@
     "react-router-dom": "^6.8.0",
     "@uiw/react-codemirror": "^4.23.10",
     "@codemirror/lang-markdown": "^6.3.2",
+    "@codemirror/language": "^6.10.8",
     "@codemirror/view": "^6.36.2",
     "@codemirror/state": "^6.5.1",
+    "@lezer/highlight": "^1.2.1",
     "remark-gfm": "^4.0.0",
     "sockjs-client": "^1.6.1"
   },

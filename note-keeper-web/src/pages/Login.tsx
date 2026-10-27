@@ -7,6 +7,7 @@ import React, {useEffect, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {api} from '../utils/api';
 import {AuthRequest} from '../types';
+import {CogitorMark} from '../components/CogitorMark';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -102,24 +103,22 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10 pointer-events-none"></div>
-
-      <div className="relative max-w-md w-full bg-surface rounded-2xl shadow-xl border border-border p-8">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 text-primary mb-4">
-            <i className="fas fa-book text-2xl"></i>
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="relative max-w-md w-full">
+        <div className="mb-10">
+          <div className="w-14 h-14 rounded-[18px] bg-[#0B0E11] flex items-center justify-center text-[#EDEFF2] mb-6">
+            <CogitorMark size={32} />
           </div>
-          <h1 className="text-3xl font-bold text-text">NoteKeeper</h1>
-          <p className="text-text-secondary mt-2">
-            {isLogin ? 'Welcome back!' : 'Create your account'}
+          <h1 className="text-display text-text">NoteKeeper</h1>
+          <p className="text-[17px] text-text-secondary mt-2">
+            {isLogin ? 'Welcome back.' : 'Create your account.'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium text-text mb-1">Name</label>
+              <label className="block text-[13px] font-medium text-text-secondary mb-1.5">Name</label>
               <input
                 type="text"
                 value={name}
@@ -131,7 +130,7 @@ export default function Login() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-text mb-1">Email</label>
+            <label className="block text-[13px] font-medium text-text-secondary mb-1.5">Email</label>
             <input
               type="email"
               value={email}
@@ -142,7 +141,7 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text mb-1">Password</label>
+            <label className="block text-[13px] font-medium text-text-secondary mb-1.5">Password</label>
             <input
               type="password"
               value={password}
@@ -153,7 +152,7 @@ export default function Login() {
           </div>
 
           {error && (
-            <div role="alert" className="text-red-600 dark:text-red-400 text-sm bg-red-500/10 border border-red-500/20 p-3 rounded-lg">
+            <div role="alert" className="text-danger text-sm bg-danger/10 p-3 rounded-xl">
               {error}
             </div>
           )}
@@ -161,28 +160,21 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-white py-2.5 px-4 rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            className="w-full nk-btn nk-btn-primary py-3 mt-2"
           >
-            {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Sign Up'}
+            {loading ? 'Loading…' : isLogin ? 'Sign in' : 'Sign up'}
           </button>
         </form>
 
         {(oauth.google || oauth.yandex) && (
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-surface text-text-secondary">Or continue with</span>
-            </div>
-          </div>
+        <div className="mt-8">
+          <p className="text-[13px] text-text-secondary mb-3">Or continue with</p>
 
           {oauth.google && (
             <button
               type="button"
               onClick={() => handleOAuthLogin('google')}
-              className="mt-4 w-full flex items-center justify-center gap-2 border border-border rounded-lg py-2.5 px-4 hover:bg-hover transition-colors"
+              className="w-full flex items-center justify-center gap-2 nk-btn nk-btn-ghost border border-border py-2.5"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
@@ -190,28 +182,28 @@ export default function Login() {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
-              <span className="text-text font-medium">Sign in with Google</span>
+              <span className="text-text font-medium">Google</span>
             </button>
           )}
           {oauth.yandex && (
             <button
               type="button"
               onClick={() => handleOAuthLogin('yandex')}
-              className="mt-3 w-full flex items-center justify-center gap-2 border border-border rounded-lg py-2.5 px-4 hover:bg-hover transition-colors"
+              className="mt-2 w-full flex items-center justify-center gap-2 nk-btn nk-btn-ghost border border-border py-2.5"
             >
               <span className="inline-flex items-center justify-center w-5 h-5 rounded-sm bg-[#FC3F1D] text-white text-xs font-bold">Я</span>
-              <span className="text-text font-medium">Sign in with Yandex</span>
+              <span className="text-text font-medium">Yandex</span>
             </button>
           )}
         </div>
         )}
 
-        <div className="mt-6 text-center">
+        <div className="mt-8">
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-primary hover:underline text-sm"
+            className="text-secondary hover:opacity-80 text-[15px]"
           >
-            {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'}
+            {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
           </button>
         </div>
       </div>

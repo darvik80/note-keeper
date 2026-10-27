@@ -63,18 +63,18 @@ export const ApiTokensTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {error && <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
+      {error && <div className="p-3 bg-danger/10 text-danger rounded-xl text-sm">{error}</div>}
       {created && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <p className="text-sm font-medium text-amber-900 mb-2">Copy this token now. It will not be shown again.</p>
+        <div className="p-4 bg-primary/10 rounded-xl">
+          <p className="text-sm font-medium text-text mb-2">Copy this token now. It will not be shown again.</p>
           <div className="flex gap-2">
-            <code className="flex-1 break-all bg-white border border-amber-200 rounded px-3 py-2 text-sm">{created}</code>
-            <button onClick={() => copy(created)} className="px-3 py-2 bg-primary text-white rounded-lg text-sm">Copy</button>
+            <code className="flex-1 break-all bg-background border border-border rounded-xl px-3 py-2 text-sm">{created}</code>
+            <button onClick={() => copy(created)} className="nk-btn nk-btn-primary text-sm">Copy</button>
           </div>
         </div>
       )}
 
-      <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+      <div className="nk-card p-6">
         <h3 className="text-xl font-bold text-text mb-4">New token</h3>
         <input
           value={name}
@@ -89,7 +89,7 @@ export const ApiTokensTab: React.FC = () => {
               type="button"
               onClick={() => toggleScope(scope.id)}
               className={`px-3 py-1.5 rounded-full text-sm border ${
-                scopes.includes(scope.id) ? 'bg-primary text-white border-primary' : 'border-border text-text-secondary'
+                scopes.includes(scope.id) ? 'bg-primary/15 text-primary border-primary/30' : 'border-border text-text-secondary'
               }`}
             >
               {scope.label}
@@ -99,23 +99,23 @@ export const ApiTokensTab: React.FC = () => {
         <button
           onClick={create}
           disabled={busy || !name.trim() || scopes.length === 0}
-          className="px-4 py-2 bg-primary text-white rounded-lg disabled:opacity-50"
+          className="nk-btn nk-btn-primary disabled:opacity-50"
         >
           Create token
         </button>
       </div>
 
-      <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+      <div className="nk-card p-6">
         <h3 className="text-xl font-bold text-text mb-4">Existing tokens</h3>
         {tokens.length === 0 && <p className="text-text-secondary text-sm">No tokens yet.</p>}
         <div className="space-y-3">
           {tokens.map(token => (
-            <div key={token.id} className="flex items-center justify-between gap-4 p-3 border border-border rounded-lg">
+            <div key={token.id} className="flex items-center justify-between gap-4 p-3 rounded-xl hover:bg-hover">
               <div>
                 <p className="font-medium text-text">{token.name}</p>
                 <p className="text-xs text-text-secondary font-mono">{token.prefix} · {token.scopes.join(', ')}</p>
               </div>
-              <button onClick={() => revoke(token.id)} className="text-sm text-red-600 hover:underline">Revoke</button>
+              <button onClick={() => revoke(token.id)} className="text-sm text-danger hover:opacity-80">Revoke</button>
             </div>
           ))}
         </div>

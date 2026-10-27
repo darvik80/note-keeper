@@ -5,7 +5,7 @@ export const ApiTab: React.FC = () => {
   const apiDocsYaml = `${window.location.origin}/v3/api-docs.yaml`;
 
   return (
-    <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+    <div className="nk-card p-6">
       <div className="mb-6">
         <h3 className="text-2xl font-bold text-text mb-2">REST API Documentation</h3>
         <p className="text-text-secondary">
@@ -23,7 +23,7 @@ export const ApiTab: React.FC = () => {
           href="/swagger-ui/index.html"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm"
+          className="nk-btn nk-btn-primary text-sm"
         >
           <i className="fas fa-external-link-alt mr-2"></i>
           Open Swagger UI

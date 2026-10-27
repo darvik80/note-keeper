@@ -82,7 +82,7 @@ export const DailyReportTab: React.FC<DailyReportTabProps> = ({ settings, onSett
   return (
     <div className="space-y-8">
       {/* Enable / Time */}
-      <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+      <div className="nk-card p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-xl font-bold text-text flex items-center gap-2">
@@ -157,7 +157,7 @@ export const DailyReportTab: React.FC<DailyReportTabProps> = ({ settings, onSett
       {/* Templates */}
       {dr.enabled && (
         <>
-          <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+          <div className="nk-card p-6">
             <h3 className="text-lg font-bold text-text flex items-center gap-2 mb-4">
               <i className="fas fa-file-alt text-secondary"></i>
               Body Template
@@ -182,7 +182,7 @@ export const DailyReportTab: React.FC<DailyReportTabProps> = ({ settings, onSett
             </div>
           </div>
 
-          <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+          <div className="nk-card p-6">
             <h3 className="text-lg font-bold text-text flex items-center gap-2 mb-4">
               <i className="fas fa-list-ul text-secondary"></i>
               Item Template
@@ -208,7 +208,7 @@ export const DailyReportTab: React.FC<DailyReportTabProps> = ({ settings, onSett
           </div>
 
           {/* Preview & Test */}
-          <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+          <div className="nk-card p-6">
             <h3 className="text-lg font-bold text-text flex items-center gap-2 mb-4">
               <i className="fas fa-eye text-primary"></i>
               Preview &amp; Test
