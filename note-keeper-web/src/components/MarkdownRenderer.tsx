@@ -1,89 +1,106 @@
 /**
  * @module MarkdownRenderer
  * @category Components
- * Renders Markdown content with GitHub-Flavored Markdown (GFM) support and
- * inline Mermaid diagram rendering.
- *
- * **Supported syntax:**
- * - GFM: tables, task lists, strikethrough, autolinks
- * - Code blocks with syntax highlighting classes
- * - Mermaid diagrams via ` ```mermaid ``` ` fenced blocks
+ * Renders Markdown with GFM and Mermaid. Mermaid SVGs live in a dedicated
+ * host node so mermaid never `replaceChild`s React's tree (that throws
+ * `NotFoundError: removeChild` on the next render).
  */
-import React, {useEffect, useRef} from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import mermaid from 'mermaid';
+import { useTheme } from '../contexts/ThemeContext';
+import { isDarkTheme } from '../utils/themes';
 
-/** Props for {@link MarkdownRenderer}. */
 interface MarkdownRendererProps {
-  /** Raw Markdown string to render. May include Mermaid diagram blocks. */
   content: string;
 }
 
-/**
- * Stateless component that renders Markdown with Mermaid diagram support.
- *
- * On each `content` change the component re-initialises Mermaid, finds all
- * `.language-mermaid` code blocks in the DOM, replaces them with `<div>`
- * containers, and calls `mermaid.render()` asynchronously to inject SVG.
- *
- * @param props - See {@link MarkdownRendererProps}.
- */
-export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+function ensureMermaid(dark: boolean) {
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: dark ? 'dark' : 'neutral',
+    securityLevel: 'loose',
+  });
+}
+
+const MermaidBlock: React.FC<{ chart: string; dark: boolean }> = ({ chart, dark }) => {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const reactId = useId().replace(/:/g, '');
 
   useEffect(() => {
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: 'default',
-      securityLevel: 'loose'
-    });
-
-    if (containerRef.current) {
-      const mermaidBlocks = containerRef.current.querySelectorAll('.language-mermaid');
-      mermaidBlocks.forEach((block, index) => {
-        const code = block.textContent || '';
-        const id = `mermaid-${Date.now()}-${index}`;
-        const div = document.createElement('div');
-        div.id = id;
-        div.className = 'mermaid-diagram';
-        block.parentElement?.replaceChild(div, block);
-        
-        mermaid.render(id, code).then(({ svg }) => {
-          div.innerHTML = svg;
-        }).catch(err => {
-          div.innerHTML = `<pre class="text-red-500">Mermaid Error: ${err.message}</pre>`;
-        });
-      });
+    const host = hostRef.current;
+    if (!host) return;
+    const source = chart.trim();
+    if (!source) {
+      host.replaceChildren();
+      return;
     }
-  }, [content]);
+
+    let cancelled = false;
+    const renderId = `mermaid-${reactId}-${Math.random().toString(36).slice(2, 9)}`;
+    ensureMermaid(dark);
+
+    mermaid
+      .render(renderId, source)
+      .then(({ svg }) => {
+        if (cancelled || !hostRef.current) return;
+        hostRef.current.innerHTML = svg;
+      })
+      .catch(err => {
+        if (cancelled || !hostRef.current) return;
+        const msg = err instanceof Error ? err.message : String(err);
+        hostRef.current.innerHTML = `<pre class="text-red-500 text-sm overflow-x-auto">Mermaid: ${msg}</pre>`;
+      });
+
+    return () => {
+      cancelled = true;
+      document.getElementById(renderId)?.remove();
+      document.getElementById(`d${renderId}`)?.remove();
+    };
+  }, [chart, dark, reactId]);
+
+  return <div ref={hostRef} className="mermaid-diagram" />;
+};
+
+export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
+  const { theme } = useTheme();
+  const dark = isDarkTheme(theme);
 
   return (
-    <div ref={containerRef} className="markdown-content prose max-w-none">
+    <div className="markdown-content prose max-w-none">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          code({ node, inline, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '');
-            const lang = match ? match[1] : '';
-            
-            if (!inline && lang === 'mermaid') {
-              return (
-                <pre className={className}>
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                </pre>
+          pre({ children }) {
+            const child = React.Children.toArray(children)[0];
+            if (React.isValidElement(child)) {
+              const className = String(
+                (child.props as { className?: string }).className || ''
               );
+              const lang = /language-(\w+)/.exec(className)?.[1];
+              if (lang === 'mermaid') {
+                const raw = (child.props as { children?: React.ReactNode }).children;
+                return <MermaidBlock chart={String(raw ?? '')} dark={dark} />;
+              }
             }
-            
-            return !inline ? (
-              <pre className="bg-hover p-4 rounded-lg overflow-x-auto">
+            return (
+              <pre className="bg-hover p-4 rounded-lg overflow-x-auto">{children}</pre>
+            );
+          },
+          code({ className, children, ...props }) {
+            const lang = /language-(\w+)/.exec(className || '')?.[1];
+            if (lang === 'mermaid') {
+              return <code className={className} {...props}>{children}</code>;
+            }
+            if (className) {
+              return (
                 <code className={className} {...props}>
                   {children}
                 </code>
-              </pre>
-            ) : (
+              );
+            }
+            return (
               <code className="bg-hover px-2 py-1 rounded text-sm" {...props}>
                 {children}
               </code>
@@ -116,7 +133,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
             <td className="border border-border px-4 py-2">
               {children}
             </td>
-          )
+          ),
         }}
       >
         {content}
