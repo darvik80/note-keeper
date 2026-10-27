@@ -28,8 +28,23 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
@@ -140,30 +155,36 @@ fun TodoDetailScreen(
                 title = { Text(if (isNewTodo) "New Todo" else "Todo") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Text("⬅️")
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
                     if (!isNewTodo) {
                         if (!isEditing) {
                             IconButton(onClick = { isEditing = true }) {
-                                Text("✏️")
+                                Icon(Icons.Outlined.Edit, contentDescription = "Edit")
                             }
                         }
                         IconButton(onClick = { viewModel.toggleComplete() }) {
-                            Text(if (todo?.completed == true) "☑️" else "⬜")
+                            Icon(
+                                if (todo?.completed == true) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                                contentDescription = "Complete"
+                            )
                         }
                         IconButton(onClick = { viewModel.toggleFavorite() }) {
-                            Text(if (todo?.isFavorite == true) "❤️" else "🤍")
+                            Icon(
+                                if (todo?.isFavorite == true) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription = "Favorite"
+                            )
                         }
                         IconButton(onClick = { showShareDialog = true }) {
-                            Text("📤")
+                            Icon(Icons.Outlined.Share, contentDescription = "Share")
                         }
                         IconButton(onClick = {
                             viewModel.deleteTodo()
                             onBack()
                         }) {
-                            Text("🗑️")
+                            Icon(Icons.Outlined.Delete, contentDescription = "Delete")
                         }
                     }
                 }
@@ -185,7 +206,7 @@ fun TodoDetailScreen(
                 if (isSaving) {
                     CircularProgressIndicator(modifier = Modifier.padding(8.dp))
                 } else {
-                    Text("✅")
+                    Icon(Icons.Outlined.Check, contentDescription = "Save")
                 }
             }
         }
@@ -217,7 +238,7 @@ fun TodoDetailScreen(
                             onClick = { priority = p },
                             label = { Text(p.replaceFirstChar { it.uppercase() }) },
                             leadingIcon = if (priority == p) {
-                                { Text("✅") }
+                                { Icon(Icons.Outlined.Check, contentDescription = null) }
                             } else null
                         )
                     }
@@ -230,11 +251,11 @@ fun TodoDetailScreen(
                 AssistChip(
                     onClick = { showDueDatePicker = true },
                     label = { Text(dueDate?.let { formatDisplayDate(it) } ?: "Set due date") },
-                    leadingIcon = { Text("📅") },
+                    leadingIcon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = null) },
                     trailingIcon = if (dueDate != null) {
                         {
                             IconButton(onClick = { dueDate = null }, modifier = Modifier.size(18.dp)) {
-                                Text("❌")
+                                Icon(Icons.Outlined.Close, contentDescription = "Clear")
                             }
                         }
                     } else null
@@ -247,11 +268,11 @@ fun TodoDetailScreen(
                 AssistChip(
                     onClick = { showReminderDatePicker = true },
                     label = { Text(reminder?.let { formatDisplayDateTime(it) } ?: "Set reminder") },
-                    leadingIcon = { Text("🔔") },
+                    leadingIcon = { Icon(Icons.Outlined.Notifications, contentDescription = null) },
                     trailingIcon = if (reminder != null) {
                         {
                             IconButton(onClick = { reminder = null }, modifier = Modifier.size(18.dp)) {
-                                Text("❌")
+                                Icon(Icons.Outlined.Close, contentDescription = "Clear")
                             }
                         }
                     } else null
@@ -272,7 +293,7 @@ fun TodoDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                        leadingIcon = { Text("🔔") },
+                        leadingIcon = { Icon(Icons.Outlined.Notifications, contentDescription = null) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = channelDropdownExpanded) }
                     )
                     ExposedDropdownMenu(
@@ -293,7 +314,7 @@ fun TodoDetailScreen(
                                     channelDropdownExpanded = false
                                 },
                                 leadingIcon = if (notificationChannel == ch.id) {
-                                    { Text("✅") }
+                                    { Icon(Icons.Outlined.Check, contentDescription = null) }
                                 } else null
                             )
                         }
@@ -316,7 +337,7 @@ fun TodoDetailScreen(
                             },
                             label = { Text(ch.replaceFirstChar { it.uppercase() }) },
                             leadingIcon = if (ch in channels) {
-                                { Text("✅") }
+                                { Icon(Icons.Outlined.Check, contentDescription = null) }
                             } else null
                         )
                     }
@@ -509,7 +530,7 @@ fun TodoDetailScreen(
                                     onClick = { viewModel.removeAttachment(attachment) },
                                     modifier = Modifier.size(24.dp)
                                 ) {
-                                    Text("🗑️")
+                                    Icon(Icons.Outlined.Delete, contentDescription = "Remove")
                                 }
                             }
                         }
@@ -517,7 +538,8 @@ fun TodoDetailScreen(
                     if (!isNewTodo) {
                         Spacer(modifier = Modifier.height(8.dp))
                         TextButton(onClick = { filePicker.launch(arrayOf("*/*")) }) {
-                            Text("📎 Add attachment")
+                            Icon(Icons.Outlined.AttachFile, contentDescription = null)
+                            Text("Add attachment")
                         }
                     }
                 }

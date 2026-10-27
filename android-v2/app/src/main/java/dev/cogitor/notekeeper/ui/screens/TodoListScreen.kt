@@ -1,27 +1,28 @@
 package dev.cogitor.notekeeper.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -34,12 +35,14 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.cogitor.notekeeper.data.model.Todo
+import dev.cogitor.notekeeper.ui.components.NkEmptyState
+import dev.cogitor.notekeeper.ui.components.PriorityDot
+import dev.cogitor.notekeeper.ui.components.SwipeHint
 import dev.cogitor.notekeeper.ui.viewmodel.TodoListViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -63,47 +66,38 @@ fun TodoListScreen(
                 title = { Text("Todos") },
                 actions = {
                     IconButton(onClick = { viewModel.syncTodos() }) {
-                        if (isSyncing) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                        } else {
-                            Text("🔄")
-                        }
+                        if (isSyncing) CircularProgressIndicator(Modifier.padding(8.dp), strokeWidth = 2.dp)
+                        else Icon(Icons.Outlined.Sync, contentDescription = "Sync")
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddClick) {
-                Text("➕")
+                Icon(Icons.Outlined.Add, contentDescription = "New todo")
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
             if (syncStatus.isNotEmpty()) {
                 Text(
-                    text = syncStatus,
+                    syncStatus,
                     style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                 )
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = if (showCompleted) "Completed" else "Active",
-                    style = MaterialTheme.typography.titleSmall
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = !showCompleted,
+                    onClick = { if (showCompleted) viewModel.toggleShowCompleted() },
+                    label = { Text("Active") }
                 )
-                TextButton(onClick = { viewModel.toggleShowCompleted() }) {
-                    Text(if (showCompleted) "Show Active" else "Show Completed")
-                }
+                FilterChip(
+                    selected = showCompleted,
+                    onClick = { if (!showCompleted) viewModel.toggleShowCompleted() },
+                    label = { Text("Done") }
+                )
             }
             PullToRefreshBox(
                 isRefreshing = isSyncing,
@@ -111,19 +105,11 @@ fun TodoListScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 if (todos.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No todos yet.\nTap + to create one.",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+                    NkEmptyState(Icons.Outlined.TaskAlt, "No todos yet", "Tap + to add a task")
                 } else {
                     LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         items(todos, key = { it.id }) { todo ->
                             val dismissState = rememberSwipeToDismissBoxState(
@@ -145,25 +131,18 @@ fun TodoListScreen(
                                 state = dismissState,
                                 backgroundContent = {
                                     val toStart = dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(
-                                                if (toStart) MaterialTheme.colorScheme.secondaryContainer
-                                                else MaterialTheme.colorScheme.tertiaryContainer
-                                            )
-                                            .padding(16.dp),
-                                        contentAlignment = if (toStart) Alignment.CenterEnd else Alignment.CenterStart
-                                    ) {
-                                        Text(if (toStart) "Archive" else "Done")
-                                    }
+                                    SwipeHint(
+                                        if (toStart) "Archive" else "Done",
+                                        end = toStart,
+                                        color = if (toStart) MaterialTheme.colorScheme.secondaryContainer
+                                        else MaterialTheme.colorScheme.tertiaryContainer
+                                    )
                                 }
                             ) {
-                                TodoItem(
+                                TodoRow(
                                     todo = todo,
                                     onClick = { onTodoClick(todo.id) },
-                                    onToggleComplete = { viewModel.toggleComplete(todo) },
-                                    onDelete = { viewModel.deleteTodo(todo) }
+                                    onToggle = { viewModel.toggleComplete(todo) }
                                 )
                             }
                         }
@@ -175,134 +154,52 @@ fun TodoListScreen(
 }
 
 @Composable
-fun TodoItem(
-    todo: Todo,
-    onClick: () -> Unit,
-    onToggleComplete: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val isOverdue = todo.dueDate?.let {
+private fun TodoRow(todo: Todo, onClick: () -> Unit, onToggle: () -> Unit) {
+    val overdue = todo.dueDate?.let {
         try { LocalDate.parse(it.take(10)).isBefore(LocalDate.now()) && !todo.completed } catch (_: Exception) { false }
     } ?: false
-
-    Card(
+    Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isOverdue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-            else MaterialTheme.colorScheme.surface
-        )
+        shape = MaterialTheme.shapes.medium,
+        color = if (overdue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
+        else MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            IconButton(onClick = onToggleComplete, modifier = Modifier.size(32.dp)) {
-                Text(if (todo.completed) "☑️" else "⬜")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = todo.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textDecoration = if (todo.completed) TextDecoration.LineThrough else TextDecoration.None,
-                    color = if (todo.completed) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface
-                )
-                if (!todo.description.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = todo.description!!.take(80),
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.outline
+        ListItem(
+            colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+            leadingContent = {
+                IconButton(onClick = onToggle) {
+                    Icon(
+                        if (todo.completed) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                        contentDescription = "Complete",
+                        tint = if (todo.completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                     )
                 }
-                // Due date & reminder row
-                val tags = todo.tags ?: emptyList()
-                val hasMetadata = todo.dueDate != null || todo.reminder != null || tags.isNotEmpty()
-                if (hasMetadata) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        todo.dueDate?.let { date ->
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = if (isOverdue) MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-                                else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "📅",
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text(
-                                        text = formatShortDate(date),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                        if (todo.reminder != null) {
-                            Text(
-                                text = "🔔",
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-                        if (tags.isNotEmpty()) {
-                            Text(
-                                text = tags.take(2).joinToString(" ") { "#$it" }
-                                    + if (tags.size > 2) " +${tags.size - 2}" else "",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-            }
-            // Priority indicator
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = when (todo.priority) {
-                    "high" -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-                    "medium" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
-                    else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
-                },
-                modifier = Modifier.padding(top = 4.dp)
-            ) {
+            },
+            headlineContent = {
                 Text(
-                    text = when (todo.priority) {
-                        "high" -> "🔴"
-                        "medium" -> "🟡"
-                        else -> "🟢"
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    color = when (todo.priority) {
-                        "high" -> MaterialTheme.colorScheme.error
-                        "medium" -> MaterialTheme.colorScheme.tertiary
-                        else -> MaterialTheme.colorScheme.outline
-                    }
+                    todo.title,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textDecoration = if (todo.completed) TextDecoration.LineThrough else TextDecoration.None
                 )
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-            IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
-                Text("🗑️")
-            }
-        }
+            },
+            supportingContent = {
+                val meta = buildList {
+                    todo.dueDate?.let { add(formatShortDate(it)) }
+                    val tags = todo.tags.orEmpty()
+                    if (tags.isNotEmpty()) add(tags.take(2).joinToString(" ") { "#$it" })
+                }
+                if (meta.isNotEmpty()) {
+                    Text(
+                        meta.joinToString("  ·  "),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            trailingContent = { PriorityDot(todo.priority) }
+        )
     }
 }
 
@@ -317,15 +214,4 @@ private fun formatShortDate(iso: String): String {
             else -> date.format(DateTimeFormatter.ofPattern("MMM d"))
         }
     } catch (_: Exception) { iso }
-}
-
-@Composable
-private fun TextButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    androidx.compose.material3.TextButton(onClick = onClick, modifier = modifier) {
-        content()
-    }
 }

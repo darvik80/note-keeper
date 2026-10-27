@@ -35,6 +35,8 @@ object RetrofitClient {
         _retrofit = null
     }
 
+    fun currentBaseUrl(): String = baseUrl
+
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }

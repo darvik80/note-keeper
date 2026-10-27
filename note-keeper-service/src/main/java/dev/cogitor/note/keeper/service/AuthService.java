@@ -79,7 +79,7 @@ public class AuthService {
         }
 
         if (!"local".equals(user.getProvider())) {
-            throw new RuntimeException("User registered with " + user.getProvider() + ", not password");
+            throw new RuntimeException("User registered with " + user.getProvider() + ". Use that provider to sign in");
         }
 
         UserCredentials credentials = credentialsMapper.findByUserId(user.getId());
@@ -102,44 +102,75 @@ public class AuthService {
      * Called by OAuth2SuccessHandler after Spring Security verifies the token.
      */
     public AuthResponse loginWithGoogle(String googleId, String email, String name, String avatarUrl) {
-        User user = userMapper.findByGoogleId(googleId);
-        
+        return loginWithOAuth("google", googleId, email, name, avatarUrl);
+    }
+
+    public AuthResponse loginWithOAuth(String provider, String providerUserId, String email, String name, String avatarUrl) {
+        if (!"google".equals(provider) && !"yandex".equals(provider)) {
+            throw new RuntimeException("Unsupported OAuth provider: " + provider);
+        }
+        if (providerUserId == null || providerUserId.isBlank()) {
+            throw new RuntimeException("OAuth provider id is missing");
+        }
+        if (email == null || email.isBlank()) {
+            throw new RuntimeException("OAuth account has no email");
+        }
+
+        User user = "google".equals(provider)
+                ? userMapper.findByGoogleId(providerUserId)
+                : userMapper.findByYandexId(providerUserId);
+
         if (user == null) {
-            // Check if user exists by email
             user = userMapper.findByEmail(email);
             if (user != null) {
-                // Link Google account to existing user
-                user.setGoogleId(googleId);
-                user.setProvider("google");
-                user.setAvatarUrl(avatarUrl);
+                applyProviderId(user, provider, providerUserId);
+                if ("local".equals(user.getProvider()) || user.getProvider() == null) {
+                    user.setProvider(provider);
+                }
+                if (avatarUrl != null && !avatarUrl.isBlank()) {
+                    user.setAvatarUrl(avatarUrl);
+                }
+                if (name != null && !name.isBlank()) {
+                    user.setName(name);
+                }
                 user.setUpdatedAt(LocalDateTime.now());
                 userMapper.update(user);
             } else {
-                // Create new user
                 String userId = UUID.randomUUID().toString();
                 user = new User();
                 user.setId(userId);
                 user.setEmail(email);
-                user.setName(name);
+                user.setName(name != null && !name.isBlank() ? name : email);
                 user.setAvatarUrl(avatarUrl);
-                user.setProvider("google");
-                user.setGoogleId(googleId);
+                user.setProvider(provider);
+                applyProviderId(user, provider, providerUserId);
                 user.setActive(true);
                 user.setCreatedAt(LocalDateTime.now());
                 user.setUpdatedAt(LocalDateTime.now());
                 userMapper.insert(user);
             }
         } else {
-            // Update user info
             user.setEmail(email);
-            user.setName(name);
-            user.setAvatarUrl(avatarUrl);
+            if (name != null && !name.isBlank()) {
+                user.setName(name);
+            }
+            if (avatarUrl != null && !avatarUrl.isBlank()) {
+                user.setAvatarUrl(avatarUrl);
+            }
             user.setUpdatedAt(LocalDateTime.now());
             userMapper.update(user);
         }
 
         String token = jwtService.generateToken(user.getId(), user.getEmail());
         return new AuthResponse(token, user);
+    }
+
+    private static void applyProviderId(User user, String provider, String providerUserId) {
+        if ("google".equals(provider)) {
+            user.setGoogleId(providerUserId);
+        } else {
+            user.setYandexId(providerUserId);
+        }
     }
 
     /**

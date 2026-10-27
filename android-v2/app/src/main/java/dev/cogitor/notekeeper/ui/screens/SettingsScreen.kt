@@ -6,19 +6,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -52,7 +54,7 @@ fun SettingsScreen(
                 title = { Text("Settings") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Text("⬅️")
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -64,22 +66,10 @@ fun SettingsScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            // Notification Settings
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Notifications",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Default notification channel",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Notifications", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(12.dp))
                     ExposedDropdownMenuBox(
                         expanded = channelExpanded,
                         onExpandedChange = { channelExpanded = it }
@@ -91,7 +81,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                            leadingIcon = { Text("🔔") },
+                            leadingIcon = { Icon(Icons.Outlined.Notifications, contentDescription = null) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = channelExpanded) }
                         )
                         ExposedDropdownMenu(
@@ -103,8 +93,11 @@ fun SettingsScreen(
                                     text = {
                                         Column {
                                             Text(ch.name, style = MaterialTheme.typography.bodyMedium)
-                                            Text(ch.description, style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.outline)
+                                            Text(
+                                                ch.description,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.outline
+                                            )
                                         }
                                     },
                                     onClick = {
@@ -112,7 +105,7 @@ fun SettingsScreen(
                                         channelExpanded = false
                                     },
                                     leadingIcon = if (defaultChannel == ch.id) {
-                                        { Text("✅") }
+                                        { Icon(Icons.Outlined.Check, contentDescription = null) }
                                     } else null
                                 )
                             }
@@ -121,26 +114,16 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // About
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            Spacer(Modifier.height(16.dp))
+            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("NoteKeeper", style = MaterialTheme.typography.titleMedium)
+                    Text("Android v2.0", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        text = "NoteKeeper Android",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        text = "Version 1.0",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "Offline-first note management with automatic sync.",
+                        "Offline-first notes, todos and vault. Google and Yandex sign-in.",
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier.padding(top = 8.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

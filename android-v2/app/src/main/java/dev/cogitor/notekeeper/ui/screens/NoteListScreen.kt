@@ -1,27 +1,30 @@
 package dev.cogitor.notekeeper.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Notes
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -31,12 +34,14 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.cogitor.notekeeper.data.model.Note
 import dev.cogitor.notekeeper.data.model.SyncStatus
+import dev.cogitor.notekeeper.ui.components.NkEmptyState
+import dev.cogitor.notekeeper.ui.components.PriorityDot
+import dev.cogitor.notekeeper.ui.components.SwipeHint
 import dev.cogitor.notekeeper.ui.viewmodel.NoteListViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,37 +64,31 @@ fun NoteListScreen(
                 title = { Text("Notes") },
                 actions = {
                     IconButton(onClick = { viewModel.syncNotes() }) {
-                        if (isSyncing) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                        } else {
-                            Text("🔄")
-                        }
+                        if (isSyncing) CircularProgressIndicator(Modifier.padding(8.dp), strokeWidth = 2.dp)
+                        else Icon(Icons.Outlined.Sync, contentDescription = "Sync")
                     }
                     IconButton(onClick = onSettingsClick) {
-                        Text("⚙️")
+                        Icon(Icons.Outlined.Settings, contentDescription = "Settings")
                     }
                     IconButton(onClick = onLogout) {
-                        Text("🚪")
+                        Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = "Log out")
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddClick) {
-                Text("➕")
+                Icon(Icons.Outlined.Add, contentDescription = "New note")
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
             if (syncStatus.isNotEmpty()) {
                 Text(
-                    text = syncStatus,
+                    syncStatus,
                     style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                 )
             }
             PullToRefreshBox(
@@ -98,19 +97,11 @@ fun NoteListScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 if (notes.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No notes yet.\nTap + to create one.",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+                    NkEmptyState(Icons.Outlined.Notes, "No notes yet", "Tap + to write one")
                 } else {
                     LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         items(notes, key = { it.id }) { note ->
                             val dismissState = rememberSwipeToDismissBoxState(
@@ -118,31 +109,17 @@ fun NoteListScreen(
                                     if (value == SwipeToDismissBoxValue.EndToStart) {
                                         viewModel.archiveNote(note)
                                         true
-                                    } else {
-                                        false
-                                    }
+                                    } else false
                                 }
                             )
                             SwipeToDismissBox(
                                 state = dismissState,
                                 enableDismissFromStartToEnd = false,
                                 backgroundContent = {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(MaterialTheme.colorScheme.secondaryContainer)
-                                            .padding(16.dp),
-                                        contentAlignment = Alignment.CenterEnd
-                                    ) {
-                                        Text("Archive")
-                                    }
+                                    SwipeHint("Archive", end = true, color = MaterialTheme.colorScheme.secondaryContainer)
                                 }
                             ) {
-                                NoteItem(
-                                    note = note,
-                                    onClick = { onNoteClick(note.id) },
-                                    onDelete = { viewModel.deleteNote(note) }
-                                )
+                                NoteRow(note = note, onClick = { onNoteClick(note.id) })
                             }
                         }
                     }
@@ -153,90 +130,52 @@ fun NoteListScreen(
 }
 
 @Composable
-fun NoteItem(
-    note: Note,
-    onClick: () -> Unit,
-    onDelete: () -> Unit
-) {
-    Card(
+private fun NoteRow(note: Note, onClick: () -> Unit) {
+    Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = note.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (note.syncStatus != SyncStatus.SYNCED) {
+        ListItem(
+            colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+            headlineContent = {
+                Text(note.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            },
+            supportingContent = {
+                Column {
+                    Text(
+                        (note.content ?: "").ifBlank { "Empty note" }.take(90),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    val tags = note.tags.orEmpty()
+                    if (tags.isNotEmpty()) {
                         Text(
-                            text = when (note.syncStatus) {
-                                SyncStatus.PENDING_CREATE -> "+"
-                                SyncStatus.PENDING_UPDATE -> "~"
-                                SyncStatus.PENDING_DELETE -> "-"
-                                else -> ""
-                            },
+                            tags.take(3).joinToString("  ") { "#$it" },
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(end = 8.dp)
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
-                    IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
-                        Text("🗑️")
+                }
+            },
+            trailingContent = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (note.syncStatus != SyncStatus.SYNCED) {
+                        Text(
+                            when (note.syncStatus) {
+                                SyncStatus.PENDING_CREATE -> "+"
+                                SyncStatus.PENDING_UPDATE -> "•"
+                                SyncStatus.PENDING_DELETE -> "–"
+                                else -> ""
+                            },
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelSmall
+                        )
                     }
+                    PriorityDot(note.priority)
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = (note.content ?: "").take(120),
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
-            )
-            val tags = note.tags ?: emptyList()
-            if (tags.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = tags.take(3).joinToString(" ") { "#$it" }
-                        + if (tags.size > 3) " +${tags.size - 3}" else "",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = note.folder ?: "default",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
-                Text(
-                    text = when (note.priority) {
-                        "high" -> "🔴 High"
-                        "medium" -> "🟡 Med"
-                        else -> "🟢 Low"
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = when (note.priority) {
-                        "high" -> MaterialTheme.colorScheme.error
-                        "medium" -> MaterialTheme.colorScheme.tertiary
-                        else -> MaterialTheme.colorScheme.outline
-                    }
-                )
-            }
-        }
+        )
     }
 }

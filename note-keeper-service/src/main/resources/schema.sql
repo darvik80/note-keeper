@@ -142,8 +142,9 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     avatar_url TEXT,
-    provider TEXT NOT NULL DEFAULT 'local' CHECK(provider IN ('local', 'google')),
+    provider TEXT NOT NULL DEFAULT 'local' CHECK(provider IN ('local', 'google', 'yandex')),
     google_id TEXT UNIQUE,
+    yandex_id TEXT UNIQUE,
     is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -175,6 +176,7 @@ CREATE INDEX IF NOT EXISTS idx_user_tag_owner ON user_tag(owner_id);
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+CREATE INDEX IF NOT EXISTS idx_users_yandex_id ON users(yandex_id);
 
 CREATE TABLE IF NOT EXISTS api_token (
     id TEXT PRIMARY KEY,

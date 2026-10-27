@@ -191,6 +191,19 @@ class AuthServiceTest {
     }
 
     @Test
+    void loginWithOAuth_yandexNewUser_shouldCreateUser() {
+        when(userMapper.findByYandexId("ya-1")).thenReturn(null);
+        when(userMapper.findByEmail("ya@test.com")).thenReturn(null);
+        when(jwtService.generateToken(anyString(), eq("ya@test.com"))).thenReturn("jwt-token");
+
+        AuthResponse response = authService.loginWithOAuth("yandex", "ya-1", "ya@test.com", "Ya User", null);
+
+        assertNotNull(response);
+        assertEquals("jwt-token", response.getToken());
+        verify(userMapper).insert(any(User.class));
+    }
+
+    @Test
     void validateToken_validToken_shouldReturnUser() {
         when(jwtService.validateToken("valid-token")).thenReturn("user-id");
         User user = new User();

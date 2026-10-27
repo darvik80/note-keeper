@@ -5,11 +5,16 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import dev.cogitor.notekeeper.data.model.AppConfig
 import dev.cogitor.notekeeper.data.model.AuthRequest
 import dev.cogitor.notekeeper.data.model.AuthResponse
 import dev.cogitor.notekeeper.data.model.User
 
 interface AuthApiService {
+
+    @GET("config")
+    suspend fun getConfig(): Response<AppConfig>
+
 
     @POST("auth/login")
     suspend fun login(@Body request: AuthRequest): Response<AuthResponse>

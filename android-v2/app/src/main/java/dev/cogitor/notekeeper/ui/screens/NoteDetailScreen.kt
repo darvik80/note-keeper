@@ -15,7 +15,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -98,16 +108,22 @@ fun NoteDetailScreen(
                 title = { Text(if (isNewNote) "New Note" else "Edit Note") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Text("⬅️")
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = { isEditing = !isEditing }) {
-                        Text(if (isEditing) "👁️" else "✏️")
+                        Icon(
+                            if (isEditing) Icons.Outlined.Visibility else Icons.Outlined.Edit,
+                            contentDescription = if (isEditing) "Preview" else "Edit"
+                        )
                     }
                     if (!isNewNote) {
                         IconButton(onClick = { viewModel.toggleFavorite() }) {
-                            Text(if (note?.isFavorite == true) "★" else "☆")
+                            Icon(
+                                if (note?.isFavorite == true) Icons.Outlined.Star else Icons.Outlined.StarBorder,
+                                contentDescription = "Favorite"
+                            )
                         }
                     }
                 }
@@ -129,7 +145,7 @@ fun NoteDetailScreen(
                 if (isSaving) {
                     CircularProgressIndicator(modifier = Modifier.padding(8.dp))
                 } else {
-                    Text("✅")
+                    Icon(Icons.Outlined.Check, contentDescription = "Save")
                 }
             }
         }
@@ -220,7 +236,7 @@ fun NoteDetailScreen(
                                     onClick = { viewModel.removeAttachment(attachment) },
                                     modifier = Modifier.size(24.dp)
                                 ) {
-                                    Text("🗑️")
+                                    Icon(Icons.Outlined.Delete, contentDescription = "Remove")
                                 }
                             }
                         }
@@ -228,7 +244,8 @@ fun NoteDetailScreen(
                     if (!isNewNote) {
                         Spacer(modifier = Modifier.height(8.dp))
                         TextButton(onClick = { filePicker.launch(arrayOf("*/*")) }) {
-                            Text("📎 Add attachment")
+                            Icon(Icons.Outlined.AttachFile, contentDescription = null)
+                            Text("Add attachment")
                         }
                     }
                 }

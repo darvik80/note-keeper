@@ -6,8 +6,9 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     avatar_url TEXT,
-    provider VARCHAR(50) NOT NULL DEFAULT 'local' CHECK(provider IN ('local', 'google')),
+    provider VARCHAR(50) NOT NULL DEFAULT 'local' CHECK(provider IN ('local', 'google', 'yandex')),
     google_id VARCHAR(255) UNIQUE,
+    yandex_id VARCHAR(255) UNIQUE,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -15,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+CREATE INDEX IF NOT EXISTS idx_users_yandex_id ON users(yandex_id);
 
 CREATE TABLE IF NOT EXISTS user_credentials (
     user_id VARCHAR(255) PRIMARY KEY,

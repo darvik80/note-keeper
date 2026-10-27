@@ -1,5 +1,6 @@
 package dev.cogitor.notekeeper
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +11,10 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Notes
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -18,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -51,13 +57,16 @@ import dev.cogitor.notekeeper.ui.viewmodel.TodoListViewModel
 import dev.cogitor.notekeeper.ui.viewmodel.VaultViewModel
 
 class MainActivity : ComponentActivity() {
+    private lateinit var tokenDataStore: TokenDataStore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val tokenDataStore = TokenDataStore(this)
+        tokenDataStore = TokenDataStore(this)
         val settingsDataStore = SettingsDataStore(this)
         RetrofitClient.initTokenStore(tokenDataStore)
+        handleOAuthIntent(intent)
 
         val savedUrl = runBlocking { settingsDataStore.serverUrl.first() }
         RetrofitClient.setBaseUrl(savedUrl)
@@ -93,6 +102,21 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleOAuthIntent(intent)
+    }
+
+    private fun handleOAuthIntent(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme != "notekeeper" || data.host != "oauth") return
+        val token = data.getQueryParameter("token")
+        if (!token.isNullOrBlank()) {
+            runBlocking { tokenDataStore.saveToken(token) }
+        }
+    }
 }
 
 @Composable
@@ -115,22 +139,23 @@ fun NoteKeeperNavHost(
             if (showBar) {
                 NavigationBar {
                     listOf(
-                        Triple("notes", "Notes", Icons.Filled.Notes),
-                        Triple("todos", "Todos", Icons.Filled.CheckCircle),
-                        Triple("vault", "Vault", Icons.Filled.Lock),
-                        Triple("search", "Search", Icons.Filled.Search)
-                    ).forEach { (path, label, icon) ->
+                        NavTab("notes", "Notes", Icons.Filled.Notes, Icons.Outlined.Notes),
+                        NavTab("todos", "Todos", Icons.Filled.CheckCircle, Icons.Outlined.CheckCircle),
+                        NavTab("vault", "Vault", Icons.Filled.Lock, Icons.Outlined.Lock),
+                        NavTab("search", "Search", Icons.Filled.Search, Icons.Outlined.Search)
+                    ).forEach { tab ->
+                        val selected = route == tab.path
                         NavigationBarItem(
-                            selected = route == path,
+                            selected = selected,
                             onClick = {
-                                navController.navigate(path) {
+                                navController.navigate(tab.path) {
                                     popUpTo("notes") { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
                             },
-                            icon = { Icon(icon, contentDescription = label) },
-                            label = { Text(label) }
+                            icon = { Icon(if (selected) tab.selectedIcon else tab.icon, contentDescription = tab.label) },
+                            label = { Text(tab.label) }
                         )
                     }
                 }
@@ -243,3 +268,10 @@ fun NoteKeeperNavHost(
         }
     }
 }
+
+private data class NavTab(
+    val path: String,
+    val label: String,
+    val selectedIcon: ImageVector,
+    val icon: ImageVector
+)

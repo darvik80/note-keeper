@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.datastore)
     implementation(libs.gson)
+    implementation(libs.androidx.browser)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

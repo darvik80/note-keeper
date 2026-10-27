@@ -484,9 +484,11 @@ export interface User {
   /** Optional avatar image URL. */
   avatarUrl?: string;
   /** Authentication provider. */
-  provider: 'local' | 'google';
+  provider: 'local' | 'google' | 'yandex';
   /** Google account ID (only set when `provider === "google"`). */
   googleId?: string;
+  /** Yandex account ID (only set when `provider === "yandex"`). */
+  yandexId?: string;
   /** Whether the account is active and can log in. */
   isActive: boolean;
   /** When the account was created. */
