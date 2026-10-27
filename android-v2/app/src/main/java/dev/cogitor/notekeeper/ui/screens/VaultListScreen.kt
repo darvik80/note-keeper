@@ -60,8 +60,14 @@ fun VaultListScreen(
             }
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp)) {
-            NkScreenHeader(title = "Vault", subtitle = if (items.isEmpty()) null else "${items.size}") {
+        Column(Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .padding(horizontal = 20.dp)) {
+            NkScreenHeader(
+                title = "Vault",
+                subtitle = if (items.isEmpty()) null else "${items.size}"
+            ) {
                 IconButton(onClick = { viewModel.load(q = query.ifBlank { null }) }) {
                     Icon(Icons.Outlined.Sync, contentDescription = "Refresh")
                 }
@@ -92,7 +98,9 @@ fun VaultListScreen(
                                     if (item.type == "ssh_key") Icons.Outlined.Key else Icons.Outlined.Password,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(28.dp).padding(end = 4.dp)
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .padding(end = 4.dp)
                                 )
                                 Column(Modifier.padding(start = 12.dp)) {
                                     Text(item.title, style = MaterialTheme.typography.titleLarge)

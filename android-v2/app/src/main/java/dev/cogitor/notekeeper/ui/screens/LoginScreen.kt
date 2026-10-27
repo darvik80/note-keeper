@@ -49,13 +49,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import dev.cogitor.notekeeper.R
 import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.remote.RetrofitClient
 import dev.cogitor.notekeeper.ui.oauth.OAuthLauncher
 import dev.cogitor.notekeeper.ui.theme.YandexRed
 import dev.cogitor.notekeeper.ui.viewmodel.LoginViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -178,13 +178,20 @@ fun LoginScreen(
             )
             if (error != null) {
                 Spacer(Modifier.height(12.dp))
-                Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
             Spacer(Modifier.height(20.dp))
             Button(
                 onClick = {
                     persistServer()
-                    if (isRegister) viewModel.register(email, password, name) else viewModel.login(email, password)
+                    if (isRegister) viewModel.register(email, password, name) else viewModel.login(
+                        email,
+                        password
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -244,7 +251,11 @@ fun LoginScreen(
                                 .background(YandexRed),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("Я", color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                "Я",
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall
+                            )
                         }
                         Spacer(Modifier.width(8.dp))
                         Text("Yandex")
@@ -269,9 +280,13 @@ private fun GoogleMark() {
         Modifier
             .size(20.dp)
             .clip(CircleShape)
-            .background(androidx.compose.ui.graphics.Color(0xFF4285F4)),
+            .background(Color(0xFF4285F4)),
         contentAlignment = Alignment.Center
     ) {
-        Text("G", color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.labelSmall)
+        Text(
+            "G",
+            color = Color.White,
+            style = MaterialTheme.typography.labelSmall
+        )
     }
 }

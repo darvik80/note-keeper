@@ -66,10 +66,18 @@ fun TodoListScreen(
             }
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            NkScreenHeader(title = "Todos", subtitle = if (todos.isEmpty()) null else "${todos.size}") {
+        Column(Modifier
+            .fillMaxSize()
+            .padding(padding)) {
+            NkScreenHeader(
+                title = "Todos",
+                subtitle = if (todos.isEmpty()) null else "${todos.size}"
+            ) {
                 IconButton(onClick = { viewModel.syncTodos() }) {
-                    if (isSyncing) CircularProgressIndicator(Modifier.padding(8.dp), strokeWidth = 2.dp)
+                    if (isSyncing) CircularProgressIndicator(
+                        Modifier.padding(8.dp),
+                        strokeWidth = 2.dp
+                    )
                     else Icon(Icons.Outlined.Sync, contentDescription = "Sync")
                 }
             }
@@ -81,7 +89,10 @@ fun TodoListScreen(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 2.dp)
                 )
             }
-            Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 FilterChip(
                     selected = !showCompleted,
                     onClick = { if (showCompleted) viewModel.toggleShowCompleted() },
@@ -106,25 +117,13 @@ fun TodoListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(todos, key = { it.id }) { todo ->
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { value ->
-                                    when (value) {
-                                        SwipeToDismissBoxValue.StartToEnd -> {
-                                            viewModel.toggleComplete(todo)
-                                            false
-                                        }
-                                        SwipeToDismissBoxValue.EndToStart -> {
-                                            viewModel.archiveTodo(todo)
-                                            true
-                                        }
-                                        else -> false
-                                    }
-                                }
-                            )
+                            val dismissState =
+                                rememberSwipeToDismissBoxState(COMPILED_CODE, COMPILED_CODE)
                             SwipeToDismissBox(
                                 state = dismissState,
                                 backgroundContent = {
-                                    val toStart = dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
+                                    val toStart =
+                                        dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
                                     SwipeHint(
                                         if (toStart) "Archive" else "Done",
                                         end = toStart,
@@ -150,7 +149,11 @@ fun TodoListScreen(
 @Composable
 private fun TodoRow(todo: Todo, onClick: () -> Unit, onToggle: () -> Unit) {
     val overdue = todo.dueDate?.let {
-        try { LocalDate.parse(it.take(10)).isBefore(LocalDate.now()) && !todo.completed } catch (_: Exception) { false }
+        try {
+            LocalDate.parse(it.take(10)).isBefore(LocalDate.now()) && !todo.completed
+        } catch (_: Exception) {
+            false
+        }
     } ?: false
     NkCard(
         onClick = onClick,
@@ -168,7 +171,9 @@ private fun TodoRow(todo: Todo, onClick: () -> Unit, onToggle: () -> Unit) {
                     tint = if (todo.completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                 )
             }
-            Column(Modifier.weight(1f).padding(end = 8.dp)) {
+            Column(Modifier
+                .weight(1f)
+                .padding(end = 8.dp)) {
                 Text(
                     todo.title,
                     style = MaterialTheme.typography.titleLarge,
@@ -205,5 +210,7 @@ private fun formatShortDate(iso: String): String {
             date == today.minusDays(1) -> "Yesterday"
             else -> date.format(DateTimeFormatter.ofPattern("MMM d"))
         }
-    } catch (_: Exception) { iso }
+    } catch (_: Exception) {
+        iso
+    }
 }

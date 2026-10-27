@@ -3,13 +3,13 @@ package dev.cogitor.notekeeper.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import dev.cogitor.notekeeper.data.model.VaultFolder
 import dev.cogitor.notekeeper.data.model.VaultItem
 import dev.cogitor.notekeeper.data.model.VaultItemInput
 import dev.cogitor.notekeeper.data.remote.api.VaultApiService
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class VaultViewModel(private val api: VaultApiService) : ViewModel() {
     private val _folders = MutableStateFlow<List<VaultFolder>>(emptyList())

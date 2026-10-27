@@ -31,7 +31,9 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun NkEmptyState(icon: ImageVector, title: String, subtitle: String) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -41,7 +43,11 @@ fun NkEmptyState(icon: ImageVector, title: String, subtitle: String) {
             modifier = Modifier.size(48.dp),
             tint = MaterialTheme.colorScheme.outline
         )
-        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(top = 12.dp)
+        )
         Text(
             subtitle,
             style = MaterialTheme.typography.bodyMedium,
@@ -57,7 +63,10 @@ fun PriorityDot(priority: String?) {
         "medium" -> MaterialTheme.colorScheme.secondary
         else -> MaterialTheme.colorScheme.outline
     }
-    Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+    Box(Modifier
+        .size(8.dp)
+        .clip(CircleShape)
+        .background(color))
 }
 
 @Composable
@@ -72,7 +81,9 @@ fun NkScreenHeader(
             .padding(start = 8.dp, end = 4.dp, top = 12.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(Modifier.weight(1f).padding(end = 8.dp)) {
+        Column(Modifier
+            .weight(1f)
+            .padding(end = 8.dp)) {
             Text(title, style = MaterialTheme.typography.displaySmall)
             if (!subtitle.isNullOrBlank()) {
                 Text(
@@ -141,6 +152,10 @@ fun SwipeHint(text: String, end: Boolean, color: Color) {
             .padding(horizontal = 20.dp),
         contentAlignment = if (end) Alignment.CenterEnd else Alignment.CenterStart
     ) {
-        Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
+        Text(
+            text,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
+        )
     }
 }

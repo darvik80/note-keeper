@@ -56,7 +56,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
 import dev.cogitor.notekeeper.ui.components.MarkdownText
 import dev.cogitor.notekeeper.ui.components.NkFab
 import dev.cogitor.notekeeper.ui.components.NkGhostField
@@ -65,6 +64,7 @@ import dev.cogitor.notekeeper.ui.components.insertMarkdown
 import dev.cogitor.notekeeper.ui.components.nkTopBarColors
 import dev.cogitor.notekeeper.ui.components.wrapMarkdown
 import dev.cogitor.notekeeper.ui.viewmodel.NoteDetailViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -212,7 +212,11 @@ fun NoteDetailScreen(
                             onClick = { tagList = tagList.filterNot { it == tag } },
                             label = { Text("#$tag") },
                             trailingIcon = {
-                                Icon(Icons.Outlined.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp))
+                                Icon(
+                                    Icons.Outlined.Close,
+                                    contentDescription = "Remove",
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
                         )
                     }
@@ -240,7 +244,9 @@ fun NoteDetailScreen(
                                     Text(
                                         "tags",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                            alpha = 0.4f
+                                        )
                                     )
                                 }
                                 inner()
@@ -312,7 +318,9 @@ fun NoteDetailScreen(
                         Spacer(Modifier.height(8.dp))
                         attachments.forEach { attachment ->
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(

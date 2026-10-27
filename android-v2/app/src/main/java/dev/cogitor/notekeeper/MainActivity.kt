@@ -9,15 +9,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +31,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -40,8 +40,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import dev.cogitor.notekeeper.data.local.NoteDatabase
 import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.local.TokenDataStore
@@ -67,6 +65,8 @@ import dev.cogitor.notekeeper.ui.viewmodel.NoteListViewModel
 import dev.cogitor.notekeeper.ui.viewmodel.TodoDetailViewModel
 import dev.cogitor.notekeeper.ui.viewmodel.TodoListViewModel
 import dev.cogitor.notekeeper.ui.viewmodel.VaultViewModel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
     private lateinit var tokenDataStore: TokenDataStore
@@ -186,8 +186,15 @@ fun NoteKeeperNavHost(
                     tonalElevation = 0.dp
                 ) {
                     listOf(
-                        NavTab("notes", "Notes", Icons.Filled.Notes, Icons.Outlined.Notes),
-                        NavTab("todos", "Todos", Icons.Filled.CheckCircle, Icons.Outlined.CheckCircle),
+                        NavTab("notes", "Notes", Icons.AutoMirrored.Filled.Notes,
+                            Icons.AutoMirrored.Outlined.Notes
+                        ),
+                        NavTab(
+                            "todos",
+                            "Todos",
+                            Icons.Filled.CheckCircle,
+                            Icons.Outlined.CheckCircle
+                        ),
                         NavTab("vault", "Vault", Icons.Filled.Lock, Icons.Outlined.Lock),
                         NavTab("search", "Search", Icons.Filled.Search, Icons.Outlined.Search)
                     ).forEach { tab ->
@@ -201,7 +208,12 @@ fun NoteKeeperNavHost(
                                     restoreState = true
                                 }
                             },
-                            icon = { Icon(if (selected) tab.selectedIcon else tab.icon, contentDescription = tab.label) },
+                            icon = {
+                                Icon(
+                                    if (selected) tab.selectedIcon else tab.icon,
+                                    contentDescription = tab.label
+                                )
+                            },
                             label = { Text(tab.label) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.primary,

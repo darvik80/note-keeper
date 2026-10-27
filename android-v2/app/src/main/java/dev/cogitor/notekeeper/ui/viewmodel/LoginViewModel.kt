@@ -3,13 +3,13 @@ package dev.cogitor.notekeeper.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dev.cogitor.notekeeper.data.local.TokenDataStore
+import dev.cogitor.notekeeper.data.model.AuthRequest
+import dev.cogitor.notekeeper.data.remote.api.AuthApiService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import dev.cogitor.notekeeper.data.local.TokenDataStore
-import dev.cogitor.notekeeper.data.model.AuthRequest
-import dev.cogitor.notekeeper.data.remote.api.AuthApiService
 
 class LoginViewModel(
     private val authApiService: AuthApiService,

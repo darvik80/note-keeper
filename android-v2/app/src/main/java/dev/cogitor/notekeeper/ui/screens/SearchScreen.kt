@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Notes
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.Icon
@@ -30,12 +30,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import dev.cogitor.notekeeper.data.model.SearchResult
 import dev.cogitor.notekeeper.data.remote.RetrofitClient
 import dev.cogitor.notekeeper.ui.components.NkCard
 import dev.cogitor.notekeeper.ui.components.NkEmptyState
 import dev.cogitor.notekeeper.ui.components.NkScreenHeader
+import kotlinx.coroutines.launch
 
 @Composable
 fun SearchScreen(
@@ -49,7 +49,10 @@ fun SearchScreen(
     val todos = result?.todos.orEmpty()
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp)) {
+        Column(Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .padding(horizontal = 20.dp)) {
             NkScreenHeader(title = "Search")
             OutlinedTextField(
                 value = query,
@@ -77,10 +80,14 @@ fun SearchScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(notes, key = { "n-${it.id}" }) { note ->
-                        SearchRow(note.title, "Note", Icons.Outlined.Notes) { onNoteClick(note.id) }
+                        SearchRow(note.title, "Note", Icons.AutoMirrored.Outlined.Notes) { onNoteClick(note.id) }
                     }
                     items(todos, key = { "t-${it.id}" }) { todo ->
-                        SearchRow(todo.title, "Todo", Icons.Outlined.TaskAlt) { onTodoClick(todo.id) }
+                        SearchRow(
+                            todo.title,
+                            "Todo",
+                            Icons.Outlined.TaskAlt
+                        ) { onTodoClick(todo.id) }
                     }
                 }
             }
@@ -96,7 +103,11 @@ private fun SearchRow(title: String, kind: String, icon: ImageVector, onClick: (
             Column(Modifier.padding(start = 14.dp)) {
                 Text(title, style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(4.dp))
-                Text(kind, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    kind,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

@@ -89,7 +89,9 @@ object TodoMapper {
             notificationChannels = todo.notificationChannels,
             schedule = ScheduleInput(
                 repeat = todo.scheduleRepeat ?: "none",
-                endDate = if ((todo.scheduleRepeat ?: "none") != "none") todo.scheduleEndDate else null
+                endDate = if ((todo.scheduleRepeat
+                        ?: "none") != "none"
+                ) todo.scheduleEndDate else null
             ),
             attachments = todo.attachments?.map { att ->
                 AttachmentInput(

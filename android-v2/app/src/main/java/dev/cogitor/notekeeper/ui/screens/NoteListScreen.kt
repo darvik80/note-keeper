@@ -12,8 +12,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.CircularProgressIndicator
@@ -23,7 +23,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -66,13 +65,18 @@ fun NoteListScreen(
             }
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier
+            .fillMaxSize()
+            .padding(padding)) {
             NkScreenHeader(
                 title = "Notes",
                 subtitle = if (notes.isEmpty()) null else "${notes.size}"
             ) {
                 IconButton(onClick = { viewModel.syncNotes() }) {
-                    if (isSyncing) CircularProgressIndicator(Modifier.padding(8.dp), strokeWidth = 2.dp)
+                    if (isSyncing) CircularProgressIndicator(
+                        Modifier.padding(8.dp),
+                        strokeWidth = 2.dp
+                    )
                     else Icon(Icons.Outlined.Sync, contentDescription = "Sync")
                 }
                 IconButton(onClick = onSettingsClick) {
@@ -96,26 +100,24 @@ fun NoteListScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 if (notes.isEmpty()) {
-                    NkEmptyState(Icons.Outlined.Notes, "No notes yet", "Tap + to write one")
+                    NkEmptyState(Icons.AutoMirrored.Outlined.Notes, "No notes yet", "Tap + to write one")
                 } else {
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(notes, key = { it.id }) { note ->
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { value ->
-                                    if (value == SwipeToDismissBoxValue.EndToStart) {
-                                        viewModel.archiveNote(note)
-                                        true
-                                    } else false
-                                }
-                            )
+                            val dismissState =
+                                rememberSwipeToDismissBoxState(COMPILED_CODE, COMPILED_CODE)
                             SwipeToDismissBox(
                                 state = dismissState,
                                 enableDismissFromStartToEnd = false,
                                 backgroundContent = {
-                                    SwipeHint("Archive", end = true, color = MaterialTheme.colorScheme.secondaryContainer)
+                                    SwipeHint(
+                                        "Archive",
+                                        end = true,
+                                        color = MaterialTheme.colorScheme.secondaryContainer
+                                    )
                                 }
                             ) {
                                 NoteRow(note = note, onClick = { onNoteClick(note.id) })

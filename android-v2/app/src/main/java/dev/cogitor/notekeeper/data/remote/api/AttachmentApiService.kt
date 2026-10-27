@@ -1,5 +1,6 @@
 package dev.cogitor.notekeeper.data.remote.api
 
+import dev.cogitor.notekeeper.data.model.Attachment
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -10,7 +11,6 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Streaming
-import dev.cogitor.notekeeper.data.model.Attachment
 
 interface AttachmentApiService {
 

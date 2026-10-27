@@ -3,13 +3,13 @@ package dev.cogitor.notekeeper.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dev.cogitor.notekeeper.data.model.Todo
+import dev.cogitor.notekeeper.data.repository.TodoRepository
+import dev.cogitor.notekeeper.data.sync.NetworkConnectivityObserver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import dev.cogitor.notekeeper.data.model.Todo
-import dev.cogitor.notekeeper.data.repository.TodoRepository
-import dev.cogitor.notekeeper.data.sync.NetworkConnectivityObserver
 
 class TodoListViewModel(
     private val repository: TodoRepository,

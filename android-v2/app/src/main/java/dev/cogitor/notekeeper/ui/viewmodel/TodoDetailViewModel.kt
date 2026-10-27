@@ -3,14 +3,14 @@ package dev.cogitor.notekeeper.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import dev.cogitor.notekeeper.data.model.Attachment
 import dev.cogitor.notekeeper.data.model.SyncStatus
 import dev.cogitor.notekeeper.data.model.Todo
 import dev.cogitor.notekeeper.data.repository.TodoRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class TodoDetailViewModel(
     private val repository: TodoRepository
@@ -48,7 +48,16 @@ class TodoDetailViewModel(
     ) {
         viewModelScope.launch {
             _isSaving.value = true
-            repository.createTodo(title, description, tags, priority, dueDate, reminder, scheduleRepeat, notificationChannels)
+            repository.createTodo(
+                title,
+                description,
+                tags,
+                priority,
+                dueDate,
+                reminder,
+                scheduleRepeat,
+                notificationChannels
+            )
             _isSaving.value = false
         }
     }

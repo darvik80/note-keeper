@@ -23,12 +23,12 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -46,12 +46,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.notification.NotificationHelper
 import dev.cogitor.notekeeper.ui.components.nkTopBarColors
 import dev.cogitor.notekeeper.ui.theme.AppThemeId
 import dev.cogitor.notekeeper.ui.theme.palette
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,7 +87,10 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface
+            ) {
                 Column(Modifier.padding(16.dp)) {
                     Text("Theme", style = MaterialTheme.typography.titleMedium)
                     Text(
@@ -98,7 +101,9 @@ fun SettingsScreen(
                     Spacer(Modifier.height(14.dp))
                     AppThemeId.entries.chunked(4).forEach { row ->
                         Row(
-                            Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 10.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             row.forEach { theme ->
@@ -116,7 +121,10 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(16.dp))
-            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface
+            ) {
                 Column(Modifier.padding(16.dp)) {
                     Text("Notifications", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(12.dp))
@@ -130,8 +138,13 @@ fun SettingsScreen(
                             readOnly = true,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                            leadingIcon = { Icon(Icons.Outlined.Notifications, contentDescription = null) },
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Outlined.Notifications,
+                                    contentDescription = null
+                                )
+                            },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = channelExpanded) }
                         )
                         ExposedDropdownMenu(
@@ -142,7 +155,10 @@ fun SettingsScreen(
                                 DropdownMenuItem(
                                     text = {
                                         Column {
-                                            Text(ch.name, style = MaterialTheme.typography.bodyMedium)
+                                            Text(
+                                                ch.name,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
                                             Text(
                                                 ch.description,
                                                 style = MaterialTheme.typography.bodySmall,
@@ -151,7 +167,11 @@ fun SettingsScreen(
                                         }
                                     },
                                     onClick = {
-                                        scope.launch { settingsDataStore.saveDefaultNotificationChannel(ch.id) }
+                                        scope.launch {
+                                            settingsDataStore.saveDefaultNotificationChannel(
+                                                ch.id
+                                            )
+                                        }
                                         channelExpanded = false
                                     },
                                     leadingIcon = if (defaultChannel == ch.id) {
@@ -165,10 +185,17 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(16.dp))
-            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface
+            ) {
                 Column(Modifier.padding(16.dp)) {
                     Text("NoteKeeper", style = MaterialTheme.typography.titleMedium)
-                    Text("Android v2.0", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Android v2.0",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Text(
                         "Offline-first notes, todos and vault. Google and Yandex sign-in.",
                         style = MaterialTheme.typography.bodySmall,
@@ -210,9 +237,18 @@ private fun ThemeSwatch(
                 modifier = Modifier.align(Alignment.BottomStart),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Box(Modifier.size(10.dp).clip(CircleShape).background(palette.primary))
-                Box(Modifier.size(10.dp).clip(CircleShape).background(palette.secondary))
-                Box(Modifier.size(10.dp).clip(CircleShape).background(palette.surface))
+                Box(Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(palette.primary))
+                Box(Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(palette.secondary))
+                Box(Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(palette.surface))
             }
         }
         Text(

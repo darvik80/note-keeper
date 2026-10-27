@@ -97,11 +97,30 @@ fun VaultDetailScreen(
         }
     ) { padding ->
         Column(
-            Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState())
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            OutlinedTextField(title, { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(username, { username = it }, label = { Text("Username") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(host, { host = it }, label = { Text("Host") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                title,
+                { title = it },
+                label = { Text("Title") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                username,
+                { username = it },
+                label = { Text("Username") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                host,
+                { host = it },
+                label = { Text("Host") },
+                modifier = Modifier.fillMaxWidth()
+            )
             OutlinedTextField(
                 password,
                 { password = it },
@@ -146,7 +165,9 @@ fun VaultDetailScreen(
                     )
                     onBack()
                 },
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
             ) { Text("Save") }
         }
     }
@@ -154,5 +175,5 @@ fun VaultDetailScreen(
 
 private fun copy(context: Context, value: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    clipboard.setPrimaryClip(ClipData.newPlainText("vault", value))
+    clipboard.primaryClip = ClipData.newPlainText("vault", value)
 }

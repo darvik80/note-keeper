@@ -18,16 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AttachFile
@@ -42,11 +32,21 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -199,9 +199,26 @@ fun TodoDetailScreen(
                     if (title.isNotBlank() && !isSaving) {
                         val tagList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
                         if (isNewTodo) {
-                            viewModel.createTodo(title, description, tagList, priority, dueDate, reminder, scheduleRepeat, serverNotificationChannels.ifBlank { null })
+                            viewModel.createTodo(
+                                title,
+                                description,
+                                tagList,
+                                priority,
+                                dueDate,
+                                reminder,
+                                scheduleRepeat,
+                                serverNotificationChannels.ifBlank { null })
                         } else {
-                            viewModel.updateTodo(title, description, tagList, priority, completed, dueDate, reminder, scheduleRepeat, serverNotificationChannels.ifBlank { null })
+                            viewModel.updateTodo(
+                                title,
+                                description,
+                                tagList,
+                                priority,
+                                completed,
+                                dueDate,
+                                reminder,
+                                scheduleRepeat,
+                                serverNotificationChannels.ifBlank { null })
                         }
                     }
                 }
@@ -257,7 +274,10 @@ fun TodoDetailScreen(
                     leadingIcon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = null) },
                     trailingIcon = if (dueDate != null) {
                         {
-                            IconButton(onClick = { dueDate = null }, modifier = Modifier.size(18.dp)) {
+                            IconButton(
+                                onClick = { dueDate = null },
+                                modifier = Modifier.size(18.dp)
+                            ) {
                                 Icon(Icons.Outlined.Close, contentDescription = "Clear")
                             }
                         }
@@ -274,7 +294,10 @@ fun TodoDetailScreen(
                     leadingIcon = { Icon(Icons.Outlined.Notifications, contentDescription = null) },
                     trailingIcon = if (reminder != null) {
                         {
-                            IconButton(onClick = { reminder = null }, modifier = Modifier.size(18.dp)) {
+                            IconButton(
+                                onClick = { reminder = null },
+                                modifier = Modifier.size(18.dp)
+                            ) {
                                 Icon(Icons.Outlined.Close, contentDescription = "Clear")
                             }
                         }
@@ -295,8 +318,13 @@ fun TodoDetailScreen(
                         readOnly = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                        leadingIcon = { Icon(Icons.Outlined.Notifications, contentDescription = null) },
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                        leadingIcon = {
+                            Icon(
+                                Icons.Outlined.Notifications,
+                                contentDescription = null
+                            )
+                        },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = channelDropdownExpanded) }
                     )
                     ExposedDropdownMenu(
@@ -308,8 +336,11 @@ fun TodoDetailScreen(
                                 text = {
                                     Column {
                                         Text(ch.name, style = MaterialTheme.typography.bodyMedium)
-                                        Text(ch.description, style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.outline)
+                                        Text(
+                                            ch.description,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
                                     }
                                 },
                                 onClick = {
@@ -329,12 +360,15 @@ fun TodoDetailScreen(
                 Text("Server Notifications", style = MaterialTheme.typography.labelMedium)
                 Spacer(modifier = Modifier.height(4.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val channels = serverNotificationChannels.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                    val channels = serverNotificationChannels.split(",").map { it.trim() }
+                        .filter { it.isNotBlank() }
                     listOf("telegram", "dingtalk").forEach { ch ->
                         FilterChip(
                             selected = ch in channels,
                             onClick = {
-                                val current = serverNotificationChannels.split(",").map { it.trim() }.filter { it.isNotBlank() }.toMutableList()
+                                val current =
+                                    serverNotificationChannels.split(",").map { it.trim() }
+                                        .filter { it.isNotBlank() }.toMutableList()
                                 if (ch in current) current.remove(ch) else current.add(ch)
                                 serverNotificationChannels = current.joinToString(",")
                             },
@@ -351,7 +385,14 @@ fun TodoDetailScreen(
                 Text("Repeat", style = MaterialTheme.typography.labelMedium)
                 Spacer(modifier = Modifier.height(4.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("none", "daily", "weekdays", "weekly", "monthly", "custom").forEach { r ->
+                    listOf(
+                        "none",
+                        "daily",
+                        "weekdays",
+                        "weekly",
+                        "monthly",
+                        "custom"
+                    ).forEach { r ->
                         FilterChip(
                             selected = scheduleRepeat == r,
                             onClick = { scheduleRepeat = r },
@@ -473,7 +514,8 @@ fun TodoDetailScreen(
                     // Server notification channels
                     if (serverNotificationChannels.isNotBlank()) {
                         Spacer(modifier = Modifier.height(4.dp))
-                        val channels = serverNotificationChannels.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                        val channels = serverNotificationChannels.split(",").map { it.trim() }
+                            .filter { it.isNotBlank() }
                         Text(
                             text = "Notify via: ${channels.joinToString(", ") { it.replaceFirstChar { c -> c.uppercase() } }}",
                             style = MaterialTheme.typography.bodyMedium
@@ -554,7 +596,12 @@ fun TodoDetailScreen(
     if (showDueDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = dueDate?.let {
-                try { LocalDate.parse(it.take(10)).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() } catch (_: Exception) { null }
+                try {
+                    LocalDate.parse(it.take(10)).atStartOfDay(ZoneId.systemDefault()).toInstant()
+                        .toEpochMilli()
+                } catch (_: Exception) {
+                    null
+                }
             }
         )
         DatePickerDialog(
@@ -562,7 +609,8 @@ fun TodoDetailScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        val date = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
+                        val date = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault())
+                            .toLocalDate()
                         dueDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
                     }
                     showDueDatePicker = false
@@ -580,7 +628,12 @@ fun TodoDetailScreen(
     if (showReminderDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = reminder?.let {
-                try { LocalDate.parse(it.take(10)).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() } catch (_: Exception) { null }
+                try {
+                    LocalDate.parse(it.take(10)).atStartOfDay(ZoneId.systemDefault()).toInstant()
+                        .toEpochMilli()
+                } catch (_: Exception) {
+                    null
+                }
             }
         )
         DatePickerDialog(
@@ -588,7 +641,8 @@ fun TodoDetailScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        reminderDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
+                        reminderDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault())
+                            .toLocalDate()
                         showReminderDatePicker = false
                         showReminderTimePicker = true
                     }
@@ -664,7 +718,9 @@ private fun formatDisplayDate(iso: String): String {
     return try {
         val date = LocalDate.parse(iso.take(10))
         date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
-    } catch (_: Exception) { iso }
+    } catch (_: Exception) {
+        iso
+    }
 }
 
 private fun formatDisplayDateTime(iso: String): String {
@@ -672,7 +728,9 @@ private fun formatDisplayDateTime(iso: String): String {
         val instant = Instant.parse(iso)
         val dt = instant.atZone(ZoneId.systemDefault()).toLocalDateTime()
         dt.format(DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm"))
-    } catch (_: Exception) { iso }
+    } catch (_: Exception) {
+        iso
+    }
 }
 
 private fun getPathFromUri(context: android.content.Context, uri: Uri): String? {

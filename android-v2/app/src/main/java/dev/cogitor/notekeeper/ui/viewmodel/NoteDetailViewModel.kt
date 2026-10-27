@@ -3,14 +3,14 @@ package dev.cogitor.notekeeper.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import dev.cogitor.notekeeper.data.model.Attachment
 import dev.cogitor.notekeeper.data.model.Note
 import dev.cogitor.notekeeper.data.model.SyncStatus
 import dev.cogitor.notekeeper.data.repository.NoteRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class NoteDetailViewModel(
     private val repository: NoteRepository

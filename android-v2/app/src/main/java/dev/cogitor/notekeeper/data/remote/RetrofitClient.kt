@@ -1,11 +1,5 @@
 package dev.cogitor.notekeeper.data.remote
 
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.local.TokenDataStore
 import dev.cogitor.notekeeper.data.remote.api.AttachmentApiService
@@ -15,6 +9,12 @@ import dev.cogitor.notekeeper.data.remote.api.SearchApiService
 import dev.cogitor.notekeeper.data.remote.api.TagApiService
 import dev.cogitor.notekeeper.data.remote.api.TodoApiService
 import dev.cogitor.notekeeper.data.remote.api.VaultApiService
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 

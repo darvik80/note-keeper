@@ -1,5 +1,8 @@
 package dev.cogitor.notekeeper.data.remote.api
 
+import dev.cogitor.notekeeper.data.model.SavedQuery
+import dev.cogitor.notekeeper.data.model.SavedQueryInput
+import dev.cogitor.notekeeper.data.model.SearchResult
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -7,9 +10,6 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
-import dev.cogitor.notekeeper.data.model.SavedQuery
-import dev.cogitor.notekeeper.data.model.SavedQueryInput
-import dev.cogitor.notekeeper.data.model.SearchResult
 
 interface SearchApiService {
 
