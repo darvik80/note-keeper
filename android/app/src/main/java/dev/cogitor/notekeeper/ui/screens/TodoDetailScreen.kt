@@ -78,6 +78,7 @@ import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.notification.NotificationHelper
 import dev.cogitor.notekeeper.ui.components.MarkdownText
 import dev.cogitor.notekeeper.ui.components.NkFab
+import dev.cogitor.notekeeper.ui.components.NkTagInput
 import dev.cogitor.notekeeper.ui.components.nkTopBarColors
 import dev.cogitor.notekeeper.ui.viewmodel.TodoDetailViewModel
 import java.time.Instant
@@ -106,7 +107,8 @@ fun TodoDetailScreen(
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var tags by remember { mutableStateOf("") }
+    var tagList by remember { mutableStateOf(listOf<String>()) }
+    var tagDraft by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf("medium") }
     var completed by remember { mutableStateOf(false) }
     var dueDate by remember { mutableStateOf<String?>(null) }
@@ -157,7 +159,8 @@ fun TodoDetailScreen(
         todo?.let {
             title = it.title
             description = it.description ?: ""
-            tags = (it.tags ?: emptyList()).joinToString(", ")
+            tagList = it.tags.orEmpty()
+            tagDraft = ""
             priority = it.priority ?: "medium"
             completed = it.completed
             dueDate = it.dueDate
@@ -168,8 +171,14 @@ fun TodoDetailScreen(
         }
     }
 
+    fun commitTagDraft() {
+        val next = tagDraft.trim().trimStart('#')
+        if (next.isNotBlank() && next !in tagList) tagList = tagList + next
+        tagDraft = ""
+    }
+
     suspend fun persist(announce: Boolean = false) {
-        val tagList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        commitTagDraft()
         val hasBody = description.isNotBlank() || tagList.isNotEmpty() || dueDate != null || reminder != null
         val resolvedTitle = title.trim().ifBlank {
             if (!hasBody) {
@@ -202,7 +211,7 @@ fun TodoDetailScreen(
 
     BackHandler { goBack() }
 
-    LaunchedEffect(title, description, tags, priority, completed, dueDate, reminder, scheduleRepeat, serverNotificationChannels) {
+    LaunchedEffect(title, description, tagList, priority, completed, dueDate, reminder, scheduleRepeat, serverNotificationChannels) {
         if (isNewTodo || todo == null || title.isBlank()) return@LaunchedEffect
         delay(800)
         persist(announce = false)
@@ -478,12 +487,11 @@ fun TodoDetailScreen(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
-                    value = tags,
-                    onValueChange = { tags = it },
-                    label = { Text("Tags (comma separated)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                NkTagInput(
+                    tags = tagList,
+                    onTagsChange = { tagList = it },
+                    draft = tagDraft,
+                    onDraftChange = { tagDraft = it }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
@@ -545,11 +553,10 @@ fun TodoDetailScreen(
                         )
                     }
 
-                    if (tags.isNotBlank()) {
+                    if (tagList.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
-                                .joinToString(" ") { "#$it" },
+                            text = tagList.joinToString(" ") { "#$it" },
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )

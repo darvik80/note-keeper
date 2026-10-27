@@ -6,10 +6,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,14 +16,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Share
@@ -40,7 +35,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -59,7 +53,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.ViewCompat
@@ -71,6 +64,7 @@ import dev.cogitor.notekeeper.ui.components.MarkdownText
 import dev.cogitor.notekeeper.ui.components.NkFab
 import dev.cogitor.notekeeper.ui.components.NkGhostField
 import dev.cogitor.notekeeper.ui.components.NkMarkdownBar
+import dev.cogitor.notekeeper.ui.components.NkTagInput
 import dev.cogitor.notekeeper.ui.components.insertMarkdown
 import dev.cogitor.notekeeper.ui.components.nkTopBarColors
 import dev.cogitor.notekeeper.ui.components.wrapMarkdown
@@ -290,59 +284,12 @@ fun NoteDetailScreen(
                     singleLine = true,
                     modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
                 )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    tagList.forEach { tag ->
-                        InputChip(
-                            selected = false,
-                            onClick = { tagList = tagList.filterNot { it == tag } },
-                            label = { Text("#$tag") },
-                            trailingIcon = {
-                                Icon(
-                                    Icons.Outlined.Close,
-                                    contentDescription = "Remove",
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        )
-                    }
-                    BasicTextField(
-                        value = tagDraft,
-                        onValueChange = { value ->
-                            if (value.endsWith(",") || value.endsWith(" ") || value.endsWith("\n")) {
-                                tagDraft = value
-                                commitTagDraft()
-                            } else {
-                                tagDraft = value
-                            }
-                        },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onBackground
-                        ),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        modifier = Modifier
-                            .padding(vertical = 10.dp)
-                            .weight(1f, fill = false),
-                        decorationBox = { inner ->
-                            Box {
-                                if (tagDraft.isEmpty() && tagList.isEmpty()) {
-                                    Text(
-                                        "tags",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                            alpha = 0.4f
-                                        )
-                                    )
-                                }
-                                inner()
-                            }
-                        }
-                    )
-                }
+                NkTagInput(
+                    tags = tagList,
+                    onTagsChange = { tagList = it },
+                    draft = tagDraft,
+                    onDraftChange = { tagDraft = it }
+                )
                 Row(
                     modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)

@@ -61,4 +61,7 @@ interface NoteDao {
 
     @Query("DELETE FROM notes WHERE isDeleted = 1 AND syncStatus = 'SYNCED'")
     suspend fun clearSyncedDeletedNotes()
+
+    @Query("SELECT tags FROM notes WHERE isDeleted = 0")
+    suspend fun allTagJson(): List<String>
 }

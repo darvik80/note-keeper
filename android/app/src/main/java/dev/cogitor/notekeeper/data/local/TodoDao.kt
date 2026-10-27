@@ -61,4 +61,7 @@ interface TodoDao {
 
     @Query("DELETE FROM todos WHERE isDeleted = 1 AND syncStatus = 'SYNCED'")
     suspend fun clearSyncedDeletedTodos()
+
+    @Query("SELECT tags FROM todos WHERE isDeleted = 0")
+    suspend fun allTagJson(): List<String>
 }
