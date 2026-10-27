@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import dev.cogitor.notekeeper.data.model.VaultFolder
+import dev.cogitor.notekeeper.data.model.VaultFolderInput
 import dev.cogitor.notekeeper.data.model.VaultItem
 import dev.cogitor.notekeeper.data.model.VaultItemInput
 import dev.cogitor.notekeeper.data.remote.api.VaultApiService
@@ -23,11 +24,57 @@ class VaultViewModel(private val api: VaultApiService) : ViewModel() {
     private val _saving = MutableStateFlow(false)
     val saving = _saving.asStateFlow()
 
-    fun load(folderId: String? = null, q: String? = null) {
+    private val _folderId = MutableStateFlow<String?>(null)
+    val folderId = _folderId.asStateFlow()
+
+    private var lastQuery: String? = null
+
+    fun selectFolder(id: String?) {
+        _folderId.value = id
+        load()
+    }
+
+    fun load(folderId: String? = _folderId.value, q: String? = lastQuery) {
+        lastQuery = q
         viewModelScope.launch {
             try {
                 _folders.value = api.listFolders().body().orEmpty()
                 _items.value = api.listItems(folderId, q).body().orEmpty()
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
+    }
+
+    fun loadFolders() {
+        viewModelScope.launch {
+            try {
+                _folders.value = api.listFolders().body().orEmpty()
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
+    }
+
+    fun deleteFolder(id: String) {
+        viewModelScope.launch {
+            try {
+                api.deleteFolder(id)
+                if (_folderId.value == id) _folderId.value = null
+                load()
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
+    }
+
+    fun createFolder(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                api.createFolder(VaultFolderInput(trimmed, _folderId.value))
+                load()
             } catch (e: Exception) {
                 _error.value = e.message
             }

@@ -1,6 +1,7 @@
 package dev.cogitor.notekeeper
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -38,8 +39,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dev.cogitor.notekeeper.data.local.NoteDatabase
@@ -272,11 +275,30 @@ fun NoteKeeperNavHost(
                 NoteListScreen(
                     viewModel = viewModel,
                     onNoteClick = { navController.navigate("note/$it") },
-                    onAddClick = { navController.navigate("note/new") },
+                    onAddClick = { folder, sub ->
+                        val route = buildString {
+                            append("note/new?folder=${Uri.encode(folder)}")
+                            if (!sub.isNullOrBlank()) append("&sub=${Uri.encode(sub)}")
+                        }
+                        navController.navigate(route)
+                    },
                     onSettingsClick = { navController.navigate("settings") }
                 )
             }
-            composable("note/{noteId}") { backStackEntry ->
+            composable(
+                route = "note/{noteId}?folder={folder}&sub={sub}",
+                arguments = listOf(
+                    navArgument("noteId") { type = NavType.StringType },
+                    navArgument("folder") {
+                        type = NavType.StringType
+                        defaultValue = "default"
+                    },
+                    navArgument("sub") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { backStackEntry ->
                 val noteId = backStackEntry.arguments?.getString("noteId")
                 val viewModel: NoteDetailViewModel = viewModel(
                     factory = NoteDetailViewModel.Factory(repository)
@@ -284,7 +306,9 @@ fun NoteKeeperNavHost(
                 NoteDetailScreen(
                     viewModel = viewModel,
                     noteId = if (noteId == "new") null else noteId,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    initialFolder = backStackEntry.arguments?.getString("folder") ?: "default",
+                    initialSubfolder = backStackEntry.arguments?.getString("sub")?.ifBlank { null }
                 )
             }
             composable("settings") {
@@ -330,11 +354,25 @@ fun NoteKeeperNavHost(
                 VaultListScreen(
                     viewModel = viewModel,
                     onItemClick = { navController.navigate("vault/$it") },
-                    onAddClick = { navController.navigate("vault/new") },
+                    onAddClick = { folderId ->
+                        navController.navigate(
+                            if (folderId.isNullOrBlank()) "vault/new"
+                            else "vault/new?folder=${Uri.encode(folderId)}"
+                        )
+                    },
                     onSettingsClick = { navController.navigate("settings") }
                 )
             }
-            composable("vault/{itemId}") { backStackEntry ->
+            composable(
+                route = "vault/{itemId}?folder={folder}",
+                arguments = listOf(
+                    navArgument("itemId") { type = NavType.StringType },
+                    navArgument("folder") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { backStackEntry ->
                 val itemId = backStackEntry.arguments?.getString("itemId")
                 val viewModel: VaultViewModel = viewModel(
                     factory = VaultViewModel.Factory(RetrofitClient.vaultApiService)
@@ -342,7 +380,8 @@ fun NoteKeeperNavHost(
                 VaultDetailScreen(
                     viewModel = viewModel,
                     itemId = if (itemId == "new") null else itemId,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    initialFolderId = backStackEntry.arguments?.getString("folder")?.ifBlank { null }
                 )
             }
             composable("search") {

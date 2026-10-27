@@ -41,7 +41,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -77,7 +76,9 @@ import androidx.compose.ui.unit.dp
 import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.notification.NotificationHelper
 import dev.cogitor.notekeeper.ui.components.MarkdownText
+import dev.cogitor.notekeeper.ui.components.NkEditPreviewToggle
 import dev.cogitor.notekeeper.ui.components.NkFab
+import dev.cogitor.notekeeper.ui.components.NkShareDialog
 import dev.cogitor.notekeeper.ui.components.NkTagInput
 import dev.cogitor.notekeeper.ui.components.nkTopBarColors
 import dev.cogitor.notekeeper.ui.viewmodel.TodoDetailViewModel
@@ -102,6 +103,7 @@ fun TodoDetailScreen(
     val saveLabel by viewModel.saveLabel.collectAsState()
     val attachments by viewModel.attachments.collectAsState()
     val shareResult by viewModel.shareResult.collectAsState()
+    val completions by viewModel.completions.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -118,8 +120,8 @@ fun TodoDetailScreen(
     var isNewTodo by remember { mutableStateOf(todoId == null) }
     var isEditing by remember { mutableStateOf(todoId == null) }
     var showShareDialog by remember { mutableStateOf(false) }
+    var confirmForever by remember { mutableStateOf(false) }
     var showMore by remember { mutableStateOf(false) }
-    var shareUserId by remember { mutableStateOf("") }
     var showDueDatePicker by remember { mutableStateOf(false) }
     var showReminderDatePicker by remember { mutableStateOf(false) }
     var showReminderTimePicker by remember { mutableStateOf(false) }
@@ -223,22 +225,7 @@ fun TodoDetailScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    if (isNewTodo) {
-                        Text("New Todo")
-                    } else {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(
-                                selected = isEditing,
-                                onClick = { isEditing = true },
-                                label = { Text("Edit") }
-                            )
-                            FilterChip(
-                                selected = !isEditing,
-                                onClick = { isEditing = false },
-                                label = { Text("Preview") }
-                            )
-                        }
-                    }
+                    NkEditPreviewToggle(isEditing = isEditing, onChange = { isEditing = it })
                 },
                 colors = nkTopBarColors(),
                 navigationIcon = {
@@ -257,6 +244,9 @@ fun TodoDetailScreen(
                     }
                     if (todo?.isDeleted == true || todo?.isArchived == true) {
                         TextButton(onClick = { viewModel.restoreTodo() }) { Text("Restore") }
+                        if (todo?.isDeleted == true) {
+                            TextButton(onClick = { confirmForever = true }) { Text("Delete forever") }
+                        }
                     } else if (!isNewTodo) {
                         IconButton(onClick = { viewModel.toggleComplete() }) {
                             Icon(
@@ -281,6 +271,20 @@ fun TodoDetailScreen(
                                     showShareDialog = true
                                 },
                                 leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Send to Telegram") },
+                                onClick = {
+                                    showMore = false
+                                    viewModel.sendToChannel(telegram = true)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Send to DingTalk") },
+                                onClick = {
+                                    showMore = false
+                                    viewModel.sendToChannel(telegram = false)
+                                }
                             )
                             DropdownMenuItem(
                                 text = { Text("Move to Trash") },
@@ -591,6 +595,18 @@ fun TodoDetailScreen(
                         )
                     }
 
+                    if (completions.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Completions", style = MaterialTheme.typography.titleMedium)
+                        completions.take(12).forEach { log ->
+                            Text(
+                                log.completedAt?.let { formatDisplayDateTime(it) } ?: "done",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
                     // Server notification channels
                     if (serverNotificationChannels.isNotBlank()) {
                         Spacer(modifier = Modifier.height(4.dp))
@@ -762,34 +778,28 @@ fun TodoDetailScreen(
         )
     }
 
-    // Share Dialog
     if (showShareDialog) {
+        NkShareDialog(
+            title = "Share todo",
+            result = shareResult,
+            onShare = { viewModel.shareTodo(it) },
+            onDismiss = { showShareDialog = false }
+        )
+    }
+    if (confirmForever) {
         AlertDialog(
-            onDismissRequest = { showShareDialog = false },
-            title = { Text("Share Todo") },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = shareUserId,
-                        onValueChange = { shareUserId = it },
-                        label = { Text("User ID") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    if (shareResult.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(shareResult, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            },
+            onDismissRequest = { confirmForever = false },
+            title = { Text("Delete forever?") },
+            text = { Text("This cannot be undone.") },
             confirmButton = {
-                TextButton(onClick = { viewModel.shareTodo(shareUserId) }) {
-                    Text("Share")
-                }
+                TextButton(onClick = {
+                    confirmForever = false
+                    viewModel.deleteForever()
+                    onBack()
+                }) { Text("Delete") }
             },
             dismissButton = {
-                TextButton(onClick = { showShareDialog = false }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { confirmForever = false }) { Text("Cancel") }
             }
         )
     }

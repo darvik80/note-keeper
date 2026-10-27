@@ -1,5 +1,8 @@
 package dev.cogitor.notekeeper.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sync
@@ -43,10 +47,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.cogitor.notekeeper.data.model.Note
+import dev.cogitor.notekeeper.data.model.NoteFolders
 import dev.cogitor.notekeeper.data.model.SyncStatus
 import dev.cogitor.notekeeper.ui.components.MarkdownText
 import dev.cogitor.notekeeper.ui.components.NkCard
@@ -64,14 +70,26 @@ import kotlinx.coroutines.launch
 fun NoteListScreen(
     viewModel: NoteListViewModel,
     onNoteClick: (String) -> Unit,
-    onAddClick: () -> Unit,
+    onAddClick: (folder: String, subfolder: String?) -> Unit,
     onSettingsClick: () -> Unit
 ) {
     val notes by viewModel.notes.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
     val syncStatus by viewModel.syncStatus.collectAsState()
     val filter by viewModel.filter.collectAsState()
+    val folderPath by viewModel.folderPath.collectAsState()
+    val folders by viewModel.folders.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val importPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            val path = copyUriToCache(context, it) ?: return@let
+            val (folder, sub) = NoteFolders.parse(folderPath)
+            viewModel.importNote(java.io.File(path), folder, sub)
+        }
+    }
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -80,7 +98,10 @@ fun NoteListScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if (filter == NoteListFilter.Active) {
-                NkFab(onClick = onAddClick) {
+                NkFab(onClick = {
+                    val (folder, sub) = NoteFolders.parse(folderPath)
+                    onAddClick(folder, sub)
+                }) {
                     Icon(Icons.Outlined.Add, contentDescription = "New note")
                 }
             }
@@ -98,6 +119,9 @@ fun NoteListScreen(
                     else -> "${notes.size}"
                 }
             ) {
+                IconButton(onClick = { importPicker.launch(arrayOf("text/*", "text/markdown", "*/*")) }) {
+                    Icon(Icons.Outlined.FileOpen, contentDescription = "Import markdown")
+                }
                 IconButton(onClick = { viewModel.syncNotes() }) {
                     if (isSyncing) CircularProgressIndicator(
                         Modifier.padding(8.dp),
@@ -129,6 +153,16 @@ fun NoteListScreen(
                     label = { Text("All") }
                 )
                 FilterChip(
+                    selected = filter == NoteListFilter.Favorite,
+                    onClick = { viewModel.setFilter(NoteListFilter.Favorite) },
+                    label = { Text("Starred") }
+                )
+                FilterChip(
+                    selected = filter == NoteListFilter.Shared,
+                    onClick = { viewModel.setFilter(NoteListFilter.Shared) },
+                    label = { Text("Shared") }
+                )
+                FilterChip(
                     selected = filter == NoteListFilter.Archive,
                     onClick = { viewModel.setFilter(NoteListFilter.Archive) },
                     label = { Text("Archive") }
@@ -138,6 +172,27 @@ fun NoteListScreen(
                     onClick = { viewModel.setFilter(NoteListFilter.Trash) },
                     label = { Text("Trash") }
                 )
+            }
+            if (folders.isNotEmpty()) {
+                Row(
+                    Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = folderPath == NoteFolders.ALL,
+                        onClick = { viewModel.setFolderPath(NoteFolders.ALL) },
+                        label = { Text("All folders") }
+                    )
+                    folders.forEach { path ->
+                        FilterChip(
+                            selected = folderPath == path,
+                            onClick = { viewModel.setFolderPath(path) },
+                            label = { Text(NoteFolders.label(path)) }
+                        )
+                    }
+                }
             }
             PullToRefreshBox(
                 isRefreshing = isSyncing,
@@ -156,7 +211,22 @@ fun NoteListScreen(
                             "Trash is empty",
                             "Delete a note to find it here. Swipe to restore."
                         )
-                        else -> NkEmptyState(Icons.AutoMirrored.Outlined.Notes, "No notes yet", "Tap + to write one")
+                        NoteListFilter.Favorite -> NkEmptyState(
+                            Icons.Outlined.Inventory2,
+                            "No starred notes",
+                            "Star a note to pin it here"
+                        )
+                        NoteListFilter.Shared -> NkEmptyState(
+                            Icons.AutoMirrored.Outlined.Notes,
+                            "Nothing shared with you",
+                            "Notes others share land here"
+                        )
+                        else -> NkEmptyState(
+                            Icons.AutoMirrored.Outlined.Notes,
+                            if (folderPath == NoteFolders.ALL) "No notes yet" else "Folder is empty",
+                            if (folderPath == NoteFolders.ALL) "Tap + to write one"
+                            else "Tap + to add a note here"
+                        )
                     }
                 } else {
                     LazyColumn(
@@ -253,14 +323,33 @@ private fun NoteRow(note: Note, onClick: () -> Unit) {
                 )
             }
             val tags = note.tags.orEmpty()
-            if (tags.isNotEmpty()) {
+            val folderLabel = if (NoteFolders.isDefault(note.folder, note.subfolder)) null
+            else NoteFolders.path(note.folder, note.subfolder)
+            if (tags.isNotEmpty() || folderLabel != null) {
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    tags.take(3).joinToString("  ") { "#$it" },
+                    buildList {
+                        folderLabel?.let { add(it) }
+                        addAll(tags.take(3).map { "#$it" })
+                    }.joinToString("  "),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
         }
+    }
+}
+
+private fun copyUriToCache(context: android.content.Context, uri: Uri): String? {
+    val cursor = context.contentResolver.query(uri, null, null, null, null)
+    return cursor?.use {
+        val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+        it.moveToFirst()
+        val displayName = it.getString(nameIndex)
+        val file = java.io.File(context.cacheDir, displayName)
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            file.outputStream().use { output -> input.copyTo(output) }
+        }
+        file.absolutePath
     }
 }

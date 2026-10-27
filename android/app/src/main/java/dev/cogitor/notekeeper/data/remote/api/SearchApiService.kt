@@ -28,5 +28,5 @@ interface SearchApiService {
     suspend fun saveQuery(@Body input: SavedQueryInput): Response<SavedQuery>
 
     @DELETE("search/queries/{id}")
-    suspend fun deleteQuery(@Path("id") id: String): Response<Unit>
+    suspend fun deleteQuery(@Path("id") id: String): Response<Void>
 }

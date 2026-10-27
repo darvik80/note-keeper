@@ -137,12 +137,13 @@ Theme is in the header, not in Settings.
 
 Package `dev.cogitor.notekeeper.v2`, minSdk 31. Point the client at your server URL (HTTPS in production).
 
-Bottom nav: **Notes | Todos | Vault | Search**. Gear on every tab opens **Settings** (theme, notifications, **Log out**).
+Bottom nav: **Notes | Todos | Vault | Search**. Gear on every tab opens **Settings** (theme, notifications, Telegram/DingTalk, backup, API tokens, **Log out**).
 
 - Pull to sync. Notes/todos also sync in the background (Room + WorkManager).
-- List chips: notes **All | Archive | Trash**; todos **Active | Done | Archive | Trash**. Swipe a note left → archive (snackbar **Undo**). Swipe a todo right → done, left → archive. In Archive/Trash, swipe to restore. FAB only on the Active list so it does not cover archive/trash cards.
+- List chips: notes **All | Archive | Trash**, then folder chips from `folder`/`subfolder` (same paths as web). Todos **Active | Done | Archive | Trash**. Swipe a note left → archive (snackbar **Undo**). Swipe a todo right → done, left → archive. In Archive/Trash, swipe to restore. FAB only on the Active list so it does not cover archive/trash cards. New note lands in the selected folder.
+- Vault chips: **All** plus server folders (`GET /vault/folders`). Type a name + plus to create. New secret inherits the selected folder; the editor can move it.
 - Back (system or arrow) saves the open note/todo. Empty title with body becomes **Untitled**. Empty new drafts are discarded.
-- Note editor: **Edit | Preview** chips in the top bar. Existing notes open in Preview (rendered Markdown); new notes open in Edit. Amber check FAB saves (snackbar **Saved**); notes also autosave ~800 ms. Keyboard resizes the editor (does not pan the title off-screen). Overflow **⋮**: Share, Attach, Trash. Tags suggest existing values (same `GET /tags` as web, plus local cache); space / comma / Done commits a chip.
+- Note editor: pencil / eye in the top bar (edit vs preview). Existing notes open in Preview (rendered Markdown); new notes open in Edit. Amber check FAB saves (snackbar **Saved**); notes also autosave ~800 ms. Keyboard resizes the editor (does not pan the title off-screen). Overflow **⋮**: Share, History, Attach, Trash. Tags suggest existing values (same `GET /tags` as web, plus local cache); space / comma / Done commits a chip. Folder field accepts `Work/Q1` and suggests known paths.
 - Sign-in: email/password, Google, Yandex.
 
 Details: [android/README.md](../android/README.md).

@@ -136,6 +136,16 @@ fun TodoListScreen(
                     label = { Text("Done") }
                 )
                 FilterChip(
+                    selected = filter == TodoListFilter.Favorite,
+                    onClick = { viewModel.setFilter(TodoListFilter.Favorite) },
+                    label = { Text("Starred") }
+                )
+                FilterChip(
+                    selected = filter == TodoListFilter.Shared,
+                    onClick = { viewModel.setFilter(TodoListFilter.Shared) },
+                    label = { Text("Shared") }
+                )
+                FilterChip(
                     selected = filter == TodoListFilter.Archive,
                     onClick = { viewModel.setFilter(TodoListFilter.Archive) },
                     label = { Text("Archive") }
@@ -167,6 +177,16 @@ fun TodoListScreen(
                             Icons.Outlined.DeleteOutline,
                             "Trash is empty",
                             "Delete a todo to find it here. Swipe to restore."
+                        )
+                        TodoListFilter.Favorite -> NkEmptyState(
+                            Icons.Outlined.TaskAlt,
+                            "No starred tasks",
+                            "Favorite a todo to pin it here"
+                        )
+                        TodoListFilter.Shared -> NkEmptyState(
+                            Icons.Outlined.TaskAlt,
+                            "Nothing shared with you",
+                            "Todos others share land here"
                         )
                         else -> NkEmptyState(Icons.Outlined.TaskAlt, "No open tasks", "Tap + to add a task")
                     }

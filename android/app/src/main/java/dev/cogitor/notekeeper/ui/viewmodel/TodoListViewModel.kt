@@ -12,9 +12,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 
-enum class TodoListFilter { Active, Done, Archive, Trash }
+enum class TodoListFilter { Active, Done, Favorite, Shared, Archive, Trash }
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TodoListViewModel(
@@ -40,6 +41,8 @@ class TodoListViewModel(
                 when (current) {
                     TodoListFilter.Active -> repository.getTodosByCompletion(completed = false)
                     TodoListFilter.Done -> repository.getTodosByCompletion(completed = true)
+                    TodoListFilter.Favorite -> repository.getFavoriteTodos()
+                    TodoListFilter.Shared -> flow { emit(repository.getSharedWithMe()) }
                     TodoListFilter.Archive -> repository.getArchivedTodos()
                     TodoListFilter.Trash -> repository.getDeletedTodos()
                 }
@@ -92,6 +95,12 @@ class TodoListViewModel(
     fun restoreTodo(todo: Todo) {
         viewModelScope.launch {
             repository.restoreTodo(todo)
+        }
+    }
+
+    fun deleteForever(todo: Todo) {
+        viewModelScope.launch {
+            repository.deleteTodo(todo, permanent = true)
         }
     }
 

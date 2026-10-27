@@ -64,4 +64,12 @@ interface NoteDao {
 
     @Query("SELECT tags FROM notes WHERE isDeleted = 0")
     suspend fun allTagJson(): List<String>
+
+    @Query("SELECT folder, subfolder FROM notes WHERE isDeleted = 0")
+    suspend fun listFolderRows(): List<FolderRow>
 }
+
+data class FolderRow(
+    val folder: String,
+    val subfolder: String?
+)

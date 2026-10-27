@@ -3,6 +3,7 @@ package dev.cogitor.notekeeper.data.repository
 import dev.cogitor.notekeeper.data.local.NoteDao
 import dev.cogitor.notekeeper.data.model.Attachment
 import dev.cogitor.notekeeper.data.model.Note
+import dev.cogitor.notekeeper.data.model.NoteFolders
 import dev.cogitor.notekeeper.data.model.SyncStatus
 import dev.cogitor.notekeeper.data.remote.api.AttachmentApiService
 import dev.cogitor.notekeeper.data.remote.api.NoteApiService
@@ -60,7 +61,9 @@ class NoteRepository(
         content: String,
         folder: String = "default",
         tags: List<String> = emptyList(),
-        priority: String = "medium"
+        priority: String = "medium",
+        subfolder: String? = null,
+        reminder: String? = null
     ): Note {
         val localId = UUID.randomUUID().toString()
         val note = Note(
@@ -69,11 +72,21 @@ class NoteRepository(
             content = content,
             tags = tags,
             folder = folder,
+            subfolder = subfolder?.trim()?.takeIf { it.isNotBlank() },
             priority = priority,
+            reminder = reminder,
             syncStatus = SyncStatus.PENDING_CREATE
         )
         noteDao.insertNote(NoteMapper.toEntity(note))
         return note
+    }
+
+    suspend fun folderPaths(): List<String> {
+        return noteDao.listFolderRows()
+            .map { NoteFolders.path(it.folder, it.subfolder) }
+            .filter { it.isNotBlank() && it != "default" }
+            .distinct()
+            .sorted()
     }
 
     suspend fun updateNote(note: Note) {
@@ -82,6 +95,9 @@ class NoteRepository(
     }
 
     suspend fun deleteNote(note: Note, permanent: Boolean = false) {
+        if (permanent) {
+            runCatching { apiService.deleteNote(note.id, permanent = true) }
+        }
         if (permanent || note.syncStatus == SyncStatus.PENDING_CREATE) {
             if (note.localId != 0L) {
                 noteDao.deleteNoteByLocalId(note.localId)
@@ -183,6 +199,52 @@ class NoteRepository(
             response.isSuccessful
         } catch (e: Exception) {
             false
+        }
+    }
+
+    suspend fun downloadAttachment(attachmentId: String, dest: File): File? {
+        return try {
+            val response = attachmentApiService.downloadAttachment(attachmentId)
+            val body = response.body() ?: return null
+            dest.outputStream().use { out -> body.byteStream().copyTo(out) }
+            dest
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun history(id: String) = runCatching {
+        apiService.getNoteHistory(id).body().orEmpty()
+    }.getOrElse { emptyList() }
+
+    suspend fun restoreVersion(note: Note, historyId: String): Note? {
+        return try {
+            val response = apiService.restoreVersion(note.id, historyId)
+            val body = response.body() ?: return null
+            val mapped = NoteMapper.fromResponse(body).copy(
+                localId = note.localId,
+                syncStatus = SyncStatus.SYNCED
+            )
+            noteDao.updateNote(NoteMapper.toEntity(mapped))
+            mapped
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun importNote(file: File, folder: String?, subfolder: String?): Note? {
+        return try {
+            val part = MultipartBody.Part.createFormData(
+                "file",
+                file.name,
+                file.asRequestBody("text/markdown".toMediaTypeOrNull())
+            )
+            val folderBody = folder?.toRequestBody("text/plain".toMediaTypeOrNull())
+            val subBody = subfolder?.toRequestBody("text/plain".toMediaTypeOrNull())
+            val response = apiService.importNote(part, folderBody, subBody)
+            response.body()?.let { NoteMapper.fromResponse(it) }
+        } catch (e: Exception) {
+            null
         }
     }
 

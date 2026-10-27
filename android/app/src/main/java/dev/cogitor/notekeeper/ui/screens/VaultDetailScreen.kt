@@ -16,7 +16,11 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +42,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import dev.cogitor.notekeeper.data.model.VaultItemInput
+import dev.cogitor.notekeeper.data.model.displayPath
 import dev.cogitor.notekeeper.ui.components.nkTopBarColors
 import dev.cogitor.notekeeper.ui.viewmodel.VaultViewModel
 
@@ -46,9 +51,11 @@ import dev.cogitor.notekeeper.ui.viewmodel.VaultViewModel
 fun VaultDetailScreen(
     viewModel: VaultViewModel,
     itemId: String?,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    initialFolderId: String? = null
 ) {
     val existing by viewModel.item.collectAsState()
+    val folders by viewModel.folders.collectAsState()
     val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
@@ -57,7 +64,10 @@ fun VaultDetailScreen(
     var privateKey by remember { mutableStateOf("") }
     var showSecret by remember { mutableStateOf(false) }
     var type by remember { mutableStateOf("password") }
+    var folderId by remember { mutableStateOf(initialFolderId) }
+    var folderMenu by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) { viewModel.loadFolders() }
     LaunchedEffect(itemId) {
         if (itemId != null) viewModel.loadItem(itemId)
     }
@@ -69,6 +79,7 @@ fun VaultDetailScreen(
             password = it.password ?: it.secret.orEmpty()
             privateKey = it.privateKey.orEmpty()
             type = it.type
+            folderId = it.folderId
         }
     }
 
@@ -109,6 +120,42 @@ fun VaultDetailScreen(
                 label = { Text("Title") },
                 modifier = Modifier.fillMaxWidth()
             )
+            ExposedDropdownMenuBox(
+                expanded = folderMenu,
+                onExpandedChange = { folderMenu = it }
+            ) {
+                OutlinedTextField(
+                    value = folders.find { it.id == folderId }?.displayPath(folders) ?: "No folder",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Folder") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = folderMenu) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                )
+                ExposedDropdownMenu(
+                    expanded = folderMenu,
+                    onDismissRequest = { folderMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("No folder") },
+                        onClick = {
+                            folderId = null
+                            folderMenu = false
+                        }
+                    )
+                    folders.forEach { folder ->
+                        DropdownMenuItem(
+                            text = { Text(folder.displayPath(folders)) },
+                            onClick = {
+                                folderId = folder.id
+                                folderMenu = false
+                            }
+                        )
+                    }
+                }
+            }
             OutlinedTextField(
                 username,
                 { username = it },
@@ -155,6 +202,7 @@ fun VaultDetailScreen(
                         VaultItemInput(
                             title = title,
                             type = if (privateKey.isNotBlank()) "ssh_key" else "password",
+                            folderId = folderId,
                             username = username,
                             host = host,
                             password = password,

@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import dev.cogitor.notekeeper.data.model.Attachment
+import dev.cogitor.notekeeper.data.model.IntegrationRequest
 import dev.cogitor.notekeeper.data.model.SyncStatus
 import dev.cogitor.notekeeper.data.model.Todo
+import dev.cogitor.notekeeper.data.model.TodoCompletionLog
+import dev.cogitor.notekeeper.data.remote.RetrofitClient
 import dev.cogitor.notekeeper.data.repository.TodoRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,11 +40,15 @@ class TodoDetailViewModel(
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val messages: SharedFlow<String> = _messages.asSharedFlow()
 
+    private val _completions = MutableStateFlow<List<TodoCompletionLog>>(emptyList())
+    val completions: StateFlow<List<TodoCompletionLog>> = _completions.asStateFlow()
+
     fun loadTodo(id: String) {
         viewModelScope.launch {
             val todo = repository.getTodoById(id)
             _todo.value = todo
             _attachments.value = todo?.attachments ?: emptyList()
+            _completions.value = repository.completions(id)
         }
     }
 
@@ -138,6 +145,16 @@ class TodoDetailViewModel(
         }
     }
 
+    fun deleteForever() {
+        viewModelScope.launch {
+            _todo.value?.let { todo ->
+                repository.deleteTodo(todo, permanent = true)
+                _todo.value = null
+                _messages.emit("Deleted forever")
+            }
+        }
+    }
+
     fun restoreTodo() {
         viewModelScope.launch {
             _todo.value?.let { todo ->
@@ -152,8 +169,7 @@ class TodoDetailViewModel(
     fun toggleComplete() {
         viewModelScope.launch {
             _todo.value?.let { todo ->
-                repository.toggleComplete(todo)
-                _todo.value = todo.copy(completed = !todo.completed)
+                _todo.value = repository.toggleComplete(todo)
             }
         }
     }
@@ -165,6 +181,27 @@ class TodoDetailViewModel(
                 repository.updateTodo(updated)
                 _todo.value = updated
             }
+        }
+    }
+
+    fun sendToChannel(telegram: Boolean) {
+        viewModelScope.launch {
+            val current = _todo.value ?: return@launch
+            val body = listOfNotNull(current.title, current.description?.takeIf { it.isNotBlank() })
+                .joinToString("\n")
+            val request = IntegrationRequest(
+                message = body,
+                subject = current.title
+            )
+            val response = runCatching {
+                if (telegram) RetrofitClient.accountApiService.sendTelegram(request)
+                else RetrofitClient.accountApiService.sendDingtalk(request)
+            }.getOrNull()
+            val ok = response?.body()?.success == true || response?.isSuccessful == true
+            _messages.emit(
+                response?.body()?.message
+                    ?: if (ok) "Sent" else "Send failed"
+            )
         }
     }
 

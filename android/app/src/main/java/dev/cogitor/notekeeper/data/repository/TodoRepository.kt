@@ -94,6 +94,9 @@ class TodoRepository(
     }
 
     suspend fun deleteTodo(todo: Todo, permanent: Boolean = false) {
+        if (permanent) {
+            runCatching { apiService.deleteTodo(todo.id, permanent = true) }
+        }
         if (permanent || todo.syncStatus == SyncStatus.PENDING_CREATE) {
             if (todo.localId != 0L) {
                 todoDao.deleteTodoByLocalId(todo.localId)
@@ -133,10 +136,34 @@ class TodoRepository(
         todoDao.updateTodo(entity)
     }
 
-    suspend fun toggleComplete(todo: Todo) {
+    suspend fun toggleComplete(todo: Todo): Todo {
+        return try {
+            val response = apiService.toggleComplete(todo.id)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                val mapped = TodoMapper.fromResponse(body).copy(
+                    localId = todo.localId,
+                    syncStatus = SyncStatus.SYNCED
+                )
+                todoDao.updateTodo(TodoMapper.toEntity(mapped))
+                mapped
+            } else {
+                toggleCompleteLocal(todo)
+            }
+        } catch (_: Exception) {
+            toggleCompleteLocal(todo)
+        }
+    }
+
+    private suspend fun toggleCompleteLocal(todo: Todo): Todo {
         val updated = todo.copy(completed = !todo.completed, syncStatus = SyncStatus.PENDING_UPDATE)
         todoDao.updateTodo(TodoMapper.toEntity(updated))
+        return updated
     }
+
+    suspend fun completions(id: String) = runCatching {
+        apiService.getCompletions(id).body().orEmpty()
+    }.getOrElse { emptyList() }
 
     suspend fun shareTodo(todo: Todo, userId: String): String {
         return try {

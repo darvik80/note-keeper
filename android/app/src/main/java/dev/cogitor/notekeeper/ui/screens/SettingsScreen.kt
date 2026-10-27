@@ -35,6 +35,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -72,9 +74,11 @@ fun SettingsScreen(
     var channelExpanded by remember { mutableStateOf(false) }
     var confirmLogout by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },
@@ -190,6 +194,9 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            Spacer(Modifier.height(16.dp))
+            SettingsRemoteBlocks(snackbarHostState)
 
             Spacer(Modifier.height(16.dp))
             Surface(

@@ -21,6 +21,12 @@ interface VaultApiService {
     @POST("vault/folders")
     suspend fun createFolder(@Body input: VaultFolderInput): Response<VaultFolder>
 
+    @PUT("vault/folders/{id}")
+    suspend fun updateFolder(@Path("id") id: String, @Body input: VaultFolderInput): Response<VaultFolder>
+
+    @DELETE("vault/folders/{id}")
+    suspend fun deleteFolder(@Path("id") id: String): Response<Unit>
+
     @GET("vault/items")
     suspend fun listItems(
         @Query("folder") folder: String? = null,

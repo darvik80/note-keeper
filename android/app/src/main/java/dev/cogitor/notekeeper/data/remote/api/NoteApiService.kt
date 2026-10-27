@@ -4,11 +4,15 @@ import dev.cogitor.notekeeper.data.model.NoteHistory
 import dev.cogitor.notekeeper.data.model.NoteInput
 import dev.cogitor.notekeeper.data.model.NoteResponse
 import retrofit2.Response
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -63,5 +67,19 @@ interface NoteApiService {
 
     @GET("notes/{id}/history")
     suspend fun getNoteHistory(@Path("id") id: String): Response<List<NoteHistory>>
+
+    @POST("notes/{id}/history/{historyId}/restore")
+    suspend fun restoreVersion(
+        @Path("id") id: String,
+        @Path("historyId") historyId: String
+    ): Response<NoteResponse>
+
+    @Multipart
+    @POST("notes/import")
+    suspend fun importNote(
+        @Part file: MultipartBody.Part,
+        @Part("folder") folder: RequestBody? = null,
+        @Part("subfolder") subfolder: RequestBody? = null
+    ): Response<NoteResponse>
 }
 

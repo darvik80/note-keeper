@@ -3,11 +3,14 @@ package dev.cogitor.notekeeper.data.remote
 import dev.cogitor.notekeeper.BuildConfig
 import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.local.TokenDataStore
+import dev.cogitor.notekeeper.data.remote.api.AccountApiService
 import dev.cogitor.notekeeper.data.remote.api.AttachmentApiService
 import dev.cogitor.notekeeper.data.remote.api.AuthApiService
+import dev.cogitor.notekeeper.data.remote.api.BackupApiService
 import dev.cogitor.notekeeper.data.remote.api.NoteApiService
 import dev.cogitor.notekeeper.data.remote.api.SearchApiService
 import dev.cogitor.notekeeper.data.remote.api.TagApiService
+import dev.cogitor.notekeeper.data.remote.api.TemplateApiService
 import dev.cogitor.notekeeper.data.remote.api.TodoApiService
 import dev.cogitor.notekeeper.data.remote.api.VaultApiService
 import kotlinx.coroutines.flow.first
@@ -51,7 +54,6 @@ object RetrofitClient {
 
     private val authInterceptor = okhttp3.Interceptor { chain ->
         val requestBuilder = chain.request().newBuilder()
-            .addHeader("Content-Type", "application/json")
         val token = runBlocking {
             tokenDataStore?.token?.first()
         }
@@ -82,4 +84,7 @@ object RetrofitClient {
     val tagApiService: TagApiService get() = retrofit.create(TagApiService::class.java)
     val searchApiService: SearchApiService get() = retrofit.create(SearchApiService::class.java)
     val vaultApiService: VaultApiService get() = retrofit.create(VaultApiService::class.java)
+    val accountApiService: AccountApiService get() = retrofit.create(AccountApiService::class.java)
+    val templateApiService: TemplateApiService get() = retrofit.create(TemplateApiService::class.java)
+    val backupApiService: BackupApiService get() = retrofit.create(BackupApiService::class.java)
 }

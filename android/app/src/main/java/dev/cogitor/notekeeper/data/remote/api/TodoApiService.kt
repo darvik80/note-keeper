@@ -1,5 +1,6 @@
 package dev.cogitor.notekeeper.data.remote.api
 
+import dev.cogitor.notekeeper.data.model.TodoCompletionLog
 import dev.cogitor.notekeeper.data.model.TodoInput
 import dev.cogitor.notekeeper.data.model.TodoResponse
 import retrofit2.Response
@@ -58,5 +59,11 @@ interface TodoApiService {
         @Path("id") id: String,
         @Query("userId") userId: String
     ): Response<TodoResponse>
+
+    @POST("todos/{id}/toggle-complete")
+    suspend fun toggleComplete(@Path("id") id: String): Response<TodoResponse>
+
+    @GET("todos/{id}/completions")
+    suspend fun getCompletions(@Path("id") id: String): Response<List<TodoCompletionLog>>
 }
 

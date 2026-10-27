@@ -5,7 +5,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import dev.cogitor.notekeeper.data.model.Attachment
 import dev.cogitor.notekeeper.data.model.Note
+import dev.cogitor.notekeeper.data.model.NoteHistory
+import dev.cogitor.notekeeper.data.model.NoteTemplate
+import dev.cogitor.notekeeper.data.model.NoteTemplateInput
 import dev.cogitor.notekeeper.data.model.SyncStatus
+import dev.cogitor.notekeeper.data.remote.RetrofitClient
+import java.io.File
 import dev.cogitor.notekeeper.data.repository.NoteRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +42,26 @@ class NoteDetailViewModel(
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val messages: SharedFlow<String> = _messages.asSharedFlow()
 
+    private val _knownFolders = MutableStateFlow<List<String>>(emptyList())
+    val knownFolders: StateFlow<List<String>> = _knownFolders.asStateFlow()
+
+    private val _history = MutableStateFlow<List<NoteHistory>>(emptyList())
+    val history: StateFlow<List<NoteHistory>> = _history.asStateFlow()
+
+    private val _templates = MutableStateFlow<List<NoteTemplate>>(emptyList())
+    val templates: StateFlow<List<NoteTemplate>> = _templates.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _knownFolders.value = repository.folderPaths()
+        }
+        viewModelScope.launch {
+            _templates.value = runCatching {
+                RetrofitClient.templateApiService.list().body().orEmpty()
+            }.getOrElse { emptyList() }
+        }
+    }
+
     fun loadNote(id: String) {
         viewModelScope.launch {
             val note = repository.getNoteById(id)
@@ -50,9 +75,13 @@ class NoteDetailViewModel(
         content: String,
         tags: List<String> = emptyList(),
         priority: String = "medium",
-        folder: String = "default"
+        folder: String = "default",
+        subfolder: String? = null,
+        reminder: String? = null
     ) {
-        viewModelScope.launch { persist(true, title, content, tags, priority, folder, announce = true) }
+        viewModelScope.launch {
+            persist(true, title, content, tags, priority, folder, subfolder, reminder, announce = true)
+        }
     }
 
     fun updateNote(
@@ -60,9 +89,14 @@ class NoteDetailViewModel(
         content: String,
         tags: List<String> = emptyList(),
         priority: String = "medium",
+        folder: String = "default",
+        subfolder: String? = null,
+        reminder: String? = null,
         announce: Boolean = false
     ) {
-        viewModelScope.launch { persist(false, title, content, tags, priority, announce = announce) }
+        viewModelScope.launch {
+            persist(false, title, content, tags, priority, folder, subfolder, reminder, announce = announce)
+        }
     }
 
     suspend fun persist(
@@ -72,13 +106,19 @@ class NoteDetailViewModel(
         tags: List<String> = emptyList(),
         priority: String = "medium",
         folder: String = "default",
+        subfolder: String? = null,
+        reminder: String? = null,
         announce: Boolean = false
     ) {
         if (title.isBlank()) return
         _isSaving.value = true
         _saveLabel.value = "Saving…"
+        val resolvedFolder = folder.trim().ifBlank { "default" }
+        val resolvedSub = subfolder?.trim()?.takeIf { it.isNotBlank() }
         if (isNew && _note.value == null) {
-            val created = repository.createNote(title, content, folder, tags, priority)
+            val created = repository.createNote(
+                title, content, resolvedFolder, tags, priority, resolvedSub, reminder
+            )
             _note.value = created
         } else {
             _note.value?.let { existing ->
@@ -87,6 +127,9 @@ class NoteDetailViewModel(
                     content = content,
                     tags = tags,
                     priority = priority,
+                    folder = resolvedFolder,
+                    subfolder = resolvedSub,
+                    reminder = reminder,
                     updatedAt = java.time.Instant.now().toString()
                 )
                 repository.updateNote(updated)
@@ -106,6 +149,36 @@ class NoteDetailViewModel(
                 _messages.emit("Moved to Trash")
             }
         }
+    }
+
+    fun deleteForever() {
+        viewModelScope.launch {
+            _note.value?.let { note ->
+                repository.deleteNote(note, permanent = true)
+                _note.value = null
+                _messages.emit("Deleted forever")
+            }
+        }
+    }
+
+    fun loadHistory() {
+        viewModelScope.launch {
+            _note.value?.id?.let { _history.value = repository.history(it) }
+        }
+    }
+
+    fun restoreVersion(historyId: String) {
+        viewModelScope.launch {
+            val current = _note.value ?: return@launch
+            val restored = repository.restoreVersion(current, historyId) ?: return@launch
+            _note.value = restored
+            _attachments.value = restored.attachments.orEmpty()
+            _messages.emit("Version restored")
+        }
+    }
+
+    suspend fun downloadAttachment(attachment: Attachment, dest: File): File? {
+        return repository.downloadAttachment(attachment.id, dest)
     }
 
     fun restoreNote() {
@@ -149,6 +222,23 @@ class NoteDetailViewModel(
                 repository.updateNote(updated)
                 _note.value = updated
             }
+        }
+    }
+
+    fun saveAsTemplate(name: String, content: String, tags: List<String>) {
+        viewModelScope.launch {
+            runCatching {
+                RetrofitClient.templateApiService.create(
+                    NoteTemplateInput(name, content, tags)
+                )
+            }.onSuccess { response ->
+                if (response.isSuccessful) {
+                    _templates.value = _templates.value + listOfNotNull(response.body())
+                    _messages.emit("Template saved")
+                } else {
+                    _messages.emit("Template save failed")
+                }
+            }.onFailure { _messages.emit(it.message ?: "Template save failed") }
         }
     }
 
