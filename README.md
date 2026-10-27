@@ -161,7 +161,7 @@ Schema migration runs automatically on startup.
 Generate a key:
 ```bash
 cd note-keeper-service
-mvn compile exec:java -Dexec.mainClass="xyz.crearts.note.keeper.service.EncryptionService" -Dexec.classpathScope=compile
+mvn compile exec:java -Dexec.mainClass="dev.cogitor.note.keeper.service.EncryptionService" -Dexec.classpathScope=compile
 ```
 
 Set it:

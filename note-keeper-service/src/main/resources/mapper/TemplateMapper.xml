@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="xyz.crearts.note.keeper.mapper.TemplateMapper">
+<mapper namespace="dev.cogitor.note.keeper.mapper.TemplateMapper">
 
-    <resultMap id="templateResultMap" type="xyz.crearts.note.keeper.model.NoteTemplate">
+    <resultMap id="templateResultMap" type="dev.cogitor.note.keeper.model.NoteTemplate">
         <id property="id" column="id"/>
         <result property="name" column="name"/>
         <result property="content" column="content"/>
         <result property="tags" column="tags"
-                typeHandler="xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler"/>
+                typeHandler="dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler"/>
         <result property="category" column="category"/>
         <result property="ownerId" column="owner_id"/>
         <result property="createdAt" column="created_at"/>
@@ -27,10 +27,10 @@
         SELECT * FROM note_template WHERE id = #{id}
     </select>
 
-    <insert id="insert" parameterType="xyz.crearts.note.keeper.model.NoteTemplate">
+    <insert id="insert" parameterType="dev.cogitor.note.keeper.model.NoteTemplate">
         INSERT INTO note_template (id, name, content, tags, category, owner_id, created_at)
         VALUES (#{id}, #{name}, #{content},
-            #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
+            #{tags, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler},
             #{category}, #{ownerId}, #{createdAt})
     </insert>
 

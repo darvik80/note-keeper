@@ -20,6 +20,7 @@ const Templates = lazy(() => import('./pages/Templates').then(m => ({ default: m
 const Archive = lazy(() => import('./pages/Archive').then(m => ({ default: m.Archive })));
 const Trash = lazy(() => import('./pages/Trash').then(m => ({ default: m.Trash })));
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const Vault = lazy(() => import('./pages/Vault').then(m => ({ default: m.Vault })));
 
 const isAuthenticated = (): boolean => localStorage.getItem('token') !== null;
 
@@ -81,6 +82,7 @@ const AppLayout: React.FC = () => {
             <Route path="/templates" element={<ProtectedRoute><LazyPage><Templates /></LazyPage></ProtectedRoute>} />
             <Route path="/archive" element={<ProtectedRoute><LazyPage><Archive /></LazyPage></ProtectedRoute>} />
             <Route path="/trash" element={<ProtectedRoute><LazyPage><Trash /></LazyPage></ProtectedRoute>} />
+            <Route path="/vault" element={<ProtectedRoute><LazyPage><Vault /></LazyPage></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><LazyPage><Settings /></LazyPage></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -3,13 +3,16 @@
  * @category Pages
  * @description Todo editor page — edit title, description, tags, schedule, and attachments.
  */
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {api} from '../utils/api';
 import {PageShell} from '../components/PageShell';
+import {ConfirmDialog} from '../components/ConfirmDialog';
 import {MarkdownRenderer} from '../components/MarkdownRenderer';
+import {MarkdownEditor} from '../components/MarkdownEditor';
 import {ShareModal} from '../components/ShareModal';
 import {TagInput} from '../components/TagInput';
+import {useAutosave} from '../hooks/useAutosave';
 import {Attachment, IntegrationRequest, IntegrationResponse, Todo, TodoInput} from '../types';
 import {storage} from '../utils/storage';
 
@@ -61,6 +64,10 @@ export const TodoEditor: React.FC = () => {
   const [dingtalkStatus, setDingtalkStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [showShareModal, setShowShareModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const settings = storage.getSettings();
 
   // Keep ref in sync with state so saveTodo/addTag always see latest todo
@@ -75,6 +82,7 @@ export const TodoEditor: React.FC = () => {
           if (cancelled) return;
           if (t && t.id) {
             setTodo(t);
+            setDirty(false);
             const isBlankNew = (!t.title?.trim() || t.title === 'New Todo') && !t.description?.trim();
             setIsPreview(!isBlankNew);
           } else {
@@ -93,7 +101,7 @@ export const TodoEditor: React.FC = () => {
     }
   }, [id]);
 
-  const saveTodo = async () => {
+  const saveTodo = useCallback(async (leave = false) => {
     const current = todoRef.current;
     if (!current) return;
 
@@ -182,15 +190,38 @@ export const TodoEditor: React.FC = () => {
       };
       console.log('[TodoEditor] Saving todo:', JSON.stringify({ id: current.id, schedule: input.schedule }, null, 2));
       if (current.id === 'new') {
-        await api.todos.create(input);
+        const created = await api.todos.create(input);
+        setTodo(prev => prev ? { ...prev, id: created.id } : prev);
       } else {
         await api.todos.update(current.id, input);
       }
-      navigate('/todos');
+      setDirty(false);
+      setSaveFailed(false);
+      if (leave) navigate('/todos');
     } catch (err: any) {
+      setSaveFailed(true);
       setError(err?.message || 'Failed to save todo');
+      throw err;
     }
-  };
+  }, [navigate]);
+
+  const autosaveStatus = useAutosave(
+    dirty && !!todo && todo.id !== 'new',
+    () => saveTodo(false),
+    800,
+    `${todo?.title ?? ''}\n${todo?.description ?? ''}\n${todo?.reminder ?? ''}\n${todo?.schedule?.repeat ?? ''}`
+  );
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveTodo(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [saveTodo]);
 
   const sendToTelegram = async () => {
     setTelegramStatus('sending');
@@ -290,13 +321,30 @@ export const TodoEditor: React.FC = () => {
 
   return (
     <PageShell error={error} onDismissError={() => setError(null)} className="overflow-hidden">
-      <div className="border-b border-border px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
+      <div className="sticky top-0 z-10 bg-background border-b border-border px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
         <button
-          onClick={() => navigate('/todos')}
+          onClick={() => {
+            if (saveFailed && dirty) setLeaveOpen(true);
+            else navigate('/todos');
+          }}
           className="text-text-secondary hover:text-text shrink-0 flex items-center gap-1"
         >
           <i className="fas fa-arrow-left"></i>
           <span className="hidden sm:inline ml-1">Back</span>
+        </button>
+        <input
+          type="text"
+          value={todo.title}
+          onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, title: v } : prev); setDirty(true); }}
+          className="flex-1 min-w-0 mx-2 text-lg font-bold border-none outline-none bg-transparent"
+          placeholder="Todo title"
+        />
+        <button
+          onClick={() => { setTodo(prev => prev ? { ...prev, completed: !prev.completed } : prev); setDirty(true); }}
+          className={`p-2 rounded-lg shrink-0 ${todo.completed ? 'text-green-500' : 'text-text-secondary'}`}
+          title="Complete"
+        >
+          <i className={`fas ${todo.completed ? 'fa-circle-check' : 'fa-circle'}`}></i>
         </button>
         <div className="flex items-center gap-1 sm:gap-3 overflow-x-auto">
           <button
@@ -360,8 +408,11 @@ export const TodoEditor: React.FC = () => {
             <option value="medium">Med</option>
             <option value="high">High</option>
           </select>
+          <span className="text-xs text-text-secondary shrink-0">
+            {autosaveStatus === 'saving' ? 'Saving…' : autosaveStatus === 'saved' && !dirty ? 'Saved' : dirty ? 'Unsaved' : ''}
+          </span>
           <button
-            onClick={saveTodo}
+            onClick={() => saveTodo(false)}
             className="p-2 sm:px-6 sm:py-2 bg-primary text-white rounded-lg hover:bg-primary/90 shrink-0"
             title="Save"
           >
@@ -372,19 +423,14 @@ export const TodoEditor: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-auto p-4 sm:p-8 min-h-0">
-        {isPreview ? (
-          <h1 className={`text-2xl sm:text-3xl font-bold mb-4 ${todo.completed ? 'line-through text-text-secondary' : ''}`}>
-            {todo.title || 'Untitled'}
-          </h1>
-        ) : (
-          <input
-            type="text"
-            value={todo.title}
-            onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, title: v } : prev); }}
-            className="text-2xl sm:text-3xl font-bold mb-6 w-full border-none outline-none"
-            placeholder="Todo Title"
-          />
-        )}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button onClick={() => setScheduleOpen(true)} className="px-3 py-1.5 text-sm border border-border rounded-full">
+            <i className="fas fa-bell mr-1"></i>{todo.reminder ? new Date(todo.reminder).toLocaleString() : 'Reminder'}
+          </button>
+          <button onClick={() => setScheduleOpen(true)} className="px-3 py-1.5 text-sm border border-border rounded-full">
+            <i className="fas fa-repeat mr-1"></i>{todo.schedule?.repeat || 'none'}
+          </button>
+        </div>
 
         {todo.schedule?.repeat && todo.schedule.repeat !== 'none' && (
           <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
@@ -418,11 +464,11 @@ export const TodoEditor: React.FC = () => {
                 <MarkdownRenderer content={todo.description} />
               </div>
             ) : (
-              <textarea
+              <MarkdownEditor
                 value={todo.description}
-                onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, description: v } : prev); }}
-                className="w-full h-32 p-4 border border-border rounded-lg resize-none focus:outline-none focus:border-primary font-mono"
+                onChange={(v) => { setTodo(prev => prev ? { ...prev, description: v } : prev); setDirty(true); }}
                 placeholder="Add description... (Markdown supported)"
+                minHeight="10rem"
               />
             )}
           </div>
@@ -432,6 +478,13 @@ export const TodoEditor: React.FC = () => {
             onChange={(newTags) => setTodo(prev => prev ? { ...prev, tags: newTags } : prev)}
           />
 
+          {scheduleOpen && (
+          <div className="fixed inset-0 z-40 bg-black/40 flex items-end" onClick={() => setScheduleOpen(false)}>
+          <div className="w-full bg-surface rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto space-y-6" onClick={e => e.stopPropagation()}>
+          <div className="flex justify-between items-center">
+            <h3 className="font-bold">Reminder & schedule</h3>
+            <button onClick={() => setScheduleOpen(false)} className="px-3 py-1 border border-border rounded-lg">Done</button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-2">
@@ -623,6 +676,9 @@ export const TodoEditor: React.FC = () => {
               </div>
             )}
           </div>
+          </div>
+          </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-2">
@@ -671,6 +727,15 @@ export const TodoEditor: React.FC = () => {
         </div>
       </div>
 
+      <ConfirmDialog
+        isOpen={leaveOpen}
+        onClose={() => setLeaveOpen(false)}
+        onConfirm={() => navigate('/todos')}
+        title="Unsaved changes"
+        message="Autosave failed. Leave anyway?"
+        confirmLabel="Leave"
+        variant="danger"
+      />
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}

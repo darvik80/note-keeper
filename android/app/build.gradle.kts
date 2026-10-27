@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "xyz.crearts.notekeeper"
+    namespace = "dev.cogitor.notekeeper"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "xyz.crearts.notekeeper"
+        applicationId = "dev.cogitor.notekeeper"
         minSdk = 31
         targetSdk = 36
         versionCode = 1

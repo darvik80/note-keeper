@@ -1,0 +1,38 @@
+package dev.cogitor.note.keeper.controller;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import dev.cogitor.note.keeper.service.TagSyncService;
+
+import java.util.List;
+
+/**
+ * Returns distinct tags from the user_tag table (O(1) lookup).
+ */
+@RestController
+@RequestMapping("/api/v1/tags")
+@Tag(name = "Tags")
+@RequiredArgsConstructor
+public class TagController {
+
+    private final TagSyncService tagSyncService;
+
+    @GetMapping
+    public List<String> getAllTags(@AuthenticationPrincipal String ownerId) {
+        return tagSyncService.getAllTags(ownerId);
+    }
+
+    /**
+     * Rebuild user_tag cache from existing notes/todos.
+     * Useful after migration or data repair.
+     */
+    @PostMapping("/rebuild")
+    public void rebuildTags(@AuthenticationPrincipal String ownerId) {
+        tagSyncService.rebuildForOwner(ownerId);
+    }
+}

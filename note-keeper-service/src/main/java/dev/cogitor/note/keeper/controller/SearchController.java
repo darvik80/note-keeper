@@ -1,0 +1,53 @@
+package dev.cogitor.note.keeper.controller;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import dev.cogitor.note.keeper.dto.SavedQueryInput;
+import dev.cogitor.note.keeper.dto.SearchResult;
+import dev.cogitor.note.keeper.model.SavedQuery;
+import dev.cogitor.note.keeper.service.SearchService;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/search")
+@Tag(name = "Search")
+@RequiredArgsConstructor
+public class SearchController {
+
+    private final SearchService searchService;
+
+    @GetMapping
+    public SearchResult search(
+            @RequestParam String query,
+            @RequestParam(required = false, defaultValue = "all") String type,
+            @RequestParam(required = false) String tags,
+            @RequestParam(required = false) String priority,
+            @AuthenticationPrincipal String ownerId) {
+        return searchService.search(query, type, tags, priority, ownerId);
+    }
+
+    @GetMapping("/queries")
+    public List<SavedQuery> getSavedQueries(@AuthenticationPrincipal String ownerId) {
+        return searchService.getSavedQueries(ownerId);
+    }
+
+    @PostMapping("/queries")
+    public ResponseEntity<SavedQuery> saveQuery(@Valid @RequestBody SavedQueryInput input,
+                                                @AuthenticationPrincipal String ownerId) {
+        SavedQuery query = searchService.saveQuery(input, ownerId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(query);
+    }
+
+    @DeleteMapping("/queries/{id}")
+    public ResponseEntity<Void> deleteQuery(@PathVariable String id,
+                                            @AuthenticationPrincipal String ownerId) {
+        searchService.deleteQuery(id, ownerId);
+        return ResponseEntity.noContent().build();
+    }
+}

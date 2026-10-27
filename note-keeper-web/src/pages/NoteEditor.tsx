@@ -3,15 +3,17 @@
  * @category Pages
  * @description Note editor page — edit title, Markdown content, tags, folder, reminder, and attachments.
  */
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {api} from '../utils/api';
 import {PageShell} from '../components/PageShell';
 import {ConfirmDialog} from '../components/ConfirmDialog';
 import {useToast} from '../contexts/ToastContext';
 import {MarkdownRenderer} from '../components/MarkdownRenderer';
+import {MarkdownEditor} from '../components/MarkdownEditor';
 import {ShareModal} from '../components/ShareModal';
 import {TagInput} from '../components/TagInput';
+import {useAutosave} from '../hooks/useAutosave';
 import {Attachment, Note, NoteInput} from '../types';
 
 /** Note editor page. Loads an existing note by route param `id`, supports Markdown preview, tag management, attachments, history restore, and sharing. */
@@ -26,6 +28,9 @@ export const NoteEditor: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restoreContent, setRestoreContent] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
   const { toast } = useToast();
 
   // Keep ref in sync with state so saveNote/addTag always see latest note
@@ -43,6 +48,7 @@ export const NoteEditor: React.FC = () => {
           setIsPreview(false);
         }
         setNote(n);
+        setDirty(false);
       } catch (error: any) {
         if (!cancelled) setError(error?.message || 'Failed to load note');
       }
@@ -62,7 +68,7 @@ export const NoteEditor: React.FC = () => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isFullscreen]);
 
-  const saveNote = async () => {
+  const saveNote = useCallback(async (leave = false) => {
     const current = noteRef.current;
     if (!current) return;
 
@@ -110,11 +116,33 @@ export const NoteEditor: React.FC = () => {
         })),
       };
       await api.notes.update(current.id, input);
-      navigate('/notes');
+      setDirty(false);
+      setSaveFailed(false);
+      if (leave) navigate('/notes');
     } catch (error: any) {
+      setSaveFailed(true);
       setError(error?.message || 'Failed to save note');
+      throw error;
     }
-  };
+  }, [navigate]);
+
+  const autosaveStatus = useAutosave(
+    dirty,
+    () => saveNote(false),
+    800,
+    `${note?.title ?? ''}\n${note?.content ?? ''}\n${(note?.tags ?? []).join(',')}`
+  );
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveNote(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [saveNote]);
 
 
 
@@ -180,7 +208,10 @@ export const NoteEditor: React.FC = () => {
     <PageShell error={error} onDismissError={() => setError(null)} className="overflow-hidden">
       <div className="border-b border-border px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
         <button
-          onClick={() => navigate('/notes')}
+          onClick={() => {
+            if (saveFailed && dirty) setLeaveOpen(true);
+            else navigate('/notes');
+          }}
           className="text-text-secondary hover:text-text shrink-0 flex items-center gap-1"
         >
           <i className="fas fa-arrow-left"></i>
@@ -234,8 +265,11 @@ export const NoteEditor: React.FC = () => {
             <option value="medium">Med</option>
             <option value="high">High</option>
           </select>
+          <span className="text-xs text-text-secondary shrink-0">
+            {autosaveStatus === 'saving' ? 'Saving…' : autosaveStatus === 'saved' && !dirty ? 'Saved' : dirty ? 'Unsaved' : ''}
+          </span>
           <button
-            onClick={saveNote}
+            onClick={() => saveNote(false)}
             className="p-2 sm:px-6 sm:py-2 bg-primary text-white rounded-lg hover:bg-primary/90 shrink-0"
             title="Save"
           >
@@ -279,37 +313,51 @@ export const NoteEditor: React.FC = () => {
         <input
           type="text"
           value={note.title}
-          onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, title: v } : prev); }}
+          onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, title: v } : prev); setDirty(true); }}
           className="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6 w-full border-none outline-none"
           placeholder="Note Title"
         />
 
-        {isPreview ? (
-          <div className={`border border-border rounded-lg p-6 bg-surface ${isFullscreen ? 'fixed inset-4 z-50 max-h-none' : 'min-h-96 max-h-[calc(100vh-400px)]'} overflow-y-auto`}>
-            <div className="flex justify-end mb-2">
-              <button
-                onClick={() => setIsFullscreen(!isFullscreen)}
-                className="p-2 hover:bg-hover rounded-lg transition-colors"
-                title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-              >
-                <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`}></i>
-              </button>
+        <div className={`${isFullscreen ? 'fixed inset-4 z-50 bg-background p-4 rounded-xl' : ''} grid gap-4 ${!isPreview ? 'lg:grid-cols-2' : 'grid-cols-1'}`}>
+          {!isPreview && (
+            <MarkdownEditor
+              value={note.content}
+              onChange={(v) => { setNote(prev => prev ? { ...prev, content: v } : prev); setDirty(true); }}
+              placeholder="Start writing your note... (Markdown & Mermaid supported)"
+              minHeight="24rem"
+              onImagePaste={async (file) => {
+                const uploaded = await api.attachments.upload(file, note.id, 'note');
+                return uploaded?.url as string;
+              }}
+            />
+          )}
+          <div className={`border border-border rounded-lg p-6 bg-surface ${isFullscreen ? 'max-h-none' : 'min-h-96 max-h-[calc(100vh-400px)]'} overflow-y-auto ${!isPreview ? 'hidden lg:block' : ''}`}>
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="p-2 hover:bg-hover rounded-lg transition-colors"
+                  title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                >
+                  <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`}></i>
+                </button>
+              </div>
+              <MarkdownRenderer content={note.content} />
             </div>
-            <MarkdownRenderer content={note.content} />
-          </div>
-        ) : (
-          <textarea
-            value={note.content}
-            onChange={(e) => { const v = e.target.value; setNote(prev => prev ? { ...prev, content: v } : prev); }}
-            className="w-full h-96 p-4 border border-border rounded-lg resize-none focus:outline-none focus:border-primary font-mono bg-surface"
-            placeholder="Start writing your note... (Markdown & Mermaid supported)"
-          />
+        </div>
+        {!isPreview && (
+          <button
+            type="button"
+            className="lg:hidden mt-3 px-4 py-2 border border-border rounded-lg"
+            onClick={() => setIsPreview(true)}
+          >
+            Preview
+          </button>
         )}
 
         <div className="mt-6 space-y-4">
           <TagInput
             tags={note.tags ?? []}
-            onChange={(newTags) => setNote(prev => prev ? { ...prev, tags: newTags } : prev)}
+            onChange={(newTags) => { setNote(prev => prev ? { ...prev, tags: newTags } : prev); setDirty(true); }}
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -420,6 +468,15 @@ export const NoteEditor: React.FC = () => {
         title="Restore version"
         message="Replace current content with this historical version?"
         confirmLabel="Restore"
+      />
+      <ConfirmDialog
+        isOpen={leaveOpen}
+        onClose={() => setLeaveOpen(false)}
+        onConfirm={() => navigate('/notes')}
+        title="Unsaved changes"
+        message="Autosave failed. Leave anyway?"
+        confirmLabel="Leave"
+        variant="danger"
       />
     </PageShell>
   );

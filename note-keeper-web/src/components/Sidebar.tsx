@@ -33,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileM
     { path: '/', icon: 'fa-home', label: 'Dashboard' },
     { path: '/notes', icon: 'fa-note-sticky', label: 'Notes' },
     { path: '/todos', icon: 'fa-list-check', label: 'Todos' },
+    { path: '/vault', icon: 'fa-vault', label: 'Vault' },
     { path: '/search', icon: 'fa-search', label: 'Search' },
     { path: '/calendar', icon: 'fa-calendar', label: 'Calendar' },
     { path: '/analytics', icon: 'fa-chart-line', label: 'Analytics' },

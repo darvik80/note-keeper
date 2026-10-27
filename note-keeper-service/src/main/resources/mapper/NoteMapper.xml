@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="xyz.crearts.note.keeper.mapper.NoteMapper">
+<mapper namespace="dev.cogitor.note.keeper.mapper.NoteMapper">
 
-    <resultMap id="noteResultMap" type="xyz.crearts.note.keeper.model.Note">
+    <resultMap id="noteResultMap" type="dev.cogitor.note.keeper.model.Note">
         <id property="id" column="id"/>
         <result property="title" column="title"/>
         <result property="content" column="content"/>
         <result property="tags" column="tags"
-                typeHandler="xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler"/>
+                typeHandler="dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler"/>
         <result property="folder" column="folder"/>
         <result property="subfolder" column="subfolder"/>
         <result property="priority" column="priority"/>
@@ -16,8 +16,8 @@
         <result property="encrypted" column="is_encrypted"/>
         <result property="archived" column="is_archived"/>
         <result property="deleted" column="is_deleted"/>
-        <result property="deletedAt" column="deleted_at" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
-        <result property="reminder" column="reminder" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="deletedAt" column="deleted_at" typeHandler="dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="reminder" column="reminder" typeHandler="dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
         <result property="templateId" column="template_id"/>
         <result property="ownerId" column="owner_id"/>
         <result property="sharedWith" column="shared_with"/>
@@ -25,9 +25,9 @@
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
-    <resultMap id="noteWithCollectionsMap" type="xyz.crearts.note.keeper.model.Note" extends="noteResultMap">
-        <collection property="attachments" column="id" select="xyz.crearts.note.keeper.mapper.AttachmentMapper.findByNoteId"/>
-        <collection property="history" column="id" select="xyz.crearts.note.keeper.mapper.NoteHistoryMapper.findByNoteId"/>
+    <resultMap id="noteWithCollectionsMap" type="dev.cogitor.note.keeper.model.Note" extends="noteResultMap">
+        <collection property="attachments" column="id" select="dev.cogitor.note.keeper.mapper.AttachmentMapper.findByNoteId"/>
+        <collection property="history" column="id" select="dev.cogitor.note.keeper.mapper.NoteHistoryMapper.findByNoteId"/>
     </resultMap>
 
     <select id="findAll" resultMap="noteWithCollectionsMap">
@@ -52,35 +52,35 @@
         SELECT * FROM note WHERE id = #{id}
     </select>
 
-    <insert id="insert" parameterType="xyz.crearts.note.keeper.model.Note">
+    <insert id="insert" parameterType="dev.cogitor.note.keeper.model.Note">
         INSERT INTO note (id, title, content, tags, folder, subfolder, priority,
             is_favorite, is_encrypted, is_archived, is_deleted, deleted_at, reminder,
             template_id, owner_id, shared_with, created_at, updated_at)
         VALUES (#{id}, #{title}, #{content},
-            #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
+            #{tags, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler},
             #{folder}, #{subfolder}, #{priority},
-            #{favorite}, #{encrypted}, #{archived}, #{deleted}, #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
-            #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, #{templateId}, #{ownerId}, #{sharedWith}, #{createdAt}, #{updatedAt})
+            #{favorite}, #{encrypted}, #{archived}, #{deleted}, #{deletedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            #{reminder, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, #{templateId}, #{ownerId}, #{sharedWith}, #{createdAt}, #{updatedAt})
     </insert>
 
-    <update id="update" parameterType="xyz.crearts.note.keeper.model.Note">
+    <update id="update" parameterType="dev.cogitor.note.keeper.model.Note">
         UPDATE note SET
             title = #{title},
             content = #{content},
-            tags = #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
+            tags = #{tags, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler},
             folder = #{folder},
             subfolder = #{subfolder},
             priority = #{priority},
             is_favorite = #{favorite},
             is_encrypted = #{encrypted},
-            reminder = #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            reminder = #{reminder, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             template_id = #{templateId},
             updated_at = #{updatedAt}
         WHERE id = #{id}
     </update>
 
     <update id="softDelete">
-        UPDATE note SET is_deleted = 1, deleted_at = #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, updated_at = #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+        UPDATE note SET is_deleted = 1, deleted_at = #{deletedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, updated_at = #{deletedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
         WHERE id = #{id}
     </update>
 
