@@ -41,7 +41,8 @@ object NotificationHelper {
 
     fun createChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val manager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             channels.forEach { info ->
                 val channel = NotificationChannel(info.id, info.name, info.importance).apply {
                     description = info.description

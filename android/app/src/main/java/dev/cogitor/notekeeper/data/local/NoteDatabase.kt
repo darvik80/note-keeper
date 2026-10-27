@@ -29,8 +29,8 @@ abstract class NoteDatabase : RoomDatabase() {
                     NoteDatabase::class.java,
                     "notekeeper_database"
                 )
-                .fallbackToDestructiveMigration()
-                .build()
+                    .fallbackToDestructiveMigration(false)
+                    .build()
                 INSTANCE = instance
                 instance
             }

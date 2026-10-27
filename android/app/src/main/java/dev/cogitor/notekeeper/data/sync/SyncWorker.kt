@@ -35,11 +35,13 @@ class SyncWorker(
 
         try {
             notesOk = noteRepository.syncNotes()
-        } catch (_: Exception) { }
+        } catch (_: Exception) {
+        }
 
         try {
             todosOk = todoRepository.syncTodos().isSuccess
-        } catch (_: Exception) { }
+        } catch (_: Exception) {
+        }
 
         return if (notesOk || todosOk) Result.success() else Result.retry()
     }

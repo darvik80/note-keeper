@@ -1,11 +1,5 @@
 package dev.cogitor.notekeeper.data.remote
 
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.local.TokenDataStore
 import dev.cogitor.notekeeper.data.remote.api.AttachmentApiService
@@ -14,6 +8,13 @@ import dev.cogitor.notekeeper.data.remote.api.NoteApiService
 import dev.cogitor.notekeeper.data.remote.api.SearchApiService
 import dev.cogitor.notekeeper.data.remote.api.TagApiService
 import dev.cogitor.notekeeper.data.remote.api.TodoApiService
+import dev.cogitor.notekeeper.data.remote.api.VaultApiService
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 
@@ -33,6 +34,8 @@ object RetrofitClient {
         }
         _retrofit = null
     }
+
+    fun currentBaseUrl(): String = baseUrl
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -70,4 +73,5 @@ object RetrofitClient {
     val todoApiService: TodoApiService get() = retrofit.create(TodoApiService::class.java)
     val tagApiService: TagApiService get() = retrofit.create(TagApiService::class.java)
     val searchApiService: SearchApiService get() = retrofit.create(SearchApiService::class.java)
+    val vaultApiService: VaultApiService get() = retrofit.create(VaultApiService::class.java)
 }

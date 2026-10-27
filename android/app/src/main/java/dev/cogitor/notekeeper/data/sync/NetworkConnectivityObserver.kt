@@ -52,7 +52,8 @@ class NetworkConnectivityObserver(context: Context) {
 
     private fun getCurrentStatus(): Status {
         val network = connectivityManager.activeNetwork ?: return Status.Unavailable
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return Status.Unavailable
+        val capabilities =
+            connectivityManager.getNetworkCapabilities(network) ?: return Status.Unavailable
         return if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
             Status.Available
         } else {

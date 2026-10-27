@@ -1,17 +1,17 @@
 package dev.cogitor.notekeeper.data.repository
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import dev.cogitor.notekeeper.data.local.NoteDao
 import dev.cogitor.notekeeper.data.model.Attachment
 import dev.cogitor.notekeeper.data.model.Note
 import dev.cogitor.notekeeper.data.model.SyncStatus
 import dev.cogitor.notekeeper.data.remote.api.AttachmentApiService
 import dev.cogitor.notekeeper.data.remote.api.NoteApiService
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.util.UUID
 
@@ -90,13 +90,23 @@ class NoteRepository(
                 entity?.let { noteDao.deleteNoteByLocalId(it.localId) }
             }
         } else {
-            val entity = NoteMapper.toEntity(note.copy(isDeleted = true, syncStatus = SyncStatus.PENDING_DELETE))
+            val entity = NoteMapper.toEntity(
+                note.copy(
+                    isDeleted = true,
+                    syncStatus = SyncStatus.PENDING_DELETE
+                )
+            )
             noteDao.updateNote(entity)
         }
     }
 
     suspend fun archiveNote(note: Note) {
-        val entity = NoteMapper.toEntity(note.copy(isArchived = true, syncStatus = SyncStatus.PENDING_UPDATE))
+        val entity = NoteMapper.toEntity(
+            note.copy(
+                isArchived = true,
+                syncStatus = SyncStatus.PENDING_UPDATE
+            )
+        )
         noteDao.updateNote(entity)
     }
 
@@ -117,7 +127,14 @@ class NoteRepository(
             if (response.isSuccessful) {
                 response.body()?.let { serverNote ->
                     val domainNote = NoteMapper.fromResponse(serverNote)
-                    noteDao.updateNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED, localId = note.localId)))
+                    noteDao.updateNote(
+                        NoteMapper.toEntity(
+                            domainNote.copy(
+                                syncStatus = SyncStatus.SYNCED,
+                                localId = note.localId
+                            )
+                        )
+                    )
                 }
                 "Shared successfully"
             } else {
@@ -139,7 +156,11 @@ class NoteRepository(
         }
     }
 
-    suspend fun uploadAttachment(parentId: String, filePath: String, parentType: String): Attachment? {
+    suspend fun uploadAttachment(
+        parentId: String,
+        filePath: String,
+        parentType: String
+    ): Attachment? {
         return try {
             val file = File(filePath)
             val requestFile = file.asRequestBody("application/octet-stream".toMediaTypeOrNull())
@@ -168,7 +189,8 @@ class NoteRepository(
     suspend fun syncNotes(): Boolean {
         return try {
             // 1. Push pending creates
-            val pendingCreates = noteDao.getPendingSyncNotes().filter { it.syncStatus == SyncStatus.PENDING_CREATE.name }
+            val pendingCreates = noteDao.getPendingSyncNotes()
+                .filter { it.syncStatus == SyncStatus.PENDING_CREATE.name }
             for (entity in pendingCreates) {
                 val note = NoteMapper.toDomain(entity)
                 val input = NoteMapper.toInput(note)
@@ -181,7 +203,8 @@ class NoteRepository(
             }
 
             // 2. Push pending updates
-            val pendingUpdates = noteDao.getPendingSyncNotes().filter { it.syncStatus == SyncStatus.PENDING_UPDATE.name }
+            val pendingUpdates = noteDao.getPendingSyncNotes()
+                .filter { it.syncStatus == SyncStatus.PENDING_UPDATE.name }
             for (entity in pendingUpdates) {
                 val note = NoteMapper.toDomain(entity)
                 val input = NoteMapper.toInput(note)
@@ -210,7 +233,14 @@ class NoteRepository(
                         if (existing == null) {
                             noteDao.insertNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED)))
                         } else if (existing.syncStatus == SyncStatus.SYNCED.name) {
-                            noteDao.updateNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED, localId = existing.localId)))
+                            noteDao.updateNote(
+                                NoteMapper.toEntity(
+                                    domainNote.copy(
+                                        syncStatus = SyncStatus.SYNCED,
+                                        localId = existing.localId
+                                    )
+                                )
+                            )
                         }
                     }
                 }
@@ -232,7 +262,14 @@ class NoteRepository(
                         if (existing == null) {
                             noteDao.insertNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED)))
                         } else if (existing.syncStatus == SyncStatus.SYNCED.name) {
-                            noteDao.updateNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED, localId = existing.localId)))
+                            noteDao.updateNote(
+                                NoteMapper.toEntity(
+                                    domainNote.copy(
+                                        syncStatus = SyncStatus.SYNCED,
+                                        localId = existing.localId
+                                    )
+                                )
+                            )
                         }
                     }
                 }

@@ -44,6 +44,7 @@ private fun parseAllBlocks(
             is Block.TextBlock -> {
                 append(parseMarkdownText(block.lines, primaryColor, onSurfaceVariantColor))
             }
+
             is Block.TableBlock -> {
                 appendTable(block.rows)
             }
@@ -153,6 +154,7 @@ private fun parseMarkdownText(
                     appendInlineMarkdown(line.removePrefix("### "), primaryColor)
                 }
             }
+
             line.startsWith("## ") -> {
                 withStyle(
                     SpanStyle(
@@ -164,6 +166,7 @@ private fun parseMarkdownText(
                     appendInlineMarkdown(line.removePrefix("## "), primaryColor)
                 }
             }
+
             line.startsWith("# ") -> {
                 withStyle(
                     SpanStyle(
@@ -175,6 +178,7 @@ private fun parseMarkdownText(
                     appendInlineMarkdown(line.removePrefix("# "), primaryColor)
                 }
             }
+
             line.startsWith("> ") -> {
                 withStyle(
                     SpanStyle(
@@ -185,10 +189,12 @@ private fun parseMarkdownText(
                     appendInlineMarkdown(line.removePrefix("> "), primaryColor)
                 }
             }
+
             line.startsWith("- ") || line.startsWith("* ") -> {
                 append("\u2022 ")
                 appendInlineMarkdown(line.substring(2), primaryColor)
             }
+
             else -> {
                 appendInlineMarkdown(line, primaryColor)
             }
@@ -219,16 +225,19 @@ private fun AnnotatedString.Builder.appendInlineMarkdown(text: String, primaryCo
                     appendInlineMarkdown(match.content, primaryColor)
                 }
             }
+
             InlineType.BOLD -> {
                 withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
                     appendInlineMarkdown(match.content, primaryColor)
                 }
             }
+
             InlineType.ITALIC -> {
                 withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
                     appendInlineMarkdown(match.content, primaryColor)
                 }
             }
+
             InlineType.CODE -> {
                 withStyle(
                     SpanStyle(
@@ -239,6 +248,7 @@ private fun AnnotatedString.Builder.appendInlineMarkdown(text: String, primaryCo
                     append(match.content)
                 }
             }
+
             InlineType.LINK -> {
                 withStyle(
                     SpanStyle(
