@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="xyz.crearts.note.keeper.mapper.UserMapper">
+<mapper namespace="dev.cogitor.note.keeper.mapper.UserMapper">
 
-    <resultMap id="userResultMap" type="xyz.crearts.note.keeper.model.User">
+    <resultMap id="userResultMap" type="dev.cogitor.note.keeper.model.User">
         <id property="id" column="id"/>
         <result property="email" column="email"/>
         <result property="name" column="name"/>
@@ -15,7 +15,7 @@
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
-    <resultMap id="userCredentialsResultMap" type="xyz.crearts.note.keeper.model.UserCredentials">
+    <resultMap id="userCredentialsResultMap" type="dev.cogitor.note.keeper.model.UserCredentials">
         <id property="userId" column="user_id"/>
         <result property="passwordHash" column="password_hash"/>
         <result property="salt" column="salt"/>
@@ -35,12 +35,12 @@
         SELECT * FROM users WHERE google_id = #{googleId}
     </select>
 
-    <insert id="insert" parameterType="xyz.crearts.note.keeper.model.User">
+    <insert id="insert" parameterType="dev.cogitor.note.keeper.model.User">
         INSERT INTO users (id, email, name, avatar_url, provider, google_id, is_active, created_at, updated_at)
         VALUES (#{id}, #{email}, #{name}, #{avatarUrl}, #{provider}, #{googleId}, #{active}, #{createdAt}, #{updatedAt})
     </insert>
 
-    <update id="update" parameterType="xyz.crearts.note.keeper.model.User">
+    <update id="update" parameterType="dev.cogitor.note.keeper.model.User">
         UPDATE users SET
             email = #{email},
             name = #{name},
@@ -56,12 +56,12 @@
         SELECT * FROM user_credentials WHERE user_id = #{userId}
     </select>
 
-    <insert id="insertCredentials" parameterType="xyz.crearts.note.keeper.model.UserCredentials">
+    <insert id="insertCredentials" parameterType="dev.cogitor.note.keeper.model.UserCredentials">
         INSERT INTO user_credentials (user_id, password_hash, salt, created_at, updated_at)
         VALUES (#{userId}, #{passwordHash}, #{salt}, #{createdAt}, #{updatedAt})
     </insert>
 
-    <update id="updateCredentials" parameterType="xyz.crearts.note.keeper.model.UserCredentials">
+    <update id="updateCredentials" parameterType="dev.cogitor.note.keeper.model.UserCredentials">
         UPDATE user_credentials SET
             password_hash = #{passwordHash},
             salt = #{salt},

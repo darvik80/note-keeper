@@ -155,5 +155,58 @@ CREATE TABLE IF NOT EXISTS user_settings (
     backup_auto_enabled BOOLEAN NOT NULL DEFAULT false,
     backup_cron VARCHAR(100) DEFAULT '0 0 2 * * *',
     backup_retention_days INTEGER NOT NULL DEFAULT 30,
+    daily_report_enabled BOOLEAN NOT NULL DEFAULT false,
+    daily_report_time TEXT DEFAULT '09:00',
+    daily_report_channels TEXT DEFAULT 'telegram',
+    daily_report_template TEXT,
+    daily_report_item_template TEXT,
+    daily_report_last_sent TEXT,
+    vault_key TEXT,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS api_token (
+    id VARCHAR(255) PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    prefix VARCHAR(32) NOT NULL,
+    scopes TEXT NOT NULL DEFAULT '[]',
+    expires_at TIMESTAMP,
+    last_used_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_token_user ON api_token(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_token_hash ON api_token(token_hash);
+
+CREATE TABLE IF NOT EXISTS vault_folder (
+    id VARCHAR(255) PRIMARY KEY,
+    parent_id VARCHAR(255) REFERENCES vault_folder(id) ON DELETE CASCADE,
+    owner_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_vault_folder_owner ON vault_folder(owner_id);
+CREATE INDEX IF NOT EXISTS idx_vault_folder_parent ON vault_folder(parent_id);
+
+CREATE TABLE IF NOT EXISTS vault_item (
+    id VARCHAR(255) PRIMARY KEY,
+    folder_id VARCHAR(255) REFERENCES vault_folder(id) ON DELETE SET NULL,
+    owner_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(32) NOT NULL CHECK(type IN ('password','ssh_key','api_token','note')),
+    title VARCHAR(500) NOT NULL,
+    username VARCHAR(255),
+    host VARCHAR(255),
+    url TEXT,
+    tags TEXT DEFAULT '[]',
+    secret_blob TEXT,
+    revision INTEGER NOT NULL DEFAULT 1,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_vault_item_owner ON vault_item(owner_id);
+CREATE INDEX IF NOT EXISTS idx_vault_item_folder ON vault_item(folder_id);
+CREATE INDEX IF NOT EXISTS idx_vault_item_updated ON vault_item(updated_at);

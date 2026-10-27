@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="dev.cogitor.note.keeper.mapper.VaultItemMapper">
+
+    <resultMap id="vaultItemResultMap" type="dev.cogitor.note.keeper.model.VaultItem">
+        <id property="id" column="id"/>
+        <result property="folderId" column="folder_id"/>
+        <result property="ownerId" column="owner_id"/>
+        <result property="type" column="type"/>
+        <result property="title" column="title"/>
+        <result property="username" column="username"/>
+        <result property="host" column="host"/>
+        <result property="url" column="url"/>
+        <result property="tags" column="tags"
+                typeHandler="dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler"/>
+        <result property="secretBlob" column="secret_blob"/>
+        <result property="revision" column="revision"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+
+    <select id="findById" resultMap="vaultItemResultMap">
+        SELECT * FROM vault_item WHERE id = #{id} AND owner_id = #{ownerId}
+    </select>
+
+    <select id="findByOwner" resultMap="vaultItemResultMap">
+        SELECT * FROM vault_item
+        WHERE owner_id = #{ownerId}
+        <if test="!includeDeleted">
+            AND deleted_at IS NULL
+        </if>
+        <if test="folderId != null">
+            AND folder_id = #{folderId}
+        </if>
+        <if test="q != null and q != ''">
+            AND (title LIKE '%' || #{q} || '%' OR COALESCE(host,'') LIKE '%' || #{q} || '%'
+                 OR COALESCE(username,'') LIKE '%' || #{q} || '%' OR COALESCE(url,'') LIKE '%' || #{q} || '%')
+        </if>
+        <if test="since != null">
+            AND updated_at &gt; #{since}
+        </if>
+        ORDER BY title
+    </select>
+
+    <select id="findChangedSince" resultMap="vaultItemResultMap">
+        SELECT * FROM vault_item
+        WHERE owner_id = #{ownerId}
+        <if test="since != null">
+            AND updated_at &gt; #{since}
+        </if>
+        ORDER BY updated_at
+    </select>
+
+    <insert id="insert" parameterType="dev.cogitor.note.keeper.model.VaultItem">
+        INSERT INTO vault_item (id, folder_id, owner_id, type, title, username, host, url, tags,
+            secret_blob, revision, updated_at, deleted_at)
+        VALUES (#{id}, #{folderId}, #{ownerId}, #{type}, #{title}, #{username}, #{host}, #{url},
+                #{tags, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler},
+                #{secretBlob}, #{revision}, #{updatedAt}, #{deletedAt})
+    </insert>
+
+    <update id="update" parameterType="dev.cogitor.note.keeper.model.VaultItem">
+        UPDATE vault_item SET
+            folder_id = #{folderId},
+            type = #{type},
+            title = #{title},
+            username = #{username},
+            host = #{host},
+            url = #{url},
+            tags = #{tags, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler},
+            secret_blob = #{secretBlob},
+            revision = #{revision},
+            updated_at = #{updatedAt},
+            deleted_at = #{deletedAt}
+        WHERE id = #{id} AND owner_id = #{ownerId}
+    </update>
+
+    <update id="tombstone">
+        UPDATE vault_item SET deleted_at = #{deletedAt}, revision = #{revision}, updated_at = #{deletedAt}
+        WHERE id = #{id} AND owner_id = #{ownerId}
+    </update>
+</mapper>

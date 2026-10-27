@@ -1,36 +1,36 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="xyz.crearts.note.keeper.mapper.TodoMapper">
+<mapper namespace="dev.cogitor.note.keeper.mapper.TodoMapper">
 
-    <resultMap id="todoResultMap" type="xyz.crearts.note.keeper.model.Todo">
+    <resultMap id="todoResultMap" type="dev.cogitor.note.keeper.model.Todo">
         <id property="id" column="id"/>
         <result property="title" column="title"/>
         <result property="description" column="description"/>
         <result property="completed" column="completed"/>
         <result property="tags" column="tags"
-                typeHandler="xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler"/>
+                typeHandler="dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler"/>
         <result property="priority" column="priority"/>
         <result property="favorite" column="is_favorite"/>
         <result property="archived" column="is_archived"/>
         <result property="deleted" column="is_deleted"/>
-        <result property="deletedAt" column="deleted_at" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
-        <result property="dueDate" column="due_date" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
-        <result property="reminder" column="reminder" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
-        <result property="notifiedAt" column="notified_at" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="deletedAt" column="deleted_at" typeHandler="dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="dueDate" column="due_date" typeHandler="dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="reminder" column="reminder" typeHandler="dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="notifiedAt" column="notified_at" typeHandler="dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
         <result property="notificationChannels" column="notification_channels"/>
         <result property="ownerId" column="owner_id"/>
         <result property="sharedWith" column="shared_with"/>
-        <result property="lastCompletedAt" column="last_completed_at" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="lastCompletedAt" column="last_completed_at" typeHandler="dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
-        <association property="schedule" javaType="xyz.crearts.note.keeper.model.Todo$Schedule">
+        <association property="schedule" javaType="dev.cogitor.note.keeper.model.Todo$Schedule">
             <result property="repeat" column="schedule_repeat"/>
-            <result property="endDate" column="schedule_end_date" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+            <result property="endDate" column="schedule_end_date" typeHandler="dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
             <result property="daysOfWeek" column="schedule_days"
-                    typeHandler="xyz.crearts.note.keeper.mapper.typehandler.IntegerListTypeHandler"/>
+                    typeHandler="dev.cogitor.note.keeper.mapper.typehandler.IntegerListTypeHandler"/>
         </association>
-        <collection property="attachments" column="id" select="xyz.crearts.note.keeper.mapper.AttachmentMapper.findByTodoId"/>
+        <collection property="attachments" column="id" select="dev.cogitor.note.keeper.mapper.AttachmentMapper.findByTodoId"/>
     </resultMap>
 
     <select id="findAll" resultMap="todoResultMap">
@@ -61,7 +61,7 @@
         SELECT * FROM todo WHERE id = #{id}
     </select>
 
-    <insert id="insert" parameterType="xyz.crearts.note.keeper.model.Todo">
+    <insert id="insert" parameterType="dev.cogitor.note.keeper.model.Todo">
         INSERT INTO todo (id, title, description, completed, tags, priority,
             is_favorite, is_archived, is_deleted, deleted_at, due_date, reminder,
             notification_channels,
@@ -69,38 +69,38 @@
             owner_id, shared_with, last_completed_at,
             created_at, updated_at)
         VALUES (#{id}, #{title}, #{description}, #{completed},
-            #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
-            #{priority}, #{favorite}, #{archived}, #{deleted}, #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
-            #{dueDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            #{tags, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler},
+            #{priority}, #{favorite}, #{archived}, #{deleted}, #{deletedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            #{dueDate, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, #{reminder, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             #{notificationChannels, jdbcType=VARCHAR},
-            #{schedule.repeat, jdbcType=VARCHAR}, #{schedule.endDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
-            #{schedule.daysOfWeek, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.IntegerListTypeHandler},
-            #{ownerId}, #{sharedWith}, #{lastCompletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            #{schedule.repeat, jdbcType=VARCHAR}, #{schedule.endDate, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            #{schedule.daysOfWeek, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.IntegerListTypeHandler},
+            #{ownerId}, #{sharedWith}, #{lastCompletedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             #{createdAt}, #{updatedAt})
     </insert>
 
-    <update id="update" parameterType="xyz.crearts.note.keeper.model.Todo">
+    <update id="update" parameterType="dev.cogitor.note.keeper.model.Todo">
         UPDATE todo SET
             title = #{title},
             description = #{description},
             completed = #{completed},
-            tags = #{tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler},
+            tags = #{tags, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler},
             priority = #{priority},
             is_favorite = #{favorite},
-            due_date = #{dueDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
-            reminder = #{reminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
-            notified_at = #{notifiedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            due_date = #{dueDate, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            reminder = #{reminder, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            notified_at = #{notifiedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             notification_channels = #{notificationChannels, jdbcType=VARCHAR},
             schedule_repeat = #{schedule.repeat, jdbcType=VARCHAR},
-            schedule_end_date = #{schedule.endDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
-            schedule_days = #{schedule.daysOfWeek, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.IntegerListTypeHandler},
-            last_completed_at = #{lastCompletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            schedule_end_date = #{schedule.endDate, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            schedule_days = #{schedule.daysOfWeek, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.IntegerListTypeHandler},
+            last_completed_at = #{lastCompletedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
             updated_at = #{updatedAt}
         WHERE id = #{id}
     </update>
 
     <update id="softDelete">
-        UPDATE todo SET is_deleted = 1, deleted_at = #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, updated_at = #{deletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+        UPDATE todo SET is_deleted = 1, deleted_at = #{deletedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, updated_at = #{deletedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
         WHERE id = #{id}
     </update>
 
@@ -154,7 +154,7 @@
     <select id="findWithDueReminders" resultMap="todoResultMap">
         SELECT * FROM todo
         WHERE reminder IS NOT NULL
-          AND reminder &lt;= #{now, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+          AND reminder &lt;= #{now, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
           AND (notified_at IS NULL OR notified_at &lt; reminder)
           AND is_deleted = 0
           AND is_archived = 0
@@ -164,7 +164,7 @@
 
     <!-- Mark todo reminder as notified -->
     <update id="markReminderNotified">
-        UPDATE todo SET notified_at = #{notifiedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, updated_at = #{notifiedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+        UPDATE todo SET notified_at = #{notifiedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}, updated_at = #{notifiedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
         WHERE id = #{id}
     </update>
 
@@ -186,20 +186,20 @@
     </update>
 
     <!-- Completion log for recurring todos -->
-    <resultMap id="completionLogResultMap" type="xyz.crearts.note.keeper.model.TodoCompletionLog">
+    <resultMap id="completionLogResultMap" type="dev.cogitor.note.keeper.model.TodoCompletionLog">
         <id property="id" column="id"/>
         <result property="todoId" column="todo_id"/>
-        <result property="completedAt" column="completed_at" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
-        <result property="occurrenceReminder" column="occurrence_reminder" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
-        <result property="occurrenceDueDate" column="occurrence_due_date" typeHandler="xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="completedAt" column="completed_at" typeHandler="dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="occurrenceReminder" column="occurrence_reminder" typeHandler="dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
+        <result property="occurrenceDueDate" column="occurrence_due_date" typeHandler="dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler"/>
     </resultMap>
 
-    <insert id="insertCompletionLog" parameterType="xyz.crearts.note.keeper.model.TodoCompletionLog">
+    <insert id="insertCompletionLog" parameterType="dev.cogitor.note.keeper.model.TodoCompletionLog">
         INSERT INTO todo_completion_log (id, todo_id, completed_at, occurrence_reminder, occurrence_due_date)
         VALUES (#{id}, #{todoId},
-            #{completedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
-            #{occurrenceReminder, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
-            #{occurrenceDueDate, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler})
+            #{completedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            #{occurrenceReminder, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            #{occurrenceDueDate, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler})
     </insert>
 
     <select id="findCompletionLog" resultMap="completionLogResultMap">
@@ -211,8 +211,8 @@
     <select id="findCompletionLogByDateRange" resultMap="completionLogResultMap">
         SELECT cl.* FROM todo_completion_log cl
         INNER JOIN todo t ON cl.todo_id = t.id
-        WHERE cl.completed_at &gt;= #{start, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
-          AND cl.completed_at &lt;= #{end, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+        WHERE cl.completed_at &gt;= #{start, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+          AND cl.completed_at &lt;= #{end, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
           AND t.owner_id = #{ownerId}
           AND t.is_deleted = 0
         ORDER BY cl.completed_at DESC
@@ -220,15 +220,15 @@
 
     <update id="updateLastCompletedAt">
         UPDATE todo SET
-            last_completed_at = #{lastCompletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
-            updated_at = #{lastCompletedAt, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+            last_completed_at = #{lastCompletedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler},
+            updated_at = #{lastCompletedAt, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
         WHERE id = #{id}
     </update>
 
     <delete id="deleteCompletionLogsSince">
         DELETE FROM todo_completion_log
         WHERE todo_id = #{todoId}
-          AND completed_at &gt;= #{since, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
+          AND completed_at &gt;= #{since, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
     </delete>
 
 </mapper>

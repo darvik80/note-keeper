@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
     daily_report_template TEXT,
     daily_report_item_template TEXT,
     daily_report_last_sent TEXT,
+    vault_key TEXT,
     updated_at TEXT NOT NULL
 );
 
@@ -174,3 +175,50 @@ CREATE INDEX IF NOT EXISTS idx_user_tag_owner ON user_tag(owner_id);
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+
+CREATE TABLE IF NOT EXISTS api_token (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    prefix TEXT NOT NULL,
+    scopes TEXT NOT NULL DEFAULT '[]',
+    expires_at TEXT,
+    last_used_at TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_token_user ON api_token(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_token_hash ON api_token(token_hash);
+
+CREATE TABLE IF NOT EXISTS vault_folder (
+    id TEXT PRIMARY KEY,
+    parent_id TEXT REFERENCES vault_folder(id) ON DELETE CASCADE,
+    owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_vault_folder_owner ON vault_folder(owner_id);
+CREATE INDEX IF NOT EXISTS idx_vault_folder_parent ON vault_folder(parent_id);
+
+CREATE TABLE IF NOT EXISTS vault_item (
+    id TEXT PRIMARY KEY,
+    folder_id TEXT REFERENCES vault_folder(id) ON DELETE SET NULL,
+    owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type TEXT NOT NULL CHECK(type IN ('password','ssh_key','api_token','note')),
+    title TEXT NOT NULL,
+    username TEXT,
+    host TEXT,
+    url TEXT,
+    tags TEXT DEFAULT '[]',
+    secret_blob TEXT,
+    revision INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_vault_item_owner ON vault_item(owner_id);
+CREATE INDEX IF NOT EXISTS idx_vault_item_folder ON vault_item(folder_id);
+CREATE INDEX IF NOT EXISTS idx_vault_item_updated ON vault_item(updated_at);
+CREATE INDEX IF NOT EXISTS idx_vault_item_search ON vault_item(title, host);

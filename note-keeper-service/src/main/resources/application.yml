@@ -57,14 +57,14 @@ springdoc:
 # Common configuration (applies to all profiles)
 mybatis:
   mapper-locations: classpath*:mapper/*.xml
-  type-aliases-package: xyz.crearts.note.keeper.model
-  type-handlers-package: xyz.crearts.note.keeper.mapper.typehandler
+  type-aliases-package: dev.cogitor.note.keeper.model
+  type-handlers-package: dev.cogitor.note.keeper.mapper.typehandler
   configuration:
     map-underscore-to-camel-case: true
 
 #logging:
 #  level:
-#    xyz.crearts.note.keeper: DEBUG
+#    dev.cogitor.note.keeper: DEBUG
 
 # SQLite profile (default)
 ---
@@ -106,5 +106,5 @@ spring:
 
 logging:
   level:
-    xyz.crearts.note.keeper.mapper: DEBUG
+    dev.cogitor.note.keeper.mapper: DEBUG
     org.apache.ibatis.logging.jdbc: TRACE

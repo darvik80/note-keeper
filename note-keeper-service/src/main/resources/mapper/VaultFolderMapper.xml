@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="dev.cogitor.note.keeper.mapper.VaultFolderMapper">
+
+    <resultMap id="vaultFolderResultMap" type="dev.cogitor.note.keeper.model.VaultFolder">
+        <id property="id" column="id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="ownerId" column="owner_id"/>
+        <result property="name" column="name"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findById" resultMap="vaultFolderResultMap">
+        SELECT * FROM vault_folder WHERE id = #{id} AND owner_id = #{ownerId}
+    </select>
+
+    <select id="findByOwner" resultMap="vaultFolderResultMap">
+        SELECT * FROM vault_folder WHERE owner_id = #{ownerId} ORDER BY name
+    </select>
+
+    <select id="findChangedSince" resultMap="vaultFolderResultMap">
+        SELECT * FROM vault_folder
+        WHERE owner_id = #{ownerId}
+        <if test="since != null">
+            AND updated_at &gt; #{since}
+        </if>
+        ORDER BY updated_at
+    </select>
+
+    <insert id="insert" parameterType="dev.cogitor.note.keeper.model.VaultFolder">
+        INSERT INTO vault_folder (id, parent_id, owner_id, name, updated_at)
+        VALUES (#{id}, #{parentId}, #{ownerId}, #{name}, #{updatedAt})
+    </insert>
+
+    <update id="update" parameterType="dev.cogitor.note.keeper.model.VaultFolder">
+        UPDATE vault_folder SET parent_id = #{parentId}, name = #{name}, updated_at = #{updatedAt}
+        WHERE id = #{id} AND owner_id = #{ownerId}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM vault_folder WHERE id = #{id} AND owner_id = #{ownerId}
+    </delete>
+</mapper>

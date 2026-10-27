@@ -32,7 +32,12 @@ import {
     Todo,
     TodoCompletionLog,
     TodoInput,
-    User
+    User,
+    ApiToken,
+    VaultFolder,
+    VaultItem,
+    VaultItemInput,
+    VaultSyncResponse
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -789,6 +794,102 @@ export const api = {
       const res = await fetch(`${API_BASE}/tags`, {
         headers: { ...getAuthHeaders() }
       });
+      return handleResponse(res);
+    }
+  },
+
+  tokens: {
+    list: async (): Promise<ApiToken[]> => {
+      const res = await fetch(`${API_BASE}/tokens`, { headers: { ...getAuthHeaders() } });
+      return handleResponse(res);
+    },
+    create: async (body: { name: string; scopes: string[]; expiresAt?: string }): Promise<ApiToken> => {
+      const res = await fetch(`${API_BASE}/tokens`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify(body)
+      });
+      return handleResponse(res);
+    },
+    revoke: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_BASE}/tokens/${id}`, {
+        method: 'DELETE',
+        headers: { ...getAuthHeaders() }
+      });
+      await handleResponse(res);
+    }
+  },
+
+  vault: {
+    listFolders: async (): Promise<VaultFolder[]> => {
+      const res = await fetch(`${API_BASE}/vault/folders`, { headers: { ...getAuthHeaders() } });
+      return handleResponse(res);
+    },
+    createFolder: async (body: { name: string; parentId?: string }): Promise<VaultFolder> => {
+      const res = await fetch(`${API_BASE}/vault/folders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify(body)
+      });
+      return handleResponse(res);
+    },
+    updateFolder: async (id: string, body: { name: string; parentId?: string }): Promise<VaultFolder> => {
+      const res = await fetch(`${API_BASE}/vault/folders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify(body)
+      });
+      return handleResponse(res);
+    },
+    deleteFolder: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_BASE}/vault/folders/${id}`, {
+        method: 'DELETE',
+        headers: { ...getAuthHeaders() }
+      });
+      await handleResponse(res);
+    },
+    listItems: async (params?: { folder?: string; q?: string; since?: string; includeDeleted?: boolean }): Promise<VaultItem[]> => {
+      const query = new URLSearchParams();
+      if (params?.folder) query.set('folder', params.folder);
+      if (params?.q) query.set('q', params.q);
+      if (params?.since) query.set('since', params.since);
+      if (params?.includeDeleted) query.set('includeDeleted', 'true');
+      const qs = query.toString();
+      const res = await fetch(`${API_BASE}/vault/items${qs ? `?${qs}` : ''}`, { headers: { ...getAuthHeaders() } });
+      return handleResponse(res);
+    },
+    getItem: async (id: string): Promise<VaultItem> => {
+      const res = await fetch(`${API_BASE}/vault/items/${id}`, { headers: { ...getAuthHeaders() } });
+      return handleResponse(res);
+    },
+    createItem: async (body: VaultItemInput): Promise<VaultItem> => {
+      const res = await fetch(`${API_BASE}/vault/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify(body)
+      });
+      return handleResponse(res);
+    },
+    updateItem: async (id: string, body: VaultItemInput, revision?: number): Promise<VaultItem> => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json', ...getAuthHeaders() };
+      if (revision != null) headers['If-Match'] = String(revision);
+      const res = await fetch(`${API_BASE}/vault/items/${id}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(body)
+      });
+      return handleResponse(res);
+    },
+    deleteItem: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_BASE}/vault/items/${id}`, {
+        method: 'DELETE',
+        headers: { ...getAuthHeaders() }
+      });
+      await handleResponse(res);
+    },
+    sync: async (since?: string): Promise<VaultSyncResponse> => {
+      const qs = since ? `?since=${encodeURIComponent(since)}` : '';
+      const res = await fetch(`${API_BASE}/vault/sync${qs}`, { headers: { ...getAuthHeaders() } });
       return handleResponse(res);
     }
   }

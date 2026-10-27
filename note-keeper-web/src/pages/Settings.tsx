@@ -8,6 +8,7 @@ import {Header} from '../components/Header';
 import {PageShell} from '../components/PageShell';
 import {SettingsTab, SettingsTabBar} from '../components/settings/SettingsTabBar';
 import {ApiTab} from '../components/settings/ApiTab';
+import {ApiTokensTab} from '../components/settings/ApiTokensTab';
 import {DailyReportTab} from '../components/settings/DailyReportTab';
 import {useToast} from '../contexts/ToastContext';
 import {storage} from '../utils/storage';
@@ -713,6 +714,8 @@ export const Settings: React.FC = () => {
               </div>
             </div>
           )}
+
+          {activeTab === 'tokens' && <ApiTokensTab />}
 
           {activeTab === 'api' && <ApiTab />}
 

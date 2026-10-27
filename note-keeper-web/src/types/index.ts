@@ -522,3 +522,65 @@ export interface AuthResponse {
   /** Authenticated user profile. */
   user: User;
 }
+
+export type VaultItemType = 'password' | 'ssh_key' | 'api_token' | 'note';
+export type ApiTokenScope = 'notes' | 'todos' | 'vault' | 'mcp';
+
+export interface ApiToken {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: ApiTokenScope[];
+  expiresAt?: string;
+  lastUsedAt?: string;
+  createdAt: string;
+  token?: string;
+}
+
+export interface VaultFolder {
+  id: string;
+  parentId?: string;
+  ownerId: string;
+  name: string;
+  updatedAt: string;
+}
+
+export interface VaultItem {
+  id: string;
+  folderId?: string;
+  ownerId: string;
+  type: VaultItemType;
+  title: string;
+  username?: string;
+  host?: string;
+  url?: string;
+  tags: string[];
+  revision: number;
+  updatedAt: string;
+  deletedAt?: string;
+  password?: string;
+  privateKey?: string;
+  secret?: string;
+  extraJson?: string;
+}
+
+export interface VaultItemInput {
+  title: string;
+  type?: VaultItemType;
+  folderId?: string;
+  username?: string;
+  host?: string;
+  url?: string;
+  tags?: string[];
+  password?: string;
+  privateKey?: string;
+  secret?: string;
+  extraJson?: string;
+}
+
+export interface VaultSyncResponse {
+  folders: VaultFolder[];
+  items: VaultItem[];
+  deletedIds: string[];
+  serverTime: string;
+}

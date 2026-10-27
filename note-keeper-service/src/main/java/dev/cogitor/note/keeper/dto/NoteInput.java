@@ -1,0 +1,23 @@
+package dev.cogitor.note.keeper.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+import dev.cogitor.note.keeper.model.Attachment;
+
+import java.util.List;
+
+@Data
+public class NoteInput {
+    @NotBlank(message = "Title is required")
+    private String title;
+    private String content;
+    private List<String> tags;
+    private String folder;
+    private String subfolder;
+    private String priority;
+    private Boolean isFavorite;
+    private Boolean isEncrypted;
+    private String reminder;
+    private List<Attachment> attachments;
+    private String templateId;
+}

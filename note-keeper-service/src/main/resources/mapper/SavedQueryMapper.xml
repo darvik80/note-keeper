@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="xyz.crearts.note.keeper.mapper.SavedQueryMapper">
+<mapper namespace="dev.cogitor.note.keeper.mapper.SavedQueryMapper">
 
-    <resultMap id="savedQueryResultMap" type="xyz.crearts.note.keeper.model.SavedQuery">
+    <resultMap id="savedQueryResultMap" type="dev.cogitor.note.keeper.model.SavedQuery">
         <id property="id" column="id"/>
         <result property="ownerId" column="owner_id"/>
         <result property="name" column="name"/>
         <result property="query" column="query"/>
         <result property="createdAt" column="created_at"/>
-        <association property="filters" javaType="xyz.crearts.note.keeper.model.SavedQuery$Filters">
+        <association property="filters" javaType="dev.cogitor.note.keeper.model.SavedQuery$Filters">
             <result property="type" column="filter_type"/>
             <result property="tags" column="filter_tags"
-                    typeHandler="xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler"/>
+                    typeHandler="dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler"/>
             <result property="priority" column="filter_priority"/>
             <result property="folder" column="filter_folder"/>
         </association>
@@ -29,12 +29,12 @@
         WHERE id = #{id} AND owner_id = #{ownerId}
     </select>
 
-    <insert id="insert" parameterType="xyz.crearts.note.keeper.model.SavedQuery">
+    <insert id="insert" parameterType="dev.cogitor.note.keeper.model.SavedQuery">
         INSERT INTO saved_query (id, owner_id, name, query, filter_type, filter_tags,
             filter_priority, filter_folder, created_at)
         VALUES (#{id}, #{ownerId}, #{name}, #{query},
             #{filters.type, jdbcType=VARCHAR},
-            #{filters.tags, typeHandler=xyz.crearts.note.keeper.mapper.typehandler.StringListTypeHandler, jdbcType=VARCHAR},
+            #{filters.tags, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler, jdbcType=VARCHAR},
             #{filters.priority, jdbcType=VARCHAR},
             #{filters.folder, jdbcType=VARCHAR},
             #{createdAt})

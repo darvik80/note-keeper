@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="dev.cogitor.note.keeper.mapper.ApiTokenMapper">
+
+    <resultMap id="apiTokenResultMap" type="dev.cogitor.note.keeper.model.ApiToken">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="name" column="name"/>
+        <result property="tokenHash" column="token_hash"/>
+        <result property="prefix" column="prefix"/>
+        <result property="scopes" column="scopes"
+                typeHandler="dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler"/>
+        <result property="expiresAt" column="expires_at"/>
+        <result property="lastUsedAt" column="last_used_at"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <select id="findById" resultMap="apiTokenResultMap">
+        SELECT * FROM api_token WHERE id = #{id}
+    </select>
+
+    <select id="findByHash" resultMap="apiTokenResultMap">
+        SELECT * FROM api_token WHERE token_hash = #{tokenHash}
+    </select>
+
+    <select id="findByUserId" resultMap="apiTokenResultMap">
+        SELECT * FROM api_token WHERE user_id = #{userId} ORDER BY created_at DESC
+    </select>
+
+    <insert id="insert" parameterType="dev.cogitor.note.keeper.model.ApiToken">
+        INSERT INTO api_token (id, user_id, name, token_hash, prefix, scopes, expires_at, last_used_at, created_at)
+        VALUES (#{id}, #{userId}, #{name}, #{tokenHash}, #{prefix},
+                #{scopes, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler},
+                #{expiresAt}, #{lastUsedAt}, #{createdAt})
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM api_token WHERE id = #{id} AND user_id = #{userId}
+    </delete>
+
+    <update id="touchLastUsed">
+        UPDATE api_token SET last_used_at = #{lastUsedAt} WHERE id = #{id}
+    </update>
+</mapper>

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="xyz.crearts.note.keeper.mapper.UserSettingsMapper">
+<mapper namespace="dev.cogitor.note.keeper.mapper.UserSettingsMapper">
 
-    <resultMap id="userSettingsResultMap" type="xyz.crearts.note.keeper.model.UserSettings">
+    <resultMap id="userSettingsResultMap" type="dev.cogitor.note.keeper.model.UserSettings">
         <id property="id" column="id"/>
         <result property="telegramBotToken" column="telegram_bot_token"/>
         <result property="telegramChatId" column="telegram_chat_id"/>
@@ -36,7 +36,7 @@
         WHERE id = #{id}
     </update>
 
-    <insert id="insert" parameterType="xyz.crearts.note.keeper.model.UserSettings">
+    <insert id="insert" parameterType="dev.cogitor.note.keeper.model.UserSettings">
         INSERT INTO user_settings (id, telegram_bot_token, telegram_chat_id,
             telegram_webhook_secret, dingtalk_webhook, dingtalk_secret,
             daily_report_enabled, daily_report_time, daily_report_channels,
@@ -49,7 +49,7 @@
             #{updatedAt})
     </insert>
 
-    <update id="update" parameterType="xyz.crearts.note.keeper.model.UserSettings">
+    <update id="update" parameterType="dev.cogitor.note.keeper.model.UserSettings">
         UPDATE user_settings SET
             telegram_bot_token = #{telegramBotToken},
             telegram_chat_id = #{telegramChatId},
@@ -89,6 +89,18 @@
             daily_report_template = excluded.daily_report_template,
             daily_report_item_template = excluded.daily_report_item_template,
             daily_report_last_sent = excluded.daily_report_last_sent,
+            updated_at = excluded.updated_at
+    </insert>
+
+    <select id="findVaultKey" resultType="string">
+        SELECT vault_key FROM user_settings WHERE id = #{id}
+    </select>
+
+    <insert id="upsertVaultKey">
+        INSERT INTO user_settings (id, vault_key, updated_at)
+        VALUES (#{id}, #{vaultKey}, #{updatedAt})
+        ON CONFLICT(id) DO UPDATE SET
+            vault_key = excluded.vault_key,
             updated_at = excluded.updated_at
     </insert>
 
