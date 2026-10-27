@@ -168,6 +168,11 @@ export const Vault: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const chipClass = (on: boolean) =>
+    `shrink-0 px-3 py-1.5 rounded-full text-[13px] whitespace-nowrap ${
+      on ? 'bg-primary/15 text-primary' : 'text-text-secondary border border-border'
+    }`;
+
   const folderBtnClass = (id: string | undefined, selected: boolean) => {
     const dropping = draggingId != null && dropTarget === (id ?? '');
     return `block w-full text-left px-3 py-2 rounded-xl mb-0.5 text-[14px] ${
@@ -202,7 +207,7 @@ export const Vault: React.FC = () => {
         actions={
           <button
             onClick={() => { setEditing(emptyItem(folderId)); setShowSecret(false); }}
-            className="nk-btn nk-btn-primary"
+            className="nk-btn nk-btn-primary hidden sm:inline-flex"
           >
             {selectedFolder ? `New in ${selectedFolder.name}` : 'New item'}
           </button>
@@ -247,76 +252,109 @@ export const Vault: React.FC = () => {
           </p>
         </aside>
 
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-8">
-          <div className="flex flex-col sm:flex-row gap-2 mb-4">
-            <FolderSelect
-              value={folderId}
-              folders={folders}
-              onChange={setFolderId}
-              noneLabel="All items"
-              className="input-field sm:hidden"
-              ariaLabel="Filter by folder"
-            />
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-24 sm:pb-8">
+          <div className="sm:hidden flex gap-2 overflow-x-auto pb-3 -mx-4 px-4">
+            <button
+              type="button"
+              onClick={() => setFolderId(undefined)}
+              className={chipClass(!folderId)}
+            >
+              All items
+            </button>
+            {folders.map(folder => (
+              <button
+                key={folder.id}
+                type="button"
+                onClick={() => setFolderId(folder.id)}
+                className={chipClass(folderId === folder.id)}
+              >
+                {folder.name}
+              </button>
+            ))}
+            <div className="flex gap-1 shrink-0">
+              <input
+                value={newFolder}
+                onChange={e => setNewFolder(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && saveFolder()}
+                placeholder="New folder"
+                className="w-28 input-field py-1.5 text-sm"
+              />
+              <button onClick={saveFolder} className="nk-btn nk-btn-primary px-3">+</button>
+            </div>
+          </div>
+
+          <div className="flex gap-2 mb-4">
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && search()}
               placeholder="Search title, host, username"
-              className="flex-1 input-field"
+              className="flex-1 input-field min-w-0"
             />
-            <button onClick={search} className="nk-btn nk-btn-ghost border border-border">Search</button>
+            <button onClick={search} className="nk-btn nk-btn-ghost border border-border shrink-0">
+              <i className="fas fa-search sm:hidden" aria-hidden="true"></i>
+              <span className="hidden sm:inline">Search</span>
+            </button>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {items.map(item => (
               <div
                 key={item.id}
-                className={`nk-card p-4 flex items-center justify-between gap-3 ${draggingId === item.id ? 'opacity-50' : ''}`}
+                className={`nk-card p-4 flex flex-col gap-3 sm:flex-row sm:items-center ${draggingId === item.id ? 'opacity-50' : ''}`}
               >
-                <button
-                  type="button"
-                  draggable
-                  title="Drag onto a folder"
-                  aria-label="Drag to folder"
-                  onDragStart={e => {
-                    e.dataTransfer.setData('text/plain', item.id);
-                    e.dataTransfer.effectAllowed = 'move';
-                    setDraggingId(item.id);
-                  }}
-                  onDragEnd={() => { setDraggingId(null); setDropTarget(null); }}
-                  className="shrink-0 px-1 text-text-secondary cursor-grab active:cursor-grabbing hover:text-text"
-                >
-                  <i className="fas fa-grip-vertical" aria-hidden="true"></i>
-                </button>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-text truncate">{item.title} {item.host ? <span className="text-text-secondary font-normal">({item.host})</span> : null}</p>
-                  <p className="text-xs text-text-secondary">
-                    {item.type}
-                    {item.username ? ` · ${item.username}` : ''}
-                    {!folderId && item.folderId ? ` · ${folderName(item.folderId) || 'folder'}` : ''}
-                  </p>
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <button
+                    type="button"
+                    draggable
+                    title="Drag onto a folder"
+                    aria-label="Drag to folder"
+                    onDragStart={e => {
+                      e.dataTransfer.setData('text/plain', item.id);
+                      e.dataTransfer.effectAllowed = 'move';
+                      setDraggingId(item.id);
+                    }}
+                    onDragEnd={() => { setDraggingId(null); setDropTarget(null); }}
+                    className="hidden sm:inline-flex shrink-0 px-1 pt-0.5 text-text-secondary cursor-grab active:cursor-grabbing hover:text-text"
+                  >
+                    <i className="fas fa-grip-vertical" aria-hidden="true"></i>
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-text truncate">{item.title} {item.host ? <span className="text-text-secondary font-normal">({item.host})</span> : null}</p>
+                    <p className="text-xs text-text-secondary truncate">
+                      {item.type}
+                      {item.username ? ` · ${item.username}` : ''}
+                      {!folderId && item.folderId ? ` · ${folderName(item.folderId) || 'folder'}` : ''}
+                    </p>
+                  </div>
                 </div>
-                <FolderSelect
-                  value={item.folderId}
-                  folders={folders}
-                  onChange={id => moveItem(item, id)}
-                  noneLabel="No folder"
-                  className="input-field py-1.5 text-sm w-[8.5rem] shrink-0"
-                  ariaLabel={`Move ${item.title}`}
-                />
-                <div className="flex gap-2 shrink-0">
-                  {item.password && (
-                    <button onClick={() => copy(item.password)} className="px-2 py-1 text-sm border border-border rounded" title="Copy password">
-                      <i className="fas fa-copy"></i>
+                <div className="flex items-center gap-2">
+                  <FolderSelect
+                    value={item.folderId}
+                    folders={folders}
+                    onChange={id => moveItem(item, id)}
+                    noneLabel="No folder"
+                    className="nk-select-chip"
+                    ariaLabel={`Move ${item.title}`}
+                  />
+                  <div className="flex gap-1 ml-auto shrink-0">
+                    {item.password && (
+                      <button onClick={() => copy(item.password)} className="p-2 text-sm border border-border rounded-xl" title="Copy password">
+                        <i className="fas fa-copy"></i>
+                      </button>
+                    )}
+                    {item.privateKey && (
+                      <button onClick={() => downloadPem(item)} className="p-2 text-sm border border-border rounded-xl" title="Download .pem">
+                        <i className="fas fa-download"></i>
+                      </button>
+                    )}
+                    <button onClick={() => { setEditing({ ...item }); setShowSecret(false); }} className="p-2 text-sm border border-border rounded-xl" title="Edit">
+                      <i className="fas fa-pen"></i>
                     </button>
-                  )}
-                  {item.privateKey && (
-                    <button onClick={() => downloadPem(item)} className="px-2 py-1 text-sm border border-border rounded" title="Download .pem">
-                      <i className="fas fa-download"></i>
+                    <button onClick={() => removeItem(item.id)} className="p-2 text-sm text-danger" title="Delete">
+                      <i className="fas fa-trash"></i>
                     </button>
-                  )}
-                  <button onClick={() => { setEditing({ ...item }); setShowSecret(false); }} className="px-2 py-1 text-sm border border-border rounded">Edit</button>
-                  <button onClick={() => removeItem(item.id)} className="px-2 py-1 text-sm text-red-600">Delete</button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -401,6 +439,16 @@ export const Vault: React.FC = () => {
           </div>
         </div>
       )}
+
+      <button
+        type="button"
+        onClick={() => { setEditing(emptyItem(folderId)); setShowSecret(false); }}
+        className="sm:hidden z-40 w-14 h-14 p-0 rounded-[28px] nk-btn nk-btn-primary shadow-lg"
+        style={{ position: 'fixed', right: 20, bottom: 24, left: 'auto', top: 'auto' }}
+        aria-label={selectedFolder ? `New in ${selectedFolder.name}` : 'New item'}
+      >
+        <i className="fas fa-plus" aria-hidden="true"></i>
+      </button>
     </PageShell>
   );
 };

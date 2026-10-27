@@ -184,6 +184,19 @@ h1, h2, h3 {
   color: var(--color-text-secondary);
 }
 
+.nk-select-chip {
+  width: auto;
+  max-width: 9rem;
+  flex-shrink: 0;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: 9999px;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
 input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not([type='hidden']):not([type='submit']):not([type='button']),
 textarea,
 select {

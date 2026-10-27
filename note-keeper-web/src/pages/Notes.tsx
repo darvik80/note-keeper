@@ -208,64 +208,46 @@ export const Notes: React.FC = () => {
         title="Notes"
         subtitle={showSharedOnly ? 'Shared with you' : `${filteredNotes.length} in view`}
         actions={
-          <div className="flex items-center gap-2">
+          <>
             <button
               onClick={() => setShowFolderPanel(!showFolderPanel)}
-              className="p-2 hover:bg-hover rounded-xl transition-colors duration-[180ms]"
+              className={`h-9 w-9 inline-flex items-center justify-center rounded-full border border-border shrink-0 transition-colors duration-[180ms] ${
+                showFolderPanel ? 'text-primary bg-primary/15' : 'text-text-secondary hover:bg-hover hover:text-text'
+              }`}
               title="Toggle folders"
               aria-label="Toggle folders panel"
             >
-              <i className={`fas fa-folder-tree ${showFolderPanel ? 'text-primary' : 'text-text-secondary'}`}></i>
+              <i className="fas fa-folder-tree text-sm"></i>
             </button>
-            <div className="relative hidden sm:block">
-              <input
-                type="text"
-                placeholder="Filter…"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-field pl-9 w-40 sm:w-52 py-1.5"
-              />
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-xs"></i>
-            </div>
             <button
               onClick={() => setShowImport(!showImport)}
-              className="nk-btn nk-btn-ghost"
+              className={`h-9 w-9 inline-flex items-center justify-center rounded-full border border-border shrink-0 transition-colors duration-[180ms] ${
+                showImport ? 'text-primary bg-primary/15' : 'text-text-secondary hover:bg-hover hover:text-text'
+              }`}
               title="Import"
+              aria-label="Import"
             >
-              <i className="fas fa-file-import"></i>
-              <span className="hidden sm:inline">Import</span>
+              <i className="fas fa-file-import text-sm"></i>
             </button>
             <button
               onClick={() => setShowSharedOnly(!showSharedOnly)}
-              className={`nk-btn ${showSharedOnly ? 'nk-btn-primary' : 'nk-btn-ghost'}`}
+              className={`nk-btn h-9 shrink-0 ${showSharedOnly ? 'nk-btn-primary' : 'nk-btn-ghost border border-border'}`}
               title="Shared with Me"
             >
-              Shared
+              <i className="fas fa-share-alt sm:hidden" aria-hidden="true"></i>
+              <span className="hidden sm:inline">Shared</span>
             </button>
             <button
               onClick={createNote}
-              className="nk-btn nk-btn-primary"
+              className="nk-btn nk-btn-primary h-9 shrink-0"
               title="New Note"
             >
               <i className="fas fa-plus"></i>
               <span className="hidden sm:inline">New</span>
             </button>
-          </div>
+          </>
         }
       />
-
-      <div className="sm:hidden px-5 pb-3">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Filter notes…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input-field pl-9 py-2"
-          />
-          <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-xs"></i>
-        </div>
-      </div>
 
       {showImport && (
         <div className="bg-secondary/10 border-b border-secondary/20 px-4 lg:px-8 py-3">
@@ -326,6 +308,16 @@ export const Notes: React.FC = () => {
         )}
 
         <div className="flex-1 overflow-y-auto px-5 sm:px-8 lg:px-10 pb-8">
+          <div className="relative mb-4">
+            <input
+              type="text"
+              placeholder="Filter notes…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full h-10 pl-10 pr-4 rounded-full border border-border bg-surface text-sm text-text"
+            />
+            <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary text-xs pointer-events-none" aria-hidden="true"></i>
+          </div>
           {loading ? (
             <CardGridSkeleton />
           ) : filteredNotes.length === 0 ? (
