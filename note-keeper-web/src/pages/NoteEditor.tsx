@@ -14,7 +14,7 @@ import {MarkdownEditor, useHydrateAttachmentImages} from '../components/Markdown
 import {ShareModal} from '../components/ShareModal';
 import {TagInput} from '../components/TagInput';
 import {useAutosave} from '../hooks/useAutosave';
-import {Attachment, Note, NoteInput} from '../types';
+import {Attachment, Note, NoteHistory, NoteInput} from '../types';
 
 /** Note editor page. Loads an existing note by route param `id`, supports Markdown preview, tag management, attachments, history restore, and sharing. */
 export const NoteEditor: React.FC = () => {
@@ -27,7 +27,7 @@ export const NoteEditor: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [restoreContent, setRestoreContent] = useState<string | null>(null);
+  const [restoreEntry, setRestoreEntry] = useState<NoteHistory | null>(null);
   const [dirty, setDirty] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
@@ -36,6 +36,15 @@ export const NoteEditor: React.FC = () => {
 
   // Keep ref in sync with state so saveNote/addTag always see latest note
   noteRef.current = note;
+
+  useEffect(() => {
+    if (!showHistory || !note?.id) return;
+    let cancelled = false;
+    api.notes.getHistory(note.id).then((history) => {
+      if (!cancelled) setNote(prev => prev ? { ...prev, history } : prev);
+    }).catch(() => { /* keep nested history if fetch fails */ });
+    return () => { cancelled = true; };
+  }, [showHistory, note?.id]);
 
   useEffect(() => {
     const id = params.id;
@@ -221,10 +230,13 @@ export const NoteEditor: React.FC = () => {
         <div className="flex items-center gap-1 sm:gap-3 overflow-x-auto">
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="p-2 hover:bg-hover rounded-lg shrink-0"
+            className={`p-2 sm:px-4 sm:py-2 rounded-lg transition-colors shrink-0 ${
+              showHistory ? 'bg-primary text-white' : 'bg-hover text-text hover:bg-hover/80'
+            }`}
             title="History"
           >
-            <i className={`fas fa-clock-rotate-left ${showHistory ? 'text-primary' : 'text-text-secondary'}`}></i>
+            <i className={`fas fa-clock-rotate-left sm:mr-2 ${showHistory ? '' : 'text-text-secondary'}`}></i>
+            <span className="hidden sm:inline">History</span>
           </button>
           <button
             onClick={() => setIsPreview(!isPreview)}
@@ -281,33 +293,37 @@ export const NoteEditor: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-auto p-4 sm:p-8 min-h-0">
-        {showHistory && note.history && note.history.length > 0 && (
+        {showHistory && (
           <div className="mb-6 p-4 bg-surface border border-border rounded-lg">
             <h3 className="text-sm font-bold text-text mb-3 flex items-center gap-2">
               <i className="fas fa-clock-rotate-left"></i>
-              History ({note.history.length} versions)
+              History {note.history?.length ? `(${note.history.length} versions)` : ''}
             </h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {[...note.history].reverse().map((entry, index) => (
-                <div key={entry.id} className="flex items-center justify-between p-2 bg-hover rounded border border-border">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono text-text-secondary">
-                      {new Date(entry.timestamp).toLocaleString()}
-                    </span>
-                    <span className="text-xs px-2 py-1 bg-hover text-text rounded">
-                      {entry.action}
-                    </span>
+            {note.history && note.history.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {[...note.history].reverse().map((entry) => (
+                  <div key={entry.id} className="flex items-center justify-between gap-2 p-2 bg-hover rounded border border-border">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-xs font-mono text-text-secondary shrink-0">
+                        {new Date(entry.timestamp).toLocaleString()}
+                      </span>
+                      <span className="text-xs px-2 py-1 bg-hover text-text rounded">
+                        {entry.action}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setRestoreEntry(entry)}
+                      className="text-xs px-3 py-1 text-primary hover:bg-hover rounded shrink-0"
+                    >
+                      <i className="fas fa-rotate-left mr-1"></i>
+                      Restore
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setRestoreContent(entry.content)}
-                    className="text-xs px-3 py-1 text-primary hover:bg-hover rounded"
-                  >
-                    <i className="fas fa-rotate-left mr-1"></i>
-                    Restore
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-text-secondary">No versions yet. Save the note to start history.</p>
+            )}
           </div>
         )}
 
@@ -473,17 +489,30 @@ export const NoteEditor: React.FC = () => {
         }}
       />
       <ConfirmDialog
-        isOpen={restoreContent !== null}
-        onClose={() => setRestoreContent(null)}
+        isOpen={restoreEntry !== null}
+        onClose={() => setRestoreEntry(null)}
         onConfirm={() => {
-          if (restoreContent !== null) {
-            setNote(prev => prev ? { ...prev, content: restoreContent } : prev);
-            toast.success('Version restored');
-            setRestoreContent(null);
-          }
+          const entry = restoreEntry;
+          if (!entry || !note) return;
+          setRestoreEntry(null);
+          void (async () => {
+            try {
+              const updated = await api.notes.restoreVersion(note.id, entry.id);
+              setNote(updated);
+              setDirty(false);
+              setIsPreview(true);
+              setShowHistory(true);
+              toast.success('Version restored');
+            } catch (err: any) {
+              setNote(prev => prev ? { ...prev, content: entry.content } : prev);
+              setDirty(true);
+              setIsPreview(true);
+              toast.error(err?.message || 'Restored locally — save failed');
+            }
+          })();
         }}
         title="Restore version"
-        message="Replace current content with this historical version?"
+        message="Replace current content with this historical version? This saves immediately and adds a new history row."
         confirmLabel="Restore"
       />
       <ConfirmDialog

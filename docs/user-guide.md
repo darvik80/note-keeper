@@ -63,7 +63,7 @@ On a card: favorite, archive, trash. Encrypted notes show a lock; shared notes s
 - Preview: GFM (tables, task lists, strikethrough), fenced code, Mermaid, images (including JWT-protected attachments).
 - Tags, folder, priority, reminder (display only — no push), favorite.
 
-**Share** invites another user by email/name (they must already have an account). **History** lists created/edited/restored versions; restore writes a new history row.
+**Share** invites another user by email/name (they must already have an account). **History** (labeled in the note toolbar) lists created/edited/restored versions. Restore saves immediately and writes a new `restored` history row.
 
 **Import:** list page can upload text files into the current folder.
 
@@ -141,7 +141,7 @@ Bottom nav: **Notes | Todos | Vault | Search**. Settings from the overflow.
 
 - Pull to sync. Notes/todos also sync in the background (Room + WorkManager).
 - Swipe a note → archive. Swipe a todo → done or archive.
-- Note editor: Markdown toolbar, ~800 ms autosave. Keyboard resizes the editor (does not pan the title off-screen).
+- Note editor: **Edit | Preview** chips in the top bar. Existing notes open in Preview (rendered Markdown); new notes open in Edit. Toolbar + ~800 ms autosave. Keyboard resizes the editor (does not pan the title off-screen).
 - Sign-in: email/password, Google, Yandex.
 
 Details: [android/README.md](../android/README.md).

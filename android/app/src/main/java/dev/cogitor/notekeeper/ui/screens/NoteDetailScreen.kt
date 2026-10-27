@@ -25,10 +25,8 @@ import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -88,7 +86,7 @@ fun NoteDetailScreen(
     var tagList by remember { mutableStateOf(listOf<String>()) }
     var priority by remember { mutableStateOf("medium") }
     var isNewNote by remember { mutableStateOf(noteId == null) }
-    var isEditing by remember { mutableStateOf(true) }
+    var isEditing by remember { mutableStateOf(noteId == null) }
     var showShareDialog by remember { mutableStateOf(false) }
     var shareUserId by remember { mutableStateOf("") }
 
@@ -133,7 +131,20 @@ fun NoteDetailScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { },
+                title = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = isEditing,
+                            onClick = { isEditing = true },
+                            label = { Text("Edit") }
+                        )
+                        FilterChip(
+                            selected = !isEditing,
+                            onClick = { isEditing = false },
+                            label = { Text("Preview") }
+                        )
+                    }
+                },
                 colors = nkTopBarColors(),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -141,13 +152,6 @@ fun NoteDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { isEditing = !isEditing }) {
-                        Icon(
-                            if (isEditing) Icons.Outlined.Visibility else Icons.Outlined.Edit,
-                            contentDescription = if (isEditing) "Preview" else "Edit",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
                     if (!isNewNote) {
                         IconButton(onClick = { viewModel.toggleFavorite() }) {
                             Icon(
@@ -313,11 +317,19 @@ fun NoteDetailScreen(
                         )
                     }
                     Spacer(Modifier.height(16.dp))
-                    MarkdownText(
-                        markdown = content.text,
-                        modifier = Modifier.fillMaxWidth(),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    if (content.text.isBlank()) {
+                        Text(
+                            "Nothing to preview. Switch to Edit to write Markdown.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        MarkdownText(
+                            markdown = content.text,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
                     if (attachments.isNotEmpty()) {
                         Spacer(Modifier.height(24.dp))
                         Text("Attachments", style = MaterialTheme.typography.titleMedium)

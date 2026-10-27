@@ -27,7 +27,6 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Notifications
@@ -70,6 +69,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.notification.NotificationHelper
+import dev.cogitor.notekeeper.ui.components.MarkdownText
 import dev.cogitor.notekeeper.ui.components.NkFab
 import dev.cogitor.notekeeper.ui.components.nkTopBarColors
 import dev.cogitor.notekeeper.ui.viewmodel.TodoDetailViewModel
@@ -102,7 +102,7 @@ fun TodoDetailScreen(
     var scheduleRepeat by remember { mutableStateOf("none") }
     var serverNotificationChannels by remember { mutableStateOf("") }
     var isNewTodo by remember { mutableStateOf(todoId == null) }
-    var isEditing by remember { mutableStateOf(true) }
+    var isEditing by remember { mutableStateOf(todoId == null) }
     var showShareDialog by remember { mutableStateOf(false) }
     var shareUserId by remember { mutableStateOf("") }
     var showDueDatePicker by remember { mutableStateOf(false) }
@@ -155,7 +155,24 @@ fun TodoDetailScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(if (isNewTodo) "New Todo" else "Todo") },
+                title = {
+                    if (isNewTodo) {
+                        Text("New Todo")
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = isEditing,
+                                onClick = { isEditing = true },
+                                label = { Text("Edit") }
+                            )
+                            FilterChip(
+                                selected = !isEditing,
+                                onClick = { isEditing = false },
+                                label = { Text("Preview") }
+                            )
+                        }
+                    }
+                },
                 colors = nkTopBarColors(),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -164,11 +181,6 @@ fun TodoDetailScreen(
                 },
                 actions = {
                     if (!isNewTodo) {
-                        if (!isEditing) {
-                            IconButton(onClick = { isEditing = true }) {
-                                Icon(Icons.Outlined.Edit, contentDescription = "Edit")
-                            }
-                        }
                         IconButton(onClick = { viewModel.toggleComplete() }) {
                             Icon(
                                 if (todo?.completed == true) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
@@ -529,8 +541,9 @@ fun TodoDetailScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider()
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = description,
+                        MarkdownText(
+                            markdown = description,
+                            modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }

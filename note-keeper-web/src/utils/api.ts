@@ -337,6 +337,18 @@ export const api = {
     },
 
     /**
+     * Restore a note's content from a previous history entry.
+     * Writes a new `restored` history row.
+     */
+    restoreVersion: async (id: string, historyId: string): Promise<Note> => {
+      const res = await fetch(`${API_BASE}/notes/${id}/history/${historyId}/restore`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      return handleResponse(res);
+    },
+
+    /**
      * Import a Markdown file as a new note.
      * @param file - `.md` file selected by the user.
      * @param folder - Destination folder (optional).

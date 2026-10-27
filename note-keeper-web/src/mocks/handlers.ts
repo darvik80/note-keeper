@@ -14,6 +14,15 @@ import {
 
 const API = '/api/v1';
 
+function ensureNoteHistory(note: any) {
+  if (!note.history) {
+    note.history = [
+      { id: generateId(), content: note.content, action: 'created', timestamp: note.createdAt },
+    ];
+  }
+  return note.history as any[];
+}
+
 // ── Auth helpers ─────────────────────────────────────────────────────────────
 
 function authUser(req: Request) {
@@ -98,6 +107,7 @@ export const handlers = [
   http.get(`${API}/notes/:id`, ({ params }) => {
     const note = findNote(params.id as string);
     if (!note) return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    ensureNoteHistory(note);
     return HttpResponse.json(note);
   }),
 
@@ -123,6 +133,7 @@ export const handlers = [
       updatedAt: now,
     };
     notes.unshift(note);
+    ensureNoteHistory(note);
     return HttpResponse.json(note, { status: 201 });
   }),
 
@@ -131,7 +142,14 @@ export const handlers = [
     const note = findNote(params.id as string);
     if (!note) return HttpResponse.json({ message: 'Not found' }, { status: 404 });
     const body = await request.json() as any;
-    Object.assign(note, body, { updatedAt: new Date().toISOString() });
+    const history = ensureNoteHistory(note);
+    history.push({
+      id: generateId(),
+      content: body.content ?? note.content,
+      action: 'edited',
+      timestamp: new Date().toISOString(),
+    });
+    Object.assign(note, body, { updatedAt: new Date().toISOString(), history });
     return HttpResponse.json(note);
   }),
 
@@ -173,9 +191,24 @@ export const handlers = [
   http.get(`${API}/notes/:id/history`, ({ params }) => {
     const note = findNote(params.id as string);
     if (!note) return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-    return HttpResponse.json([
-      { id: generateId(), content: note.content, action: 'created', timestamp: note.createdAt },
-    ]);
+    return HttpResponse.json(ensureNoteHistory(note));
+  }),
+
+  http.post(`${API}/notes/:id/history/:historyId/restore`, ({ params }) => {
+    const note = findNote(params.id as string);
+    if (!note) return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    const history = ensureNoteHistory(note);
+    const entry = history.find((h: any) => h.id === params.historyId);
+    if (!entry) return HttpResponse.json({ message: 'History not found' }, { status: 404 });
+    note.content = entry.content;
+    note.updatedAt = new Date().toISOString();
+    history.push({
+      id: generateId(),
+      content: entry.content,
+      action: 'restored',
+      timestamp: note.updatedAt,
+    });
+    return HttpResponse.json(note);
   }),
 
   // POST /notes/import
@@ -202,6 +235,7 @@ export const handlers = [
       updatedAt: now,
     };
     notes.unshift(note);
+    ensureNoteHistory(note);
     return HttpResponse.json(note, { status: 201 });
   }),
 

@@ -89,6 +89,14 @@ public class NoteController {
         return noteService.getHistory(id, ownerId);
     }
 
+    @PostMapping("/{id}/history/{historyId}/restore")
+    public Note restoreNoteVersion(
+            @PathVariable String id,
+            @PathVariable String historyId,
+            @AuthenticationPrincipal String ownerId) {
+        return noteService.restoreVersion(id, historyId, ownerId);
+    }
+
     @PostMapping("/import")
     public ResponseEntity<Note> importNote(
             @RequestParam("file") MultipartFile file,

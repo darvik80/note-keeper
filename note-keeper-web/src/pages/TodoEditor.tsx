@@ -323,30 +323,25 @@ export const TodoEditor: React.FC = () => {
   return (
     <PageShell error={error} onDismissError={() => setError(null)} className="overflow-hidden">
       <div className="sticky top-0 z-10 bg-background border-b border-border px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
-        <button
-          onClick={() => {
-            if (saveFailed && dirty) setLeaveOpen(true);
-            else navigate('/todos');
-          }}
-          className="text-text-secondary hover:text-text shrink-0 flex items-center gap-1"
-        >
-          <i className="fas fa-arrow-left"></i>
-          <span className="hidden sm:inline ml-1">Back</span>
-        </button>
-        <input
-          type="text"
-          value={todo.title}
-          onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, title: v } : prev); setDirty(true); }}
-          className="flex-1 min-w-0 mx-2 text-lg font-bold border-none outline-none bg-transparent"
-          placeholder="Todo title"
-        />
-        <button
-          onClick={() => { setTodo(prev => prev ? { ...prev, completed: !prev.completed } : prev); setDirty(true); }}
-          className={`p-2 rounded-lg shrink-0 ${todo.completed ? 'text-green-500' : 'text-text-secondary'}`}
-          title="Complete"
-        >
-          <i className={`fas ${todo.completed ? 'fa-circle-check' : 'fa-circle'}`}></i>
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => {
+              if (saveFailed && dirty) setLeaveOpen(true);
+              else navigate('/todos');
+            }}
+            className="text-text-secondary hover:text-text shrink-0 flex items-center gap-1"
+          >
+            <i className="fas fa-arrow-left"></i>
+            <span className="hidden sm:inline ml-1">Back</span>
+          </button>
+          <button
+            onClick={() => { setTodo(prev => prev ? { ...prev, completed: !prev.completed } : prev); setDirty(true); }}
+            className={`p-2 rounded-lg shrink-0 ${todo.completed ? 'text-green-500' : 'text-text-secondary'}`}
+            title="Complete"
+          >
+            <i className={`fas ${todo.completed ? 'fa-circle-check' : 'fa-circle'}`}></i>
+          </button>
+        </div>
         <div className="flex items-center gap-1 sm:gap-3 overflow-x-auto">
           <button
             onClick={() => setIsPreview(!isPreview)}
@@ -424,6 +419,13 @@ export const TodoEditor: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-auto p-4 sm:p-8 min-h-0">
+        <input
+          type="text"
+          value={todo.title}
+          onChange={(e) => { const v = e.target.value; setTodo(prev => prev ? { ...prev, title: v } : prev); setDirty(true); }}
+          className="text-2xl sm:text-4xl font-bold mb-4 sm:mb-6 w-full border-none outline-none bg-transparent text-text"
+          placeholder="Todo title"
+        />
         <div className="flex flex-wrap gap-2 mb-4">
           <button onClick={() => setScheduleOpen(true)} className="px-3 py-1.5 text-sm border border-border rounded-full">
             <i className="fas fa-bell mr-1"></i>{todo.reminder ? new Date(todo.reminder).toLocaleString() : 'Reminder'}

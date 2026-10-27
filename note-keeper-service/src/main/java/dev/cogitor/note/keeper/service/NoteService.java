@@ -82,6 +82,28 @@ public class NoteService {
                 note.setContent("[Decryption failed - content may be corrupted]");
             }
         }
+        decryptHistory(note.getHistory(), note.isEncrypted());
+    }
+
+    private void decryptHistory(List<NoteHistory> history, boolean encrypted) {
+        if (!encrypted || history == null) {
+            return;
+        }
+        for (NoteHistory entry : history) {
+            entry.setContent(decryptHistoryContent(entry.getContent()));
+        }
+    }
+
+    private String decryptHistoryContent(String content) {
+        if (content == null || content.isEmpty()) {
+            return content;
+        }
+        try {
+            return encryptionService.decrypt(content);
+        } catch (Exception e) {
+            log.warn("History decrypt failed, returning stored content");
+            return content;
+        }
     }
 
     @Transactional
@@ -241,8 +263,43 @@ public class NoteService {
     }
 
     public List<NoteHistory> getHistory(String id, String userId) {
-        findById(id, userId);
-        return historyMapper.findByNoteId(id);
+        Note note = findById(id, userId);
+        List<NoteHistory> history = historyMapper.findByNoteId(id);
+        decryptHistory(history, note.isEncrypted());
+        return history;
+    }
+
+    @Transactional
+    public Note restoreVersion(String id, String historyId, String userId) {
+        Note existing = loadNote(id);
+        resourceAccess.requireNoteOwner(existing, userId);
+
+        NoteHistory entry = historyMapper.findByNoteId(id).stream()
+                .filter(h -> historyId.equals(h.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("History not found: " + historyId));
+
+        String content = existing.isEncrypted()
+                ? decryptHistoryContent(entry.getContent())
+                : entry.getContent();
+        String stored = content;
+        if (existing.isEncrypted() && stored != null && !stored.isEmpty()) {
+            stored = encryptionService.encrypt(stored);
+        }
+
+        existing.setContent(stored);
+        existing.setUpdatedAt(LocalDateTime.now());
+        noteMapper.update(existing);
+
+        NoteHistory history = new NoteHistory();
+        history.setId(UUID.randomUUID().toString());
+        history.setNoteId(id);
+        history.setContent(stored);
+        history.setTimestamp(existing.getUpdatedAt());
+        history.setAction("restored");
+        historyMapper.insert(history);
+
+        return findById(id, userId);
     }
 
     @Transactional

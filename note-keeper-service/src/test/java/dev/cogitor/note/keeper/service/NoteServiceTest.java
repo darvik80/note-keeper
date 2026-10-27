@@ -12,6 +12,7 @@ import dev.cogitor.note.keeper.mapper.AttachmentMapper;
 import dev.cogitor.note.keeper.mapper.NoteHistoryMapper;
 import dev.cogitor.note.keeper.mapper.NoteMapper;
 import dev.cogitor.note.keeper.model.Note;
+import dev.cogitor.note.keeper.model.NoteHistory;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -214,6 +215,26 @@ class NoteServiceTest {
 
         assertNotNull(history);
         verify(historyMapper).findByNoteId("note-1");
+    }
+
+    @Test
+    void restoreVersion_shouldReplaceContentAndRecordHistory() {
+        Note note = buildNote("note-1", "owner-1");
+        NoteHistory old = new NoteHistory();
+        old.setId("hist-1");
+        old.setNoteId("note-1");
+        old.setContent("old body");
+        old.setAction("edited");
+        old.setTimestamp(LocalDateTime.now().minusDays(1));
+
+        when(noteMapper.findById("note-1")).thenReturn(note);
+        when(historyMapper.findByNoteId("note-1")).thenReturn(List.of(old));
+
+        Note result = noteService.restoreVersion("note-1", "hist-1", "owner-1");
+
+        assertEquals("old body", result.getContent());
+        verify(noteMapper).update(argThat(n -> "old body".equals(n.getContent())));
+        verify(historyMapper).insert(argThat(h -> "restored".equals(h.getAction()) && "old body".equals(h.getContent())));
     }
 
     @Test
