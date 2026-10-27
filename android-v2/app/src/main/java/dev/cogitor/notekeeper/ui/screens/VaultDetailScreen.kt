@@ -9,8 +9,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -67,13 +74,19 @@ fun VaultDetailScreen(
         topBar = {
             TopAppBar(
                 title = { Text(if (itemId == null) "New item" else "Vault item") },
-                navigationIcon = { IconButton(onClick = onBack) { Text("←") } },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
+                    }
+                },
                 actions = {
                     if (itemId != null) {
-                        TextButton(onClick = {
+                        IconButton(onClick = {
                             viewModel.delete(itemId)
                             onBack()
-                        }) { Text("Delete") }
+                        }) {
+                            Icon(Icons.Outlined.Delete, contentDescription = "Delete")
+                        }
                     }
                 }
             )
@@ -92,10 +105,18 @@ fun VaultDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = if (showSecret) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
-                    TextButton(onClick = { showSecret = !showSecret }) { Text(if (showSecret) "Hide" else "Show") }
+                    IconButton(onClick = { showSecret = !showSecret }) {
+                        Icon(
+                            if (showSecret) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            contentDescription = if (showSecret) "Hide" else "Show"
+                        )
+                    }
                 }
             )
-            TextButton(onClick = { copy(context, password) }) { Text("Copy password") }
+            TextButton(onClick = { copy(context, password) }) {
+                Icon(Icons.Outlined.ContentCopy, contentDescription = null)
+                Text("Copy password")
+            }
             if (type == "ssh_key" || privateKey.isNotBlank()) {
                 OutlinedTextField(
                     privateKey,

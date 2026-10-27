@@ -10,6 +10,7 @@
         <result property="avatarUrl" column="avatar_url"/>
         <result property="provider" column="provider"/>
         <result property="googleId" column="google_id"/>
+        <result property="yandexId" column="yandex_id"/>
         <result property="active" column="is_active"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
@@ -35,9 +36,13 @@
         SELECT * FROM users WHERE google_id = #{googleId}
     </select>
 
+    <select id="findByYandexId" resultMap="userResultMap">
+        SELECT * FROM users WHERE yandex_id = #{yandexId}
+    </select>
+
     <insert id="insert" parameterType="dev.cogitor.note.keeper.model.User">
-        INSERT INTO users (id, email, name, avatar_url, provider, google_id, is_active, created_at, updated_at)
-        VALUES (#{id}, #{email}, #{name}, #{avatarUrl}, #{provider}, #{googleId}, #{active}, #{createdAt}, #{updatedAt})
+        INSERT INTO users (id, email, name, avatar_url, provider, google_id, yandex_id, is_active, created_at, updated_at)
+        VALUES (#{id}, #{email}, #{name}, #{avatarUrl}, #{provider}, #{googleId}, #{yandexId}, #{active}, #{createdAt}, #{updatedAt})
     </insert>
 
     <update id="update" parameterType="dev.cogitor.note.keeper.model.User">
@@ -47,6 +52,7 @@
             avatar_url = #{avatarUrl},
             provider = #{provider},
             google_id = #{googleId},
+            yandex_id = #{yandexId},
             is_active = #{active},
             updated_at = #{updatedAt}
         WHERE id = #{id}

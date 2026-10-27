@@ -15,8 +15,9 @@ public class User {
     private String name;
     @JsonProperty("picture")
     private String avatarUrl;
-    private String provider; // 'local' or 'google'
+    private String provider; // 'local', 'google', or 'yandex'
     private String googleId;
+    private String yandexId;
     @JsonProperty("isActive")
     private boolean active;
     private LocalDateTime createdAt;

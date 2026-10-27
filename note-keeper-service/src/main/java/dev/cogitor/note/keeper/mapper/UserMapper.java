@@ -16,6 +16,8 @@ public interface UserMapper {
 
     User findByGoogleId(@Param("googleId") String googleId);
 
+    User findByYandexId(@Param("yandexId") String yandexId);
+
     void insert(User user);
 
     void update(User user);

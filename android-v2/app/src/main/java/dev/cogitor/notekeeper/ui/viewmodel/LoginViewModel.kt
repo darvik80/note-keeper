@@ -75,6 +75,12 @@ class LoginViewModel(
         }
     }
 
+    fun loginWithToken(token: String) {
+        viewModelScope.launch {
+            tokenDataStore.saveToken(token)
+        }
+    }
+
     fun logout() {
         viewModelScope.launch {
             tokenDataStore.clearToken()

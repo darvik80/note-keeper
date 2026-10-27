@@ -11,4 +11,7 @@ Phone-first rewrite. Old `android/` stays until this is stable.
 - Room + WorkManager sync for notes/todos as in v1
 - Not yet: Hilt, SQLCipher local vault cache
 
+Sign-in: email/password plus Google and Yandex (Custom Tabs → `notekeeper://oauth`).
+Buttons appear when `/api/v1/config` reports that provider as enabled (`GOOGLE_CLIENT_ID` / `YANDEX_CLIENT_ID`).
+
 Open in Android Studio from this folder.
