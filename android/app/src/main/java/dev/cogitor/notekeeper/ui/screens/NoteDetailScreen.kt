@@ -1,8 +1,10 @@
 package dev.cogitor.notekeeper.ui.screens
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,10 +27,14 @@ import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -96,6 +102,7 @@ fun NoteDetailScreen(
     var isEditing by remember { mutableStateOf(noteId == null) }
     var showShareDialog by remember { mutableStateOf(false) }
     var shareUserId by remember { mutableStateOf("") }
+    var showMore by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val filePicker = rememberLauncherForActivityResult(
@@ -138,6 +145,34 @@ fun NoteDetailScreen(
         tagDraft = ""
     }
 
+    suspend fun persist(announce: Boolean = false) {
+        commitTagDraft()
+        val resolvedTitle = title.text.trim().ifBlank {
+            if (content.text.isBlank() && tagList.isEmpty()) {
+                if (announce) snackbarHostState.showSnackbar("Title required")
+                return
+            }
+            "Untitled"
+        }
+        viewModel.persist(
+            isNew = isNewNote,
+            title = resolvedTitle,
+            content = content.text,
+            tags = tagList,
+            priority = priority,
+            announce = announce
+        )
+    }
+
+    fun goBack() {
+        scope.launch {
+            persist(announce = false)
+            onBack()
+        }
+    }
+
+    BackHandler { goBack() }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -159,7 +194,7 @@ fun NoteDetailScreen(
                 },
                 colors = nkTopBarColors(),
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { goBack() }) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -175,12 +210,6 @@ fun NoteDetailScreen(
                     if (note?.isDeleted == true || note?.isArchived == true) {
                         TextButton(onClick = { viewModel.restoreNote() }) { Text("Restore") }
                     } else if (!isNewNote) {
-                        IconButton(onClick = {
-                            viewModel.deleteNote()
-                            onBack()
-                        }) {
-                            Icon(Icons.Outlined.Delete, contentDescription = "Delete")
-                        }
                         IconButton(onClick = { viewModel.toggleFavorite() }) {
                             Icon(
                                 if (note?.isFavorite == true) Icons.Outlined.Star else Icons.Outlined.StarBorder,
@@ -189,46 +218,56 @@ fun NoteDetailScreen(
                                 else MaterialTheme.colorScheme.onBackground
                             )
                         }
-                        IconButton(onClick = { filePicker.launch(arrayOf("*/*")) }) {
-                            Icon(Icons.Outlined.AttachFile, contentDescription = "Attach")
+                        IconButton(onClick = { showMore = true }) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = "More")
+                        }
+                        DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Share") },
+                                onClick = {
+                                    showMore = false
+                                    showShareDialog = true
+                                },
+                                leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Attach file") },
+                                onClick = {
+                                    showMore = false
+                                    filePicker.launch(arrayOf("*/*"))
+                                },
+                                leadingIcon = { Icon(Icons.Outlined.AttachFile, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Move to Trash") },
+                                onClick = {
+                                    showMore = false
+                                    viewModel.deleteNote()
+                                    onBack()
+                                },
+                                leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) }
+                            )
                         }
                     }
                 }
             )
         },
         floatingActionButton = {
-            NkFab(
-                onClick = {
-                    when {
-                        isSaving -> Unit
-                        title.text.isBlank() -> scope.launch {
-                            snackbarHostState.showSnackbar("Title required")
-                        }
-                        else -> {
-                            commitTagDraft()
-                            if (isNewNote) {
-                                viewModel.createNote(title.text, content.text, tagList, priority)
-                            } else {
-                                viewModel.updateNote(
-                                    title.text,
-                                    content.text,
-                                    tagList,
-                                    priority,
-                                    announce = true
-                                )
-                            }
-                        }
+            if (isEditing) {
+                NkFab(
+                    onClick = {
+                        if (!isSaving) scope.launch { persist(announce = true) }
                     }
-                }
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.padding(8.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(Icons.Outlined.Check, contentDescription = "Save")
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(8.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Outlined.Check, contentDescription = "Save")
+                    }
                 }
             }
         }
@@ -359,9 +398,13 @@ fun NoteDetailScreen(
                     Spacer(Modifier.height(16.dp))
                     if (content.text.isBlank()) {
                         Text(
-                            "Nothing to preview. Switch to Edit to write Markdown.",
+                            "Nothing to preview. Tap to edit.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { isEditing = true }
+                                .padding(vertical = 8.dp)
                         )
                     } else {
                         MarkdownText(

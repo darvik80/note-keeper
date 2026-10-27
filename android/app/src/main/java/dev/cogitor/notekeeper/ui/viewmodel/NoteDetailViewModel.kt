@@ -52,15 +52,7 @@ class NoteDetailViewModel(
         priority: String = "medium",
         folder: String = "default"
     ) {
-        viewModelScope.launch {
-            _isSaving.value = true
-            _saveLabel.value = "Saving…"
-            val created = repository.createNote(title, content, folder, tags, priority)
-            _note.value = created
-            _isSaving.value = false
-            _saveLabel.value = "Saved"
-            _messages.emit("Saved")
-        }
+        viewModelScope.launch { persist(true, title, content, tags, priority, folder, announce = true) }
     }
 
     fun updateNote(
@@ -70,10 +62,26 @@ class NoteDetailViewModel(
         priority: String = "medium",
         announce: Boolean = false
     ) {
-        viewModelScope.launch {
+        viewModelScope.launch { persist(false, title, content, tags, priority, announce = announce) }
+    }
+
+    suspend fun persist(
+        isNew: Boolean,
+        title: String,
+        content: String,
+        tags: List<String> = emptyList(),
+        priority: String = "medium",
+        folder: String = "default",
+        announce: Boolean = false
+    ) {
+        if (title.isBlank()) return
+        _isSaving.value = true
+        _saveLabel.value = "Saving…"
+        if (isNew && _note.value == null) {
+            val created = repository.createNote(title, content, folder, tags, priority)
+            _note.value = created
+        } else {
             _note.value?.let { existing ->
-                _isSaving.value = true
-                _saveLabel.value = "Saving…"
                 val updated = existing.copy(
                     title = title,
                     content = content,
@@ -83,11 +91,11 @@ class NoteDetailViewModel(
                 )
                 repository.updateNote(updated)
                 _note.value = updated.copy(syncStatus = SyncStatus.PENDING_UPDATE)
-                _isSaving.value = false
-                _saveLabel.value = "Saved"
-                if (announce) _messages.emit("Saved")
             }
         }
+        _isSaving.value = false
+        _saveLabel.value = "Saved"
+        if (announce) _messages.emit("Saved")
     }
 
     fun deleteNote() {

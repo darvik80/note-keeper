@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -13,7 +14,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -27,6 +27,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -35,6 +39,8 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +57,7 @@ import dev.cogitor.notekeeper.ui.components.PriorityDot
 import dev.cogitor.notekeeper.ui.components.SwipeHint
 import dev.cogitor.notekeeper.ui.viewmodel.NoteListFilter
 import dev.cogitor.notekeeper.ui.viewmodel.NoteListViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,20 +65,24 @@ fun NoteListScreen(
     viewModel: NoteListViewModel,
     onNoteClick: (String) -> Unit,
     onAddClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    onTodosClick: () -> Unit,
-    onLogout: () -> Unit
+    onSettingsClick: () -> Unit
 ) {
     val notes by viewModel.notes.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
     val syncStatus by viewModel.syncStatus.collectAsState()
     val filter by viewModel.filter.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            NkFab(onClick = onAddClick) {
-                Icon(Icons.Outlined.Add, contentDescription = "New note")
+            if (filter == NoteListFilter.Active) {
+                NkFab(onClick = onAddClick) {
+                    Icon(Icons.Outlined.Add, contentDescription = "New note")
+                }
             }
         }
     ) { padding ->
@@ -96,9 +107,6 @@ fun NoteListScreen(
                 }
                 IconButton(onClick = onSettingsClick) {
                     Icon(Icons.Outlined.Settings, contentDescription = "Settings")
-                }
-                IconButton(onClick = onLogout) {
-                    Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = "Log out")
                 }
             }
             if (syncStatus.isNotEmpty()) {
@@ -152,7 +160,7 @@ fun NoteListScreen(
                     }
                 } else {
                     LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 88.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(notes, key = { it.id }) { note ->
@@ -162,8 +170,21 @@ fun NoteListScreen(
                                 modifier = Modifier.clip(MaterialTheme.shapes.medium),
                                 enableDismissFromStartToEnd = false,
                                 onDismiss = {
-                                    if (filter == NoteListFilter.Active) viewModel.archiveNote(note)
-                                    else viewModel.restoreNote(note)
+                                    if (filter == NoteListFilter.Active) {
+                                        viewModel.archiveNote(note)
+                                        scope.launch {
+                                            val result = snackbarHostState.showSnackbar(
+                                                message = "Archived",
+                                                actionLabel = "Undo",
+                                                duration = SnackbarDuration.Short
+                                            )
+                                            if (result == SnackbarResult.ActionPerformed) {
+                                                viewModel.restoreNote(note)
+                                            }
+                                        }
+                                    } else {
+                                        viewModel.restoreNote(note)
+                                    }
                                 },
                                 backgroundContent = {
                                     if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {

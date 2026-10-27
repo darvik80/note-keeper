@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,6 +27,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -33,6 +39,8 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +56,7 @@ import dev.cogitor.notekeeper.ui.components.PriorityDot
 import dev.cogitor.notekeeper.ui.components.SwipeHint
 import dev.cogitor.notekeeper.ui.viewmodel.TodoListFilter
 import dev.cogitor.notekeeper.ui.viewmodel.TodoListViewModel
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -57,18 +66,24 @@ fun TodoListScreen(
     viewModel: TodoListViewModel,
     onTodoClick: (String) -> Unit,
     onAddClick: () -> Unit,
-    onNotesClick: () -> Unit
+    onSettingsClick: () -> Unit
 ) {
     val todos by viewModel.todos.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
     val syncStatus by viewModel.syncStatus.collectAsState()
     val filter by viewModel.filter.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            NkFab(onClick = onAddClick) {
-                Icon(Icons.Outlined.Add, contentDescription = "New todo")
+            if (filter == TodoListFilter.Active) {
+                NkFab(onClick = onAddClick) {
+                    Icon(Icons.Outlined.Add, contentDescription = "New todo")
+                }
             }
         }
     ) { padding ->
@@ -91,6 +106,9 @@ fun TodoListScreen(
                         strokeWidth = 2.dp
                     )
                     else Icon(Icons.Outlined.Sync, contentDescription = "Sync")
+                }
+                IconButton(onClick = onSettingsClick) {
+                    Icon(Icons.Outlined.Settings, contentDescription = "Settings")
                 }
             }
             if (syncStatus.isNotEmpty()) {
@@ -154,7 +172,7 @@ fun TodoListScreen(
                     }
                 } else {
                     LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 88.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(todos, key = { it.id }) { todo ->
@@ -167,7 +185,19 @@ fun TodoListScreen(
                                     when {
                                         filter == TodoListFilter.Archive || filter == TodoListFilter.Trash ->
                                             viewModel.restoreTodo(todo)
-                                        value == SwipeToDismissBoxValue.EndToStart -> viewModel.archiveTodo(todo)
+                                        value == SwipeToDismissBoxValue.EndToStart -> {
+                                            viewModel.archiveTodo(todo)
+                                            scope.launch {
+                                                val result = snackbarHostState.showSnackbar(
+                                                    message = "Archived",
+                                                    actionLabel = "Undo",
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                                if (result == SnackbarResult.ActionPerformed) {
+                                                    viewModel.restoreTodo(todo)
+                                                }
+                                            }
+                                        }
                                         value == SwipeToDismissBoxValue.StartToEnd -> viewModel.toggleComplete(todo)
                                     }
                                 },

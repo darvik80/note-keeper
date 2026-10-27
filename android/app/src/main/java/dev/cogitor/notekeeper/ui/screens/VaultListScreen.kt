@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Password
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,20 +42,26 @@ import dev.cogitor.notekeeper.ui.components.NkEmptyState
 import dev.cogitor.notekeeper.ui.components.NkFab
 import dev.cogitor.notekeeper.ui.components.NkScreenHeader
 import dev.cogitor.notekeeper.ui.viewmodel.VaultViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VaultListScreen(
     viewModel: VaultViewModel,
     onItemClick: (String) -> Unit,
-    onAddClick: () -> Unit
+    onAddClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val items by viewModel.items.collectAsState()
     var query by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) { viewModel.load() }
+    LaunchedEffect(query) {
+        delay(300)
+        viewModel.load(q = query.ifBlank { null })
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0),
         floatingActionButton = {
             NkFab(onClick = onAddClick) {
                 Icon(Icons.Outlined.Add, contentDescription = "New item")
@@ -71,6 +79,9 @@ fun VaultListScreen(
                 IconButton(onClick = { viewModel.load(q = query.ifBlank { null }) }) {
                     Icon(Icons.Outlined.Sync, contentDescription = "Refresh")
                 }
+                IconButton(onClick = onSettingsClick) {
+                    Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+                }
             }
             OutlinedTextField(
                 value = query,
@@ -84,7 +95,7 @@ fun VaultListScreen(
                 NkEmptyState(Icons.Outlined.Lock, "Vault is empty", "Store passwords and keys")
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(vertical = 12.dp),
+                    contentPadding = PaddingValues(top = 12.dp, bottom = 88.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(items, key = { it.id }) { item ->

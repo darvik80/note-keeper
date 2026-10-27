@@ -56,22 +56,7 @@ class TodoDetailViewModel(
         notificationChannels: String? = null
     ) {
         viewModelScope.launch {
-            _isSaving.value = true
-            _saveLabel.value = "Saving…"
-            val created = repository.createTodo(
-                title,
-                description,
-                tags,
-                priority,
-                dueDate,
-                reminder,
-                scheduleRepeat,
-                notificationChannels
-            )
-            _todo.value = created
-            _isSaving.value = false
-            _saveLabel.value = "Saved"
-            _messages.emit("Saved")
+            persist(true, title, description, tags, priority, false, dueDate, reminder, scheduleRepeat, notificationChannels, announce = true)
         }
     }
 
@@ -84,11 +69,44 @@ class TodoDetailViewModel(
         dueDate: String? = null,
         reminder: String? = null,
         scheduleRepeat: String = "none",
-        notificationChannels: String? = null
+        notificationChannels: String? = null,
+        announce: Boolean = false
     ) {
         viewModelScope.launch {
+            persist(false, title, description, tags, priority, completed, dueDate, reminder, scheduleRepeat, notificationChannels, announce)
+        }
+    }
+
+    suspend fun persist(
+        isNew: Boolean,
+        title: String,
+        description: String,
+        tags: List<String> = emptyList(),
+        priority: String = "medium",
+        completed: Boolean = false,
+        dueDate: String? = null,
+        reminder: String? = null,
+        scheduleRepeat: String = "none",
+        notificationChannels: String? = null,
+        announce: Boolean = false
+    ) {
+        if (title.isBlank()) return
+        _isSaving.value = true
+        _saveLabel.value = "Saving…"
+        if (isNew && _todo.value == null) {
+            val created = repository.createTodo(
+                title,
+                description,
+                tags,
+                priority,
+                dueDate,
+                reminder,
+                scheduleRepeat,
+                notificationChannels
+            )
+            _todo.value = created
+        } else {
             _todo.value?.let { existing ->
-                _isSaving.value = true
                 val updated = existing.copy(
                     title = title,
                     description = description,
@@ -101,14 +119,13 @@ class TodoDetailViewModel(
                     notificationChannels = notificationChannels,
                     updatedAt = java.time.Instant.now().toString()
                 )
-                _saveLabel.value = "Saving…"
                 repository.updateTodo(updated)
                 _todo.value = updated.copy(syncStatus = SyncStatus.PENDING_UPDATE)
-                _isSaving.value = false
-                _saveLabel.value = "Saved"
-                _messages.emit("Saved")
             }
         }
+        _isSaving.value = false
+        _saveLabel.value = "Saved"
+        if (announce) _messages.emit("Saved")
     }
 
     fun deleteTodo() {

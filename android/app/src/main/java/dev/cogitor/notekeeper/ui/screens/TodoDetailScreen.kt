@@ -1,6 +1,7 @@
 package dev.cogitor.notekeeper.ui.screens
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Notifications
@@ -35,6 +37,8 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -82,6 +86,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -111,6 +116,7 @@ fun TodoDetailScreen(
     var isNewTodo by remember { mutableStateOf(todoId == null) }
     var isEditing by remember { mutableStateOf(todoId == null) }
     var showShareDialog by remember { mutableStateOf(false) }
+    var showMore by remember { mutableStateOf(false) }
     var shareUserId by remember { mutableStateOf("") }
     var showDueDatePicker by remember { mutableStateOf(false) }
     var showReminderDatePicker by remember { mutableStateOf(false) }
@@ -162,6 +168,46 @@ fun TodoDetailScreen(
         }
     }
 
+    suspend fun persist(announce: Boolean = false) {
+        val tagList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        val hasBody = description.isNotBlank() || tagList.isNotEmpty() || dueDate != null || reminder != null
+        val resolvedTitle = title.trim().ifBlank {
+            if (!hasBody) {
+                if (announce) snackbarHostState.showSnackbar("Title required")
+                return
+            }
+            "Untitled"
+        }
+        viewModel.persist(
+            isNew = isNewTodo,
+            title = resolvedTitle,
+            description = description,
+            tags = tagList,
+            priority = priority,
+            completed = completed,
+            dueDate = dueDate,
+            reminder = reminder,
+            scheduleRepeat = scheduleRepeat,
+            notificationChannels = serverNotificationChannels.ifBlank { null },
+            announce = announce
+        )
+    }
+
+    fun goBack() {
+        scope.launch {
+            persist(announce = false)
+            onBack()
+        }
+    }
+
+    BackHandler { goBack() }
+
+    LaunchedEffect(title, description, tags, priority, completed, dueDate, reminder, scheduleRepeat, serverNotificationChannels) {
+        if (isNewTodo || todo == null || title.isBlank()) return@LaunchedEffect
+        delay(800)
+        persist(announce = false)
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -187,7 +233,7 @@ fun TodoDetailScreen(
                 },
                 colors = nkTopBarColors(),
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { goBack() }) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -215,61 +261,44 @@ fun TodoDetailScreen(
                                 contentDescription = "Favorite"
                             )
                         }
-                        IconButton(onClick = { showShareDialog = true }) {
-                            Icon(Icons.Outlined.Share, contentDescription = "Share")
+                        IconButton(onClick = { showMore = true }) {
+                            Icon(Icons.Outlined.MoreVert, contentDescription = "More")
                         }
-                        IconButton(onClick = {
-                            viewModel.deleteTodo()
-                            onBack()
-                        }) {
-                            Icon(Icons.Outlined.Delete, contentDescription = "Delete")
+                        DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Share") },
+                                onClick = {
+                                    showMore = false
+                                    showShareDialog = true
+                                },
+                                leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Move to Trash") },
+                                onClick = {
+                                    showMore = false
+                                    viewModel.deleteTodo()
+                                    onBack()
+                                },
+                                leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) }
+                            )
                         }
                     }
                 }
             )
         },
         floatingActionButton = {
-            NkFab(
-                onClick = {
-                    when {
-                        isSaving -> Unit
-                        title.isBlank() -> scope.launch {
-                            snackbarHostState.showSnackbar("Title required")
-                        }
-                        else -> {
-                            val tagList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
-                            if (isNewTodo) {
-                                viewModel.createTodo(
-                                    title,
-                                    description,
-                                    tagList,
-                                    priority,
-                                    dueDate,
-                                    reminder,
-                                    scheduleRepeat,
-                                    serverNotificationChannels.ifBlank { null }
-                                )
-                            } else {
-                                viewModel.updateTodo(
-                                    title,
-                                    description,
-                                    tagList,
-                                    priority,
-                                    completed,
-                                    dueDate,
-                                    reminder,
-                                    scheduleRepeat,
-                                    serverNotificationChannels.ifBlank { null }
-                                )
-                            }
-                        }
+            if (isEditing) {
+                NkFab(
+                    onClick = {
+                        if (!isSaving) scope.launch { persist(announce = true) }
                     }
-                }
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.padding(8.dp))
-                } else {
-                    Icon(Icons.Outlined.Check, contentDescription = "Save")
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(modifier = Modifier.padding(8.dp))
+                    } else {
+                        Icon(Icons.Outlined.Check, contentDescription = "Save")
+                    }
                 }
             }
         }

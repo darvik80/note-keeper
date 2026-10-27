@@ -9,11 +9,14 @@ import dev.cogitor.notekeeper.data.sync.NetworkConnectivityObserver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 
 enum class TodoListFilter { Active, Done, Archive, Trash }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TodoListViewModel(
     private val repository: TodoRepository,
     private val networkObserver: NetworkConnectivityObserver
@@ -63,6 +66,10 @@ class TodoListViewModel(
                 onFailure = { e -> "Sync failed: ${e.message?.take(80)}" }
             )
             _isSyncing.value = false
+            if (result.isSuccess) {
+                delay(1600)
+                if (_syncStatus.value == "Synced") _syncStatus.value = ""
+            }
         }
     }
 

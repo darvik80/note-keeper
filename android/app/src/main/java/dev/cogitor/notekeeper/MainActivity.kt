@@ -269,21 +269,11 @@ fun NoteKeeperNavHost(
                 val viewModel: NoteListViewModel = viewModel(
                     factory = NoteListViewModel.Factory(repository, networkObserver)
                 )
-                val loginViewModel: LoginViewModel = viewModel(
-                    factory = LoginViewModel.Factory(RetrofitClient.authApiService, tokenDataStore)
-                )
                 NoteListScreen(
                     viewModel = viewModel,
                     onNoteClick = { navController.navigate("note/$it") },
                     onAddClick = { navController.navigate("note/new") },
-                    onSettingsClick = { navController.navigate("settings") },
-                    onTodosClick = { navController.navigate("todos") },
-                    onLogout = {
-                        loginViewModel.logout()
-                        navController.navigate("login") {
-                            popUpTo("notes") { inclusive = true }
-                        }
-                    }
+                    onSettingsClick = { navController.navigate("settings") }
                 )
             }
             composable("note/{noteId}") { backStackEntry ->
@@ -298,7 +288,18 @@ fun NoteKeeperNavHost(
                 )
             }
             composable("settings") {
-                SettingsScreen(onBack = { navController.popBackStack() })
+                val loginViewModel: LoginViewModel = viewModel(
+                    factory = LoginViewModel.Factory(RetrofitClient.authApiService, tokenDataStore)
+                )
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onLogout = {
+                        loginViewModel.logout()
+                        navController.navigate("login") {
+                            popUpTo("notes") { inclusive = true }
+                        }
+                    }
+                )
             }
             composable("todos") {
                 val viewModel: TodoListViewModel = viewModel(
@@ -308,7 +309,7 @@ fun NoteKeeperNavHost(
                     viewModel = viewModel,
                     onTodoClick = { navController.navigate("todo/$it") },
                     onAddClick = { navController.navigate("todo/new") },
-                    onNotesClick = { navController.navigate("notes") }
+                    onSettingsClick = { navController.navigate("settings") }
                 )
             }
             composable("todo/{todoId}") { backStackEntry ->
@@ -329,7 +330,8 @@ fun NoteKeeperNavHost(
                 VaultListScreen(
                     viewModel = viewModel,
                     onItemClick = { navController.navigate("vault/$it") },
-                    onAddClick = { navController.navigate("vault/new") }
+                    onAddClick = { navController.navigate("vault/new") },
+                    onSettingsClick = { navController.navigate("settings") }
                 )
             }
             composable("vault/{itemId}") { backStackEntry ->
@@ -346,7 +348,8 @@ fun NoteKeeperNavHost(
             composable("search") {
                 SearchScreen(
                     onNoteClick = { navController.navigate("note/$it") },
-                    onTodoClick = { navController.navigate("todo/$it") }
+                    onTodoClick = { navController.navigate("todo/$it") },
+                    onSettingsClick = { navController.navigate("settings") }
                 )
             }
         }

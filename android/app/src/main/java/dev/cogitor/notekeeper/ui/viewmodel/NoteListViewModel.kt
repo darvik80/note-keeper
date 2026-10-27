@@ -9,11 +9,14 @@ import dev.cogitor.notekeeper.data.sync.NetworkConnectivityObserver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 
 enum class NoteListFilter { Active, Archive, Trash }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class NoteListViewModel(
     private val repository: NoteRepository,
     private val networkObserver: NetworkConnectivityObserver
@@ -59,6 +62,10 @@ class NoteListViewModel(
             val success = repository.syncNotes()
             _syncStatus.value = if (success) "Synced" else "Sync failed"
             _isSyncing.value = false
+            if (success) {
+                delay(1600)
+                if (_syncStatus.value == "Synced") _syncStatus.value = ""
+            }
         }
     }
 
