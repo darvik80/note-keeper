@@ -187,6 +187,23 @@ export const api = {
       return handleResponse(res);
     },
 
+    startLink: async (provider: 'google' | 'yandex'): Promise<{ url: string }> => {
+      const res = await fetch(`${API_BASE}/auth/link/${provider}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include'
+      });
+      return handleResponse(res);
+    },
+
+    unlink: async (provider: 'google' | 'yandex'): Promise<User> => {
+      const res = await fetch(`${API_BASE}/auth/link/${provider}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      return handleResponse(res);
+    },
+
     /**
      * Clear the JWT and user profile from `localStorage`.
      * Does not call a server-side invalidation endpoint.

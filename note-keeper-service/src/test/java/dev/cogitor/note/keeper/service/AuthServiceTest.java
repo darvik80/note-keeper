@@ -134,7 +134,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void loginWithEmail_googleProvider_shouldThrowException() {
+    void loginWithEmail_googleProviderWithoutPassword_shouldThrowException() {
         AuthRequest request = new AuthRequest();
         request.setEmail("google@test.com");
         request.setPassword("password");
@@ -143,8 +143,48 @@ class AuthServiceTest {
         user.setId("user-id");
         user.setProvider("google");
         when(userMapper.findByEmail("google@test.com")).thenReturn(user);
+        when(credentialsMapper.findByUserId("user-id")).thenReturn(null);
 
         assertThrows(RuntimeException.class, () -> authService.loginWithEmail(request));
+    }
+
+    @Test
+    void linkOAuth_attachesYandexToGoogleUser() {
+        User user = new User();
+        user.setId("user-id");
+        user.setGoogleId("g-1");
+        user.setProvider("google");
+        when(userMapper.findById("user-id")).thenReturn(user);
+        when(userMapper.findByYandexId("ya-1")).thenReturn(null);
+
+        User linked = authService.linkOAuth("user-id", "yandex", "ya-1", "ya@test.com");
+
+        assertEquals("ya-1", linked.getYandexId());
+        verify(userMapper).update(user);
+    }
+
+    @Test
+    void linkOAuth_otherUserOwnsProvider_shouldThrow() {
+        User me = new User();
+        me.setId("me");
+        User other = new User();
+        other.setId("other");
+        when(userMapper.findById("me")).thenReturn(me);
+        when(userMapper.findByGoogleId("g-1")).thenReturn(other);
+
+        assertThrows(RuntimeException.class, () -> authService.linkOAuth("me", "google", "g-1", "a@b.c"));
+    }
+
+    @Test
+    void unlinkOAuth_lastMethod_shouldThrow() {
+        User user = new User();
+        user.setId("user-id");
+        user.setGoogleId("g-1");
+        user.setProvider("google");
+        when(userMapper.findById("user-id")).thenReturn(user);
+        when(credentialsMapper.findByUserId("user-id")).thenReturn(null);
+
+        assertThrows(RuntimeException.class, () -> authService.unlinkOAuth("user-id", "google"));
     }
 
     @Test

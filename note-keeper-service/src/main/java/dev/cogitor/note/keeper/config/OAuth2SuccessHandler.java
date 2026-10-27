@@ -1,5 +1,6 @@
 package dev.cogitor.note.keeper.config;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -32,6 +33,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     public static final String REDIRECT_SESSION_KEY = "oauth_redirect";
     public static final String ANDROID_REDIRECT = "notekeeper://oauth";
     public static final String REDIRECT_COOKIE = "nk_oauth_redirect";
+    public static final String LINK_USER_SESSION_KEY = "oauth_link_user";
+    public static final String LINK_USER_COOKIE = "nk_oauth_link";
 
     private static final Logger log = LoggerFactory.getLogger(OAuth2SuccessHandler.class);
 
@@ -75,6 +78,23 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         log.info("OAuth2 success provider={} email={}", provider, email);
 
+        String baseUrl = resolveBaseUrl(request);
+        String linkUserId = takeLinkUserId(request);
+        if (linkUserId != null) {
+            clearCookie(response, LINK_USER_COOKIE);
+            try {
+                authService.linkOAuth(linkUserId, provider, providerId, email);
+                log.info("OAuth2 linked provider={} user={}", provider, linkUserId);
+                response.sendRedirect(baseUrl + "/#/settings?linked=" + provider);
+            } catch (RuntimeException ex) {
+                log.warn("OAuth2 link failed: {}", ex.getMessage());
+                response.sendRedirect(baseUrl + "/#/settings?linkError="
+                        + URLEncoder.encode(ex.getMessage() == null ? "link failed" : ex.getMessage(),
+                        StandardCharsets.UTF_8));
+            }
+            return;
+        }
+
         AuthResponse authResponse = authService.loginWithOAuth(provider, providerId, email, name, picture);
         String token = authResponse.getToken();
 
@@ -86,7 +106,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             return;
         }
 
-        String baseUrl = resolveBaseUrl(request);
         String redirectUrl = baseUrl + "/#/login?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
         log.info("OAuth2 redirect URL: {}/#/login?token=***", baseUrl);
         response.sendRedirect(redirectUrl);
@@ -113,6 +132,34 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             }
         }
         return null;
+    }
+
+    private static String takeLinkUserId(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            Object stored = session.getAttribute(LINK_USER_SESSION_KEY);
+            session.removeAttribute(LINK_USER_SESSION_KEY);
+            if (stored instanceof String userId && !userId.isBlank()) {
+                return userId;
+            }
+        }
+        if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if (LINK_USER_COOKIE.equals(cookie.getName()) && cookie.getValue() != null
+                        && !cookie.getValue().isBlank()) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void clearCookie(HttpServletResponse response, String name) {
+        Cookie cookie = new Cookie(name, "");
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setHttpOnly(true);
+        response.addCookie(cookie);
     }
 
     static String yandexEmail(OAuth2User user) {

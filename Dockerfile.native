@@ -6,6 +6,12 @@ USER root
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV JWT_SECRET=aot-dummy-secret-key-must-be-32-bytes!!
+# AOT evaluates OAuth2 conditions at build time. Empty client-id drops
+# oauth2Login from the image; runtime /app/etc yaml cannot add it back.
+ENV GOOGLE_CLIENT_ID=aot-dummy-google-client-id
+ENV GOOGLE_CLIENT_SECRET=aot-dummy-google-client-secret
+ENV YANDEX_CLIENT_ID=aot-dummy-yandex-client-id
+ENV YANDEX_CLIENT_SECRET=aot-dummy-yandex-client-secret
 
 COPY mvnw pom.xml ./
 COPY .mvn .mvn

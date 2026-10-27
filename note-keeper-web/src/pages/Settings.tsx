@@ -10,6 +10,7 @@ import {SettingsTab, SettingsTabBar} from '../components/settings/SettingsTabBar
 import {ApiTab} from '../components/settings/ApiTab';
 import {ApiTokensTab} from '../components/settings/ApiTokensTab';
 import {DailyReportTab} from '../components/settings/DailyReportTab';
+import {AccountTab} from '../components/settings/AccountTab';
 import {useToast} from '../contexts/ToastContext';
 import {storage} from '../utils/storage';
 import {IntegrationRequest, IntegrationResponse, Settings as SettingsType} from '../types';
@@ -34,7 +35,7 @@ export const Settings: React.FC = () => {
   const { toast } = useToast();
   const [settings, setSettings] = useState<SettingsType>(storage.getSettings());
   const [saved, setSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<SettingsTab>('integrations');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('account');
   const [telegramTestStatus, setTelegramTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [telegramTestTodoStatus, setTelegramTestTodoStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [dingtalkTestStatus, setDingtalkTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
@@ -325,7 +326,7 @@ export const Settings: React.FC = () => {
     <PageShell error={error} onDismissError={() => setError(null)} className="overflow-hidden">
       <Header
         title="Settings"
-        subtitle="Integrations, keys, backup"
+        subtitle="Account, integrations, keys, backup"
         actions={
           (activeTab === 'integrations' || activeTab === 'shortcuts' || activeTab === 'daily-report') && (
             <button
@@ -341,6 +342,8 @@ export const Settings: React.FC = () => {
       <div className="flex-1 overflow-auto px-5 sm:px-8 lg:px-10 pb-8 min-h-0">
         <div className="max-w-3xl">
           <SettingsTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+
+          {activeTab === 'account' && <AccountTab />}
 
           {activeTab === 'integrations' && (
             <div className="space-y-8">

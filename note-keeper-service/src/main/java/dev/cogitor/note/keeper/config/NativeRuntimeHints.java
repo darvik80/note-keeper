@@ -3,6 +3,10 @@ package dev.cogitor.note.keeper.config;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import dev.cogitor.note.keeper.client.DingTalkClient;
 import dev.cogitor.note.keeper.client.TelegramClient;
 import dev.cogitor.note.keeper.dto.*;
@@ -44,6 +48,8 @@ public class NativeRuntimeHints implements RuntimeHintsRegistrar {
                 AnalyticsResponse.class, AnalyticsResponse.TagCount.class,
                 TelegramClient.TelegramResponse.class, TelegramClient.InlineButton.class,
                 DingTalkClient.DingTalkResponse.class,
+                DefaultOAuth2User.class, DefaultOidcUser.class,
+                OAuth2AuthenticationToken.class, ClientRegistration.class,
                 LocalDateTimeTypeHandler.class, StringListTypeHandler.class, IntegerListTypeHandler.class
         }) {
             hints.reflection().registerType(type, members);

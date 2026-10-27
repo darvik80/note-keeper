@@ -78,10 +78,6 @@ public class AuthService {
             throw new RuntimeException("Invalid email or password");
         }
 
-        if (!"local".equals(user.getProvider())) {
-            throw new RuntimeException("User registered with " + user.getProvider() + ". Use that provider to sign in");
-        }
-
         UserCredentials credentials = credentialsMapper.findByUserId(user.getId());
         if (credentials == null) {
             throw new RuntimeException("Invalid email or password");
@@ -163,6 +159,66 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getId(), user.getEmail());
         return new AuthResponse(token, user);
+    }
+
+    /**
+     * Attach Google/Yandex to an existing logged-in user (emails may differ).
+     */
+    public User linkOAuth(String userId, String provider, String providerUserId, String email) {
+        if (!"google".equals(provider) && !"yandex".equals(provider)) {
+            throw new RuntimeException("Unsupported OAuth provider: " + provider);
+        }
+        if (providerUserId == null || providerUserId.isBlank()) {
+            throw new RuntimeException("OAuth provider id is missing");
+        }
+        User user = userMapper.findById(userId);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        User owner = "google".equals(provider)
+                ? userMapper.findByGoogleId(providerUserId)
+                : userMapper.findByYandexId(providerUserId);
+        if (owner != null && !owner.getId().equals(userId)) {
+            throw new RuntimeException("This " + provider + " account is already linked to another user");
+        }
+        applyProviderId(user, provider, providerUserId);
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.update(user);
+        log.info("Linked {} to user {} (oauth email={})", provider, userId, email);
+        return user;
+    }
+
+    public User unlinkOAuth(String userId, String provider) {
+        if (!"google".equals(provider) && !"yandex".equals(provider)) {
+            throw new RuntimeException("Unsupported OAuth provider: " + provider);
+        }
+        User user = userMapper.findById(userId);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        boolean hasPassword = credentialsMapper.findByUserId(userId) != null;
+        boolean hasGoogle = user.getGoogleId() != null && !user.getGoogleId().isBlank();
+        boolean hasYandex = user.getYandexId() != null && !user.getYandexId().isBlank();
+        if ("google".equals(provider)) {
+            if (!hasPassword && !hasYandex) {
+                throw new RuntimeException("Cannot unlink the last sign-in method");
+            }
+            user.setGoogleId(null);
+            if ("google".equals(user.getProvider())) {
+                user.setProvider(hasYandex ? "yandex" : "local");
+            }
+        } else {
+            if (!hasPassword && !hasGoogle) {
+                throw new RuntimeException("Cannot unlink the last sign-in method");
+            }
+            user.setYandexId(null);
+            if ("yandex".equals(user.getProvider())) {
+                user.setProvider(hasGoogle ? "google" : "local");
+            }
+        }
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.update(user);
+        return user;
     }
 
     private static void applyProviderId(User user, String provider, String providerUserId) {

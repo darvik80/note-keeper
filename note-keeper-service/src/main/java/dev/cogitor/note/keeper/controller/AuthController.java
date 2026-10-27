@@ -17,6 +17,7 @@ import dev.cogitor.note.keeper.service.AuthService;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -78,6 +79,50 @@ public class AuthController {
         String target = request.getContextPath() + "/oauth2/authorization/" + provider;
         headers.setLocation(URI.create(target));
         return new ResponseEntity<>(headers, HttpStatus.FOUND);
+    }
+
+    /**
+     * Start OAuth to attach Google/Yandex to the current user (JWT required).
+     */
+    @PostMapping("/link/{provider}")
+    public ResponseEntity<Map<String, String>> startLink(@PathVariable String provider,
+                                                         @RequestHeader("Authorization") String authHeader,
+                                                         HttpServletRequest request) {
+        if (!Set.of("google", "yandex").contains(provider)) {
+            return ResponseEntity.badRequest().build();
+        }
+        String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+        User user = authService.validateToken(token);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        request.getSession(true).setAttribute(OAuth2SuccessHandler.LINK_USER_SESSION_KEY, user.getId());
+        ResponseCookie cookie = ResponseCookie.from(OAuth2SuccessHandler.LINK_USER_COOKIE, user.getId())
+                .path("/")
+                .maxAge(Duration.ofMinutes(10))
+                .httpOnly(true)
+                .secure("https".equalsIgnoreCase(request.getScheme())
+                        || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto")))
+                .sameSite("Lax")
+                .build();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE, cookie.toString());
+        String url = request.getContextPath() + "/oauth2/authorization/" + provider;
+        return ResponseEntity.ok().headers(headers).body(Map.of("url", url));
+    }
+
+    @DeleteMapping("/link/{provider}")
+    public ResponseEntity<User> unlink(@PathVariable String provider,
+                                       @RequestHeader("Authorization") String authHeader) {
+        if (!Set.of("google", "yandex").contains(provider)) {
+            return ResponseEntity.badRequest().build();
+        }
+        String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+        User user = authService.validateToken(token);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(authService.unlinkOAuth(user.getId(), provider));
     }
 
     /**
