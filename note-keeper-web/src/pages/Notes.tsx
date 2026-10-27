@@ -31,6 +31,8 @@ export const Notes: React.FC = () => {
   const [showFolderPanel, setShowFolderPanel] = useState(isDesktop);
   const [showSharedOnly, setShowSharedOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropPath, setDropPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (isDesktop) setShowFolderPanel(true);
@@ -136,6 +138,38 @@ export const Notes: React.FC = () => {
   const handleCreateFolder = (parentPath: string, name: string) => {
     const newPath = parentPath === 'root' ? name : `${parentPath}/${name}`;
     setSelectedFolder(newPath);
+  };
+
+  const moveNote = async (id: string, folderPath: string) => {
+    const note = notes.find(n => n.id === id);
+    setDraggingId(null);
+    setDropPath(null);
+    if (!note) return;
+    const { folder, subfolder } = parsePath(folderPath);
+    const same =
+      (note.folder || 'default') === folder &&
+      (note.subfolder || '') === (subfolder || '');
+    if (same) return;
+    const prevFolder = note.folder;
+    const prevSub = note.subfolder;
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, folder, subfolder } : n));
+    try {
+      await api.notes.update(id, {
+        title: note.title,
+        content: note.content,
+        tags: note.tags,
+        folder,
+        subfolder,
+        priority: note.priority,
+        isFavorite: note.isFavorite,
+        isEncrypted: note.isEncrypted,
+        reminder: note.reminder ? new Date(note.reminder as unknown as string).toISOString() : undefined,
+      });
+      toast.success(folderPath === 'root' ? 'Moved to All Notes' : `Moved to ${folderPath}`);
+    } catch (err) {
+      setNotes(prev => prev.map(n => n.id === id ? { ...n, folder: prevFolder, subfolder: prevSub } : n));
+      setError((err as any)?.message || 'Failed to move note');
+    }
   };
 
   const folderTree = buildFolderTree(notes);
@@ -276,7 +310,17 @@ export const Notes: React.FC = () => {
                   if (!isDesktop) setShowFolderPanel(false);
                 }}
                 onCreateFolder={handleCreateFolder}
+                dragging={!showSharedOnly && draggingId != null}
+                dropPath={dropPath}
+                onFolderDragOver={setDropPath}
+                onFolderDragLeave={() => setDropPath(null)}
+                onDropNote={(path, noteId) => moveNote(noteId, path)}
               />
+              {!showSharedOnly && (
+                <p className="px-3 mt-3 text-[12px] text-text-secondary leading-snug">
+                  Drop a note on a folder to move it.
+                </p>
+              )}
             </div>
           </>
         )}
@@ -288,7 +332,7 @@ export const Notes: React.FC = () => {
             <EmptyState
               icon="fa-note-sticky"
               message={searchTerm ? 'No matching notes' : 'No notes yet'}
-              hint={searchTerm ? undefined : 'Write the first one.'}
+              hint={searchTerm ? undefined : selectedFolder === 'root' ? 'Write the first one.' : 'Drag a note here from All Notes, or create one.'}
               action={!searchTerm ? (
                 <button onClick={createNote} className="nk-btn nk-btn-primary">New note</button>
               ) : undefined}
@@ -299,6 +343,10 @@ export const Notes: React.FC = () => {
                 <NoteCard
                   key={note.id}
                   note={note}
+                  canDrag={!showSharedOnly}
+                  dragging={draggingId === note.id}
+                  onDragBegin={setDraggingId}
+                  onDragEnd={() => { setDraggingId(null); setDropPath(null); }}
                   onClick={() => navigate(`/notes/${note.id}`)}
                   onToggleFavorite={(e) => { e.stopPropagation(); toggleFavorite(note.id); }}
                   onArchive={(e) => { e.stopPropagation(); archiveNote(note.id); }}

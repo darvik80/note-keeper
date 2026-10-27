@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Header } from '../components/Header';
 import { PageShell } from '../components/PageShell';
 import { api } from '../utils/api';
@@ -17,12 +17,49 @@ const emptyItem = (folderId?: string): VaultItemInput => ({
   secret: '',
 });
 
+const toInput = (item: VaultItem): VaultItemInput => ({
+  title: item.title,
+  type: item.type,
+  folderId: item.folderId,
+  username: item.username,
+  host: item.host,
+  url: item.url,
+  tags: item.tags,
+  password: item.password,
+  privateKey: item.privateKey,
+  secret: item.secret,
+  extraJson: item.extraJson,
+});
+
+const sameFolder = (a?: string, b?: string) => (a || '') === (b || '');
+
 const generatePassword = (): string => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
   const bytes = new Uint8Array(20);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, b => chars[b % chars.length]).join('');
 };
+
+const FolderSelect: React.FC<{
+  value?: string;
+  folders: VaultFolder[];
+  onChange: (id?: string) => void;
+  noneLabel?: string;
+  className?: string;
+  ariaLabel?: string;
+}> = ({ value, folders, onChange, noneLabel = 'No folder', className, ariaLabel }) => (
+  <select
+    value={value || ''}
+    onChange={e => onChange(e.target.value || undefined)}
+    className={className}
+    aria-label={ariaLabel || 'Folder'}
+  >
+    <option value="">{noneLabel}</option>
+    {folders.map(folder => (
+      <option key={folder.id} value={folder.id}>{folder.name}</option>
+    ))}
+  </select>
+);
 
 export const Vault: React.FC = () => {
   const [folders, setFolders] = useState<VaultFolder[]>([]);
@@ -33,16 +70,22 @@ export const Vault: React.FC = () => {
   const [showSecret, setShowSecret] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newFolder, setNewFolder] = useState('');
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const loadGen = useRef(0);
 
   const load = async (selected?: string, q?: string) => {
+    const gen = ++loadGen.current;
     try {
       const [nextFolders, nextItems] = await Promise.all([
         api.vault.listFolders(),
         api.vault.listItems({ folder: selected, q: q || undefined })
       ]);
+      if (gen !== loadGen.current) return;
       setFolders(nextFolders);
       setItems(nextItems);
     } catch (err: any) {
+      if (gen !== loadGen.current) return;
       setError(err?.message || 'Failed to load vault');
     }
   };
@@ -55,6 +98,8 @@ export const Vault: React.FC = () => {
     () => folders.find(f => f.id === folderId),
     [folders, folderId]
   );
+
+  const folderName = (id?: string) => folders.find(f => f.id === id)?.name;
 
   const saveFolder = async () => {
     if (!newFolder.trim()) return;
@@ -92,6 +137,16 @@ export const Vault: React.FC = () => {
     }
   };
 
+  const moveItem = async (item: VaultItem, nextFolderId?: string) => {
+    if (sameFolder(item.folderId, nextFolderId)) return;
+    try {
+      await api.vault.updateItem(item.id, { ...toInput(item), folderId: nextFolderId }, item.revision);
+      await load(folderId, query);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to move item');
+    }
+  };
+
   const removeItem = async (id: string) => {
     if (!window.confirm('Delete this vault item?')) return;
     await api.vault.deleteItem(id);
@@ -113,6 +168,32 @@ export const Vault: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const folderBtnClass = (id: string | undefined, selected: boolean) => {
+    const dropping = draggingId != null && dropTarget === (id ?? '');
+    return `block w-full text-left px-3 py-2 rounded-xl mb-0.5 text-[14px] ${
+      dropping
+        ? 'bg-primary/25 text-primary ring-1 ring-primary/60'
+        : selected
+          ? 'bg-primary/15 text-primary'
+          : 'text-text-secondary hover:bg-hover hover:text-text'
+    }`;
+  };
+
+  const acceptDrop = (e: React.DragEvent, targetId?: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTarget(targetId ?? '');
+  };
+
+  const dropOnFolder = async (e: React.DragEvent, targetId?: string) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    const item = items.find(i => i.id === id);
+    setDropTarget(null);
+    setDraggingId(null);
+    if (item) await moveItem(item, targetId);
+  };
+
   return (
     <PageShell error={error} onDismissError={() => setError(null)}>
       <Header
@@ -123,7 +204,7 @@ export const Vault: React.FC = () => {
             onClick={() => { setEditing(emptyItem(folderId)); setShowSecret(false); }}
             className="nk-btn nk-btn-primary"
           >
-            New item
+            {selectedFolder ? `New in ${selectedFolder.name}` : 'New item'}
           </button>
         }
       />
@@ -132,7 +213,10 @@ export const Vault: React.FC = () => {
           <p className="px-3 mb-1 text-[11px] font-medium uppercase tracking-wider text-text-secondary">Folders</p>
           <button
             onClick={() => setFolderId(undefined)}
-            className={`block w-full text-left px-3 py-2 rounded-xl mb-0.5 text-[14px] ${!folderId ? 'bg-primary/15 text-primary' : 'text-text-secondary hover:bg-hover hover:text-text'}`}
+            onDragOver={e => acceptDrop(e, '')}
+            onDragLeave={() => setDropTarget(null)}
+            onDrop={e => dropOnFolder(e, undefined)}
+            className={folderBtnClass(undefined, !folderId)}
           >
             All items
           </button>
@@ -140,7 +224,10 @@ export const Vault: React.FC = () => {
             <button
               key={folder.id}
               onClick={() => setFolderId(folder.id)}
-              className={`block w-full text-left px-3 py-2 rounded-xl mb-0.5 text-[14px] ${folderId === folder.id ? 'bg-primary/15 text-primary' : 'text-text-secondary hover:bg-hover hover:text-text'}`}
+              onDragOver={e => acceptDrop(e, folder.id)}
+              onDragLeave={() => setDropTarget(null)}
+              onDrop={e => dropOnFolder(e, folder.id)}
+              className={folderBtnClass(folder.id, folderId === folder.id)}
             >
               {folder.name}
             </button>
@@ -149,15 +236,27 @@ export const Vault: React.FC = () => {
             <input
               value={newFolder}
               onChange={e => setNewFolder(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveFolder()}
               placeholder="New folder"
               className="flex-1 input-field py-1.5 text-sm"
             />
             <button onClick={saveFolder} className="nk-btn nk-btn-primary px-3">+</button>
           </div>
+          <p className="px-3 mt-3 text-[12px] text-text-secondary leading-snug">
+            Drop a secret on a folder to move it. Or pick a folder on the item.
+          </p>
         </aside>
 
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-8">
-          <div className="flex gap-2 mb-4">
+          <div className="flex flex-col sm:flex-row gap-2 mb-4">
+            <FolderSelect
+              value={folderId}
+              folders={folders}
+              onChange={setFolderId}
+              noneLabel="All items"
+              className="input-field sm:hidden"
+              ariaLabel="Filter by folder"
+            />
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -168,15 +267,43 @@ export const Vault: React.FC = () => {
             <button onClick={search} className="nk-btn nk-btn-ghost border border-border">Search</button>
           </div>
 
-          {selectedFolder && <p className="text-sm text-text-secondary mb-3">{selectedFolder.name}</p>}
-
           <div className="space-y-2">
             {items.map(item => (
-              <div key={item.id} className="nk-card p-4 flex items-center justify-between gap-3">
-                <div className="min-w-0">
+              <div
+                key={item.id}
+                className={`nk-card p-4 flex items-center justify-between gap-3 ${draggingId === item.id ? 'opacity-50' : ''}`}
+              >
+                <button
+                  type="button"
+                  draggable
+                  title="Drag onto a folder"
+                  aria-label="Drag to folder"
+                  onDragStart={e => {
+                    e.dataTransfer.setData('text/plain', item.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                    setDraggingId(item.id);
+                  }}
+                  onDragEnd={() => { setDraggingId(null); setDropTarget(null); }}
+                  className="shrink-0 px-1 text-text-secondary cursor-grab active:cursor-grabbing hover:text-text"
+                >
+                  <i className="fas fa-grip-vertical" aria-hidden="true"></i>
+                </button>
+                <div className="min-w-0 flex-1">
                   <p className="font-medium text-text truncate">{item.title} {item.host ? <span className="text-text-secondary font-normal">({item.host})</span> : null}</p>
-                  <p className="text-xs text-text-secondary">{item.type} {item.username ? `· ${item.username}` : ''}</p>
+                  <p className="text-xs text-text-secondary">
+                    {item.type}
+                    {item.username ? ` · ${item.username}` : ''}
+                    {!folderId && item.folderId ? ` · ${folderName(item.folderId) || 'folder'}` : ''}
+                  </p>
                 </div>
+                <FolderSelect
+                  value={item.folderId}
+                  folders={folders}
+                  onChange={id => moveItem(item, id)}
+                  noneLabel="No folder"
+                  className="input-field py-1.5 text-sm w-[8.5rem] shrink-0"
+                  ariaLabel={`Move ${item.title}`}
+                />
                 <div className="flex gap-2 shrink-0">
                   {item.password && (
                     <button onClick={() => copy(item.password)} className="px-2 py-1 text-sm border border-border rounded" title="Copy password">
@@ -193,7 +320,13 @@ export const Vault: React.FC = () => {
                 </div>
               </div>
             ))}
-            {items.length === 0 && <p className="text-text-secondary text-[15px] py-8">No vault items.</p>}
+            {items.length === 0 && (
+              <p className="text-text-secondary text-[15px] py-8">
+                {selectedFolder
+                  ? `Nothing in ${selectedFolder.name} yet. New in ${selectedFolder.name} lands here — or move a secret from All items.`
+                  : 'No vault items.'}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -213,6 +346,14 @@ export const Vault: React.FC = () => {
                 <option value="api_token">API token</option>
                 <option value="note">Secure note</option>
               </select>
+              <FolderSelect
+                value={editing.folderId}
+                folders={folders}
+                onChange={id => setEditing({ ...editing, folderId: id })}
+                noneLabel="No folder"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                ariaLabel="Save in folder"
+              />
               <input value={editing.title} onChange={e => setEditing({ ...editing, title: e.target.value })} placeholder="Title" className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
               <input value={editing.username || ''} onChange={e => setEditing({ ...editing, username: e.target.value })} placeholder="Username" className="w-full px-3 py-2 border border-border rounded-lg bg-background" />
               <input value={editing.host || ''} onChange={e => setEditing({ ...editing, host: e.target.value })} placeholder="Host" className="w-full px-3 py-2 border border-border rounded-lg bg-background" />

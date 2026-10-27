@@ -49,7 +49,7 @@ From Home, **Notes** / **Todos** in the header jump to those lists.
 
 **New note** creates an untitled note in the selected folder and opens the editor.
 
-Left panel is the folder tree (from note paths; no separate folder table). Root = unfiled / `default`. Filter by folder, search the list, or show notes shared with you.
+Left panel is the folder tree (from note paths; no separate folder table). Root = unfiled / `default`. Filter by folder, search the list, or show notes shared with you. Drag a note onto a folder to move it.
 
 On a card: favorite, archive, trash. Encrypted notes show a lock; shared notes show a share icon.
 
@@ -90,6 +90,8 @@ Send a one-off test from the todo editor if integrations are on.
 ![Vault](screenshots/vault.png)
 
 Folders + items on the account (`/api/v1/vault`). Types: password, SSH key, API token, secure note.
+
+**New item** uses the folder selected on the left (`New in far`). To move: pick a folder on the row, drag the grip onto a folder, or set Folder in Edit.
 
 Copy password, download PEM for keys. Android can copy the secret to the clipboard.
 

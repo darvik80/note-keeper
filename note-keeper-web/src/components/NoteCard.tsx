@@ -10,6 +10,10 @@ interface NoteCardProps {
   onArchive?: (e: React.MouseEvent) => void;
   onDelete?: (e: React.MouseEvent) => void;
   variant?: 'grid' | 'compact' | 'readonly';
+  canDrag?: boolean;
+  dragging?: boolean;
+  onDragBegin?: (id: string) => void;
+  onDragEnd?: () => void;
 }
 
 export const NoteCard: React.FC<NoteCardProps> = ({
@@ -19,14 +23,36 @@ export const NoteCard: React.FC<NoteCardProps> = ({
   onArchive,
   onDelete,
   variant = 'grid',
+  canDrag = false,
+  dragging = false,
+  onDragBegin,
+  onDragEnd,
 }) => {
   const isReadonly = variant === 'readonly';
   const isCompact = variant === 'compact';
+  const skipClick = React.useRef(false);
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('text/plain', note.id);
+    e.dataTransfer.effectAllowed = 'move';
+    skipClick.current = true;
+    onDragBegin?.(note.id);
+  };
+
+  const handleDragEnd = () => {
+    onDragEnd?.();
+    requestAnimationFrame(() => { skipClick.current = false; });
+  };
+
+  const handleActivate = () => {
+    if (skipClick.current) return;
+    onClick();
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      onClick();
+      handleActivate();
     }
   };
 
@@ -35,7 +61,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
       <div
         role="button"
         tabIndex={0}
-        onClick={onClick}
+        onClick={handleActivate}
         onKeyDown={handleKeyDown}
         className="p-4 rounded-[22px] hover:bg-hover transition-colors duration-[180ms] cursor-pointer"
       >
@@ -68,9 +94,13 @@ export const NoteCard: React.FC<NoteCardProps> = ({
     <div
       role="button"
       tabIndex={0}
-      onClick={onClick}
+      onClick={handleActivate}
       onKeyDown={handleKeyDown}
-      className="nk-card nk-card-hover p-5 lg:p-6 cursor-pointer"
+      draggable={canDrag}
+      onDragStart={canDrag ? handleDragStart : undefined}
+      onDragEnd={canDrag ? handleDragEnd : undefined}
+      title={canDrag ? 'Drag onto a folder' : undefined}
+      className={`nk-card nk-card-hover p-5 lg:p-6 cursor-pointer ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''} ${dragging ? 'opacity-50' : ''}`}
     >
       <div className="flex items-start justify-between mb-3">
         <h3 className="font-semibold text-text text-[17px] lg:text-xl flex-1 pr-2 tracking-tight">{note.title}</h3>

@@ -11,13 +11,23 @@ interface FolderTreeProps {
   selectedPath: string;
   onSelectFolder: (path: string) => void;
   onCreateFolder: (parentPath: string, name: string) => void;
+  dragging?: boolean;
+  dropPath?: string | null;
+  onFolderDragOver?: (path: string) => void;
+  onFolderDragLeave?: () => void;
+  onDropNote?: (path: string, noteId: string) => void;
 }
 
 export const FolderTree: React.FC<FolderTreeProps> = ({
   folders,
   selectedPath,
   onSelectFolder,
-  onCreateFolder
+  onCreateFolder,
+  dragging,
+  dropPath,
+  onFolderDragOver,
+  onFolderDragLeave,
+  onDropNote,
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['root']));
   const [creatingFolder, setCreatingFolder] = useState<string | null>(null);
@@ -45,14 +55,38 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
     const isExpanded = expandedFolders.has(folder.path);
     const isSelected = selectedPath === folder.path;
     const hasSubfolders = folder.subfolders.length > 0;
+    const dropping = dragging && dropPath === folder.path;
 
     return (
       <div key={folder.path}>
         <div
           className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl cursor-pointer transition-colors duration-[180ms] ${
-            isSelected ? 'bg-primary/15 text-primary' : 'hover:bg-hover text-text'
+            dropping
+              ? 'bg-primary/25 text-primary ring-1 ring-primary/60'
+              : isSelected
+                ? 'bg-primary/15 text-primary'
+                : 'hover:bg-hover text-text'
           }`}
           style={{ paddingLeft: `${level * 16 + 12}px` }}
+          role="treeitem"
+          aria-label={`${folder.name} folder`}
+          aria-selected={isSelected}
+          onClick={() => onSelectFolder(folder.path)}
+          onDragOver={e => {
+            if (!onDropNote) return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = 'move';
+            onFolderDragOver?.(folder.path);
+          }}
+          onDragLeave={() => onFolderDragLeave?.()}
+          onDrop={e => {
+            if (!onDropNote) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const noteId = e.dataTransfer.getData('text/plain');
+            if (noteId) onDropNote(folder.path, noteId);
+          }}
         >
           {hasSubfolders && (
             <button
@@ -68,10 +102,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
           )}
           {!hasSubfolders && <div className="w-4"></div>}
           <i className={`fas ${isExpanded ? 'fa-folder-open' : 'fa-folder'} text-xs ${isSelected ? 'text-primary' : 'text-text-secondary'}`}></i>
-          <span
-            className="flex-1 text-[14px]"
-            onClick={() => onSelectFolder(folder.path)}
-          >
+          <span className="flex-1 text-[14px]">
             {folder.name}
           </span>
           <button

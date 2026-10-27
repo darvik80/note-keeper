@@ -582,5 +582,18 @@ export const handlers = [
     vaultItems.unshift(item);
     return HttpResponse.json(item, { status: 201 });
   }),
+
+  http.put(`${API}/vault/items/:id`, async ({ params, request }) => {
+    const item = vaultItems.find(i => i.id === params.id);
+    if (!item) return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    const body = await request.json() as any;
+    Object.assign(item, body, {
+      revision: (item.revision || 1) + 1,
+      updatedAt: new Date().toISOString(),
+    });
+    if (body.folderId) item.folderId = body.folderId;
+    else delete item.folderId;
+    return HttpResponse.json(item);
+  }),
 ];
 
