@@ -3,9 +3,13 @@ package dev.cogitor.notekeeper
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
@@ -16,14 +20,20 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -48,7 +58,9 @@ import dev.cogitor.notekeeper.ui.screens.TodoDetailScreen
 import dev.cogitor.notekeeper.ui.screens.TodoListScreen
 import dev.cogitor.notekeeper.ui.screens.VaultDetailScreen
 import dev.cogitor.notekeeper.ui.screens.VaultListScreen
+import dev.cogitor.notekeeper.ui.theme.AppThemeId
 import dev.cogitor.notekeeper.ui.theme.NoteKeeperTheme
+import dev.cogitor.notekeeper.ui.theme.palette
 import dev.cogitor.notekeeper.ui.viewmodel.LoginViewModel
 import dev.cogitor.notekeeper.ui.viewmodel.NoteDetailViewModel
 import dev.cogitor.notekeeper.ui.viewmodel.NoteListViewModel
@@ -89,16 +101,44 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            NoteKeeperTheme {
-                val navController = rememberNavController()
-                NoteKeeperNavHost(
-                    navController = navController,
-                    repository = repository,
-                    todoRepository = todoRepository,
-                    networkObserver = networkObserver,
-                    tokenDataStore = tokenDataStore,
-                    settingsDataStore = settingsDataStore
+            val themeIdStr by settingsDataStore.themeId.collectAsState(initial = SettingsDataStore.DEFAULT_THEME)
+            val themeId = AppThemeId.from(themeIdStr)
+            val dark = themeId.palette.dark
+            SideEffect {
+                enableEdgeToEdge(
+                    statusBarStyle = if (dark) {
+                        SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                    } else {
+                        SystemBarStyle.light(
+                            android.graphics.Color.TRANSPARENT,
+                            android.graphics.Color.TRANSPARENT
+                        )
+                    },
+                    navigationBarStyle = if (dark) {
+                        SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                    } else {
+                        SystemBarStyle.light(
+                            android.graphics.Color.TRANSPARENT,
+                            android.graphics.Color.TRANSPARENT
+                        )
+                    }
                 )
+            }
+            NoteKeeperTheme(themeId = themeId) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    val navController = rememberNavController()
+                    NoteKeeperNavHost(
+                        navController = navController,
+                        repository = repository,
+                        todoRepository = todoRepository,
+                        networkObserver = networkObserver,
+                        tokenDataStore = tokenDataStore,
+                        settingsDataStore = settingsDataStore
+                    )
+                }
             }
         }
     }
@@ -135,9 +175,16 @@ fun NoteKeeperNavHost(
 
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             if (showBar) {
-                NavigationBar {
+                NavigationBar(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                        .clip(RoundedCornerShape(28.dp)),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp
+                ) {
                     listOf(
                         NavTab("notes", "Notes", Icons.Filled.Notes, Icons.Outlined.Notes),
                         NavTab("todos", "Todos", Icons.Filled.CheckCircle, Icons.Outlined.CheckCircle),
@@ -155,7 +202,14 @@ fun NoteKeeperNavHost(
                                 }
                             },
                             icon = { Icon(if (selected) tab.selectedIcon else tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) }
+                            label = { Text(tab.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
                     }
                 }

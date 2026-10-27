@@ -42,6 +42,9 @@ import {
 
 const API_BASE = '/api/v1';
 
+/** Session cache so markdown `<img>` can show JWT-protected downloads. */
+const attachmentPreviewUrls = new Map<string, string>();
+
 /**
  * Reads the JWT from `localStorage`.
  * @returns The stored token or `null` when the user is not authenticated.
@@ -656,6 +659,42 @@ export const api = {
         throw new Error(`HTTP ${res.status}`);
       }
       return res.blob();
+    },
+
+    /** Canonical markdown URL for an uploaded attachment (needs auth on GET). */
+    markdownUrl: (attachmentId: string): string =>
+      `${API_BASE}/attachments/${attachmentId}/download`,
+
+    /** Keep a blob: URL so preview can render the file without an Authorization header. */
+    rememberPreview: (attachmentId: string, blob: Blob): string => {
+      const prev = attachmentPreviewUrls.get(attachmentId);
+      if (prev) URL.revokeObjectURL(prev);
+      const url = URL.createObjectURL(blob);
+      attachmentPreviewUrls.set(attachmentId, url);
+      return url;
+    },
+
+    previewUrl: (attachmentId: string): string | undefined =>
+      attachmentPreviewUrls.get(attachmentId),
+
+    /**
+     * Swap `/api/v1/attachments/{id}/download` in markdown for cached blob: URLs.
+     * `<img>` cannot send Bearer tokens; preview uses this resolved string only.
+     */
+    resolveMarkdown: async (markdown: string): Promise<string> => {
+      if (!markdown) return markdown;
+      const re = /\/api\/v1\/attachments\/([a-zA-Z0-9-]+)\/download/g;
+      const ids = [...new Set([...markdown.matchAll(re)].map(m => m[1]))];
+      await Promise.all(ids.map(async (id) => {
+        if (attachmentPreviewUrls.has(id)) return;
+        try {
+          const blob = await api.attachments.download(id);
+          attachmentPreviewUrls.set(id, URL.createObjectURL(blob));
+        } catch {
+          /* leave canonical URL */
+        }
+      }));
+      return markdown.replace(re, (full, id) => attachmentPreviewUrls.get(id) || full);
     }
   },
 

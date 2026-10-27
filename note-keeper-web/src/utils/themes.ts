@@ -48,6 +48,19 @@ export const themes: Record<Theme, {
     hover: string;
   };
 }> = {
+  cogitor: {
+    name: 'Cogitor',
+    colors: {
+      primary: '#E8A33D',
+      secondary: '#7EE0C0',
+      background: '#0B0E11',
+      surface: '#141A21',
+      text: '#E9EDEF',
+      textSecondary: '#9AA3AB',
+      border: '#2C3540',
+      hover: '#1C252E'
+    }
+  },
   light: {
     name: 'Light',
     colors: {
@@ -221,6 +234,10 @@ export const themes: Record<Theme, {
  * applyTheme('dark');
  * ```
  */
+/** Dark skins: Cogitor ink, generic dark, Darcula. */
+export const isDarkTheme = (theme: Theme): boolean =>
+  theme === 'cogitor' || theme === 'dark' || theme === 'darcula';
+
 export const applyTheme = (theme: Theme) => {
   const themeColors = themes[theme].colors;
   const root = document.documentElement;
@@ -233,9 +250,10 @@ export const applyTheme = (theme: Theme) => {
   root.style.setProperty('--color-text-secondary', themeColors.textSecondary);
   root.style.setProperty('--color-border', themeColors.border);
   root.style.setProperty('--color-hover', themeColors.hover);
+  root.style.setProperty('--color-mark', '#6E8BFF');
+  root.style.setProperty('--color-danger', '#FF6B6B');
 
-  const isDark = theme === 'dark' || theme === 'darcula';
-  root.style.colorScheme = isDark ? 'dark' : 'light';
+  root.style.colorScheme = isDarkTheme(theme) ? 'dark' : 'light';
 
   document.body.style.background = themeColors.background;
   document.body.style.color = themeColors.text;

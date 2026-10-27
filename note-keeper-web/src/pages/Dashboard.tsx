@@ -44,80 +44,76 @@ export const Dashboard: React.FC = () => {
   const pendingTodos = todos.filter(t => !t.completed).slice(0, 5);
 
   const stats = [
-    { label: 'Total Notes', value: notes.length, icon: 'fa-note-sticky', color: 'bg-blue-500', path: '/notes' },
-    { label: 'Active Todos', value: todos.filter(t => !t.completed).length, icon: 'fa-list-check', color: 'bg-green-500', path: '/todos' },
-    { label: 'Favorites', value: notes.filter(n => n.isFavorite).length + todos.filter(t => t.isFavorite).length, icon: 'fa-star', color: 'bg-yellow-500', path: '/favorites' },
-    { label: 'Archived', value: archivedCount, icon: 'fa-box-archive', color: 'bg-purple-500', path: '/archive' },
+    { label: 'Notes', value: notes.length, path: '/notes' },
+    { label: 'Open tasks', value: todos.filter(t => !t.completed).length, path: '/todos' },
+    { label: 'Favorites', value: notes.filter(n => n.isFavorite).length + todos.filter(t => t.isFavorite).length, path: '/favorites' },
+    { label: 'Archived', value: archivedCount, path: '/archive' },
   ];
+
+  const hour = new Date().getHours();
+  const hello = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  let firstName = '';
+  try {
+    firstName = JSON.parse(localStorage.getItem('user') || '{}').name?.split(' ')[0] || '';
+  } catch { /* ignore */ }
 
   return (
     <PageShell error={error} onDismissError={() => setError(null)}>
-      <Header title="Dashboard" />
+      <Header
+        title={firstName ? `${hello}, ${firstName}` : hello}
+        subtitle="What you have been working on"
+        actions={
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => navigate('/notes')} className="nk-btn nk-btn-ghost">
+              Notes
+            </button>
+            <button type="button" onClick={() => navigate('/todos')} className="nk-btn nk-btn-primary">
+              Todos
+            </button>
+          </div>
+        }
+      />
 
-      <div className="flex-1 overflow-auto p-4 lg:p-8">
-        <div className="flex flex-wrap gap-3 mb-6 lg:mb-8">
-          <button
-            type="button"
-            onClick={() => navigate('/notes')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <i className="fas fa-note-sticky" aria-hidden="true"></i>
-            Notes
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/todos')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <i className="fas fa-list-check" aria-hidden="true"></i>
-            Todos
-          </button>
-        </div>
-
+      <div className="flex-1 overflow-auto px-5 sm:px-8 lg:px-10 pb-8">
         {loading ? (
           <StatCardsSkeleton />
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-8">
             {stats.map((stat) => (
               <button
                 key={stat.path}
                 type="button"
                 onClick={() => navigate(stat.path)}
-                className="bg-surface rounded-xl p-4 lg:p-6 shadow-sm border border-border text-left hover:border-primary transition-colors"
+                className="nk-card nk-card-hover p-5 text-left"
               >
-                <div className="flex items-center justify-between mb-3 lg:mb-4">
-                  <div className={`${stat.color} w-10 h-10 lg:w-12 lg:h-12 rounded-lg flex items-center justify-center text-white`}>
-                    <i className={`fas ${stat.icon} text-lg lg:text-xl`}></i>
-                  </div>
-                  <span className="text-2xl lg:text-3xl font-bold text-text">{stat.value}</span>
-                </div>
-                <p className="text-text-secondary font-medium text-sm lg:text-base">{stat.label}</p>
+                <p className="text-3xl font-bold tracking-tight text-text">{stat.value}</p>
+                <p className="text-[13px] text-text-secondary mt-1">{stat.label}</p>
               </button>
             ))}
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-          <div className="bg-surface rounded-xl p-5 lg:p-6 shadow-sm border border-border">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base lg:text-lg font-bold text-text">Recent Notes</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
+          <div>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h3 className="text-[15px] font-medium text-text">Recent notes</h3>
               <button
                 onClick={() => navigate('/notes')}
-                className="text-primary hover:text-primary/80 text-sm font-medium"
+                className="text-secondary hover:opacity-80 text-[13px]"
               >
-                View All
+                View all
               </button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-1">
               {loading ? (
                 Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="p-4 border border-border rounded-lg animate-pulse">
+                  <div key={i} className="p-4 rounded-[22px] animate-pulse">
                     <div className="h-4 w-1/2 bg-hover rounded mb-2"></div>
                     <div className="h-3 w-full bg-hover rounded"></div>
                   </div>
                 ))
               ) : recentNotes.length === 0 ? (
-                <p className="text-text-secondary text-center py-8">No notes yet</p>
+                <p className="text-text-secondary text-[15px] px-1 py-6">No notes yet.</p>
               ) : (
                 recentNotes.map(note => (
                   <NoteCard
@@ -131,26 +127,26 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-surface rounded-xl p-5 lg:p-6 shadow-sm border border-border">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base lg:text-lg font-bold text-text">Pending Todos</h3>
+          <div>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h3 className="text-[15px] font-medium text-text">Pending todos</h3>
               <button
                 onClick={() => navigate('/todos')}
-                className="text-primary hover:text-primary/80 text-sm font-medium"
+                className="text-secondary hover:opacity-80 text-[13px]"
               >
-                View All
+                View all
               </button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-1">
               {loading ? (
                 Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="p-4 border border-border rounded-lg animate-pulse">
+                  <div key={i} className="p-4 rounded-[22px] animate-pulse">
                     <div className="h-4 w-1/2 bg-hover rounded mb-2"></div>
                     <div className="h-3 w-full bg-hover rounded"></div>
                   </div>
                 ))
               ) : pendingTodos.length === 0 ? (
-                <p className="text-text-secondary text-center py-8">No pending todos</p>
+                <p className="text-text-secondary text-[15px] px-1 py-6">Nothing pending.</p>
               ) : (
                 pendingTodos.map(todo => (
                   <div
@@ -159,21 +155,20 @@ export const Dashboard: React.FC = () => {
                     tabIndex={0}
                     onClick={() => navigate(`/todos/${todo.id}`)}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/todos/${todo.id}`); } }}
-                    className="p-4 border border-border rounded-lg hover:border-primary transition-colors cursor-pointer bg-background"
+                    className="p-4 rounded-[22px] hover:bg-hover transition-colors duration-[180ms] cursor-pointer"
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold text-text text-sm lg:text-base pr-2">{todo.title}</h4>
+                    <div className="flex items-start justify-between mb-1">
+                      <h4 className="font-semibold text-text text-[15px] pr-2">{todo.title}</h4>
                       {todo.isFavorite && (
-                        <i className="fas fa-star text-yellow-500 text-sm shrink-0" aria-label="Favorite"></i>
+                        <i className="fas fa-star text-primary text-xs shrink-0" aria-label="Favorite"></i>
                       )}
                     </div>
                     {todo.description && (
-                      <MarkdownPreview content={todo.description} maxLines={3} className="text-sm text-text-secondary" />
+                      <MarkdownPreview content={todo.description} maxLines={3} className="text-[15px] text-text-secondary" />
                     )}
                     {todo.dueDate && (
-                      <p className="text-xs text-text-secondary mt-2">
-                        <i className="fas fa-calendar mr-1" aria-hidden="true"></i>
-                        Due: {new Date(todo.dueDate).toLocaleDateString()}
+                      <p className="text-[13px] text-text-secondary mt-2">
+                        {new Date(todo.dueDate).toLocaleDateString()}
                       </p>
                     )}
                   </div>

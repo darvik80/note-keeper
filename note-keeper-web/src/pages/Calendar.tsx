@@ -241,44 +241,45 @@ export const Calendar: React.FC = () => {
 
   return (
     <PageShell error={error} onDismissError={() => setError(null)}>
-      <Header title="Calendar" />
-
-      <div className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden">
-        <div className="max-w-6xl mx-auto p-4 sm:p-6">
-          <div className="bg-surface rounded-xl p-4 sm:p-6 shadow-sm border border-border mb-4">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-text">{monthName}</h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={previousMonth}
-                  className="p-2 hover:bg-hover rounded-lg transition-colors text-text"
-                  aria-label="Previous month"
-                >
-                  <i className="fas fa-chevron-left"></i>
-                </button>
-                <button
-                  onClick={() => {
-                    const now = new Date();
-                    setCurrentDate(now);
-                    setSelectedDate(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
-                  }}
-                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-                >
-                  Today
-                </button>
+      <Header
+        title="Calendar"
+        subtitle={monthName}
+        actions={
+          <div className="flex gap-1">
+            <button
+              onClick={previousMonth}
+              className="p-2 hover:bg-hover rounded-xl transition-colors duration-[180ms] text-text"
+              aria-label="Previous month"
+            >
+              <i className="fas fa-chevron-left"></i>
+            </button>
+            <button
+              onClick={() => {
+                const now = new Date();
+                setCurrentDate(now);
+                setSelectedDate(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+              }}
+              className="nk-btn nk-btn-primary"
+            >
+              Today
+            </button>
                 <button
                   onClick={nextMonth}
                   className="p-2 hover:bg-hover rounded-lg transition-colors text-text"
                   aria-label="Next month"
                 >
-                  <i className="fas fa-chevron-right"></i>
-                </button>
-              </div>
-            </div>
+            <i className="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        }
+      />
 
-            <div className="grid grid-cols-7 gap-2">
+      <div className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden">
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 pb-8">
+          <div className="mb-6">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="text-center font-bold text-text-secondary py-2">
+                <div key={day} className="text-center text-[11px] font-medium uppercase tracking-wider text-text-secondary py-2">
                   {day}
                 </div>
               ))}
@@ -299,9 +300,9 @@ export const Calendar: React.FC = () => {
                   <div
                     key={day}
                     onClick={() => setSelectedDate(date)}
-                    className={`min-h-[80px] border rounded-lg p-2 cursor-pointer transition-all hover:border-primary ${
-                      isToday(day) ? 'bg-primary/10 border-primary' : 'border-border bg-background'
-                    } ${isSelected ? 'ring-2 ring-primary' : ''}`}
+                    className={`min-h-[72px] rounded-xl p-2 cursor-pointer transition-colors duration-[180ms] ${
+                      isToday(day) ? 'bg-primary/15' : 'hover:bg-hover'
+                    } ${isSelected ? 'bg-hover' : ''}`}
                   >
                     <div className={`text-sm font-medium mb-1 ${
                       isToday(day) ? 'text-primary' : 'text-text'
@@ -326,7 +327,7 @@ export const Calendar: React.FC = () => {
                             >
                               {item.type === 'note' && <i className="fas fa-note-sticky text-[10px] opacity-60"></i>}
                               {isRecurring && (
-                                <i className="fas fa-repeat text-[10px] opacity-60" title={`Repeats ${item.schedule.repeat}`}></i>
+                                <i className="fas fa-repeat text-[10px] opacity-60" title={`Repeats ${item.schedule?.repeat}`}></i>
                               )}
                               {completedOnThisDate && (
                                 <i className="fas fa-check-circle text-[10px] text-green-400" title="Completed on this day"></i>
@@ -347,14 +348,14 @@ export const Calendar: React.FC = () => {
           </div>
 
           {selectedDate && (
-            <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
-              <h3 className="text-lg font-bold text-text mb-4">
-                Items for {selectedDate.toLocaleDateString()}
+            <div className="mt-2">
+              <h3 className="text-[15px] font-medium text-text mb-3">
+                {selectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
               </h3>
               {selectedDateItems.length === 0 ? (
-                <p className="text-sm text-text-secondary">No items for this day.</p>
+                <p className="text-[15px] text-text-secondary">Nothing this day.</p>
               ) : (
-              <div className="space-y-3">
+              <div className="space-y-1">
                 {selectedDateItems.map(item => {
                   // Check if this recurring todo was completed on the selected date
                   const isRecurring = item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none';
@@ -362,7 +363,7 @@ export const Calendar: React.FC = () => {
                   return (
                     <div
                       key={item.id}
-                      className="p-4 border border-border rounded-lg hover:border-primary transition-colors cursor-pointer bg-background"
+                      className="p-4 rounded-[22px] hover:bg-hover transition-colors duration-[180ms] cursor-pointer"
                       onClick={() => navigate(item.type === 'note' ? `/notes/${item.id}` : `/todos/${item.id}`)}
                     >
                       <div className="flex items-start justify-between mb-2">
@@ -387,7 +388,7 @@ export const Calendar: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <PriorityBadge priority={item.priority} />
                         {item.tags.slice(0, 3).map(tag => (
-                          <span key={tag} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                          <span key={tag} className="nk-tag">
                             #{tag}
                           </span>
                         ))}

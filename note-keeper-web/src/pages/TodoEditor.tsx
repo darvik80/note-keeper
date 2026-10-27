@@ -9,7 +9,7 @@ import {api} from '../utils/api';
 import {PageShell} from '../components/PageShell';
 import {ConfirmDialog} from '../components/ConfirmDialog';
 import {MarkdownRenderer} from '../components/MarkdownRenderer';
-import {MarkdownEditor} from '../components/MarkdownEditor';
+import {MarkdownEditor, useHydrateAttachmentImages} from '../components/MarkdownEditor';
 import {ShareModal} from '../components/ShareModal';
 import {TagInput} from '../components/TagInput';
 import {useAutosave} from '../hooks/useAutosave';
@@ -69,6 +69,7 @@ export const TodoEditor: React.FC = () => {
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const settings = storage.getSettings();
+  const previewRef = useHydrateAttachmentImages(todo?.description ?? '');
 
   // Keep ref in sync with state so saveTodo/addTag always see latest todo
   todoRef.current = todo;
@@ -460,15 +461,42 @@ export const TodoEditor: React.FC = () => {
               Description (Markdown supported)
             </label>
             {isPreview ? (
-              <div className="border border-border rounded-lg p-4 bg-surface min-h-32">
-                <MarkdownRenderer content={todo.description} />
+              <div ref={previewRef} data-nk-preview className="border border-border rounded-lg p-4 bg-surface min-h-32 text-text">
+                {todo.description?.trim()
+                  ? <MarkdownRenderer content={todo.description} />
+                  : <p className="text-text-secondary text-sm">Preview appears here as you write.</p>}
               </div>
             ) : (
               <MarkdownEditor
                 value={todo.description}
                 onChange={(v) => { setTodo(prev => prev ? { ...prev, description: v } : prev); setDirty(true); }}
-                placeholder="Add description... (Markdown supported)"
+                placeholder="Write…"
                 minHeight="10rem"
+                onImageUpload={async (file) => {
+                  let parentId = todoRef.current?.id;
+                  if (!parentId || parentId === 'new') {
+                    await saveTodo(false);
+                    parentId = todoRef.current?.id;
+                  }
+                  if (!parentId || parentId === 'new') {
+                    throw new Error('Save todo first, then upload images');
+                  }
+                  const uploaded = await api.attachments.upload(file, parentId, 'todo');
+                  if (!uploaded?.id) throw new Error('Upload failed');
+                  api.attachments.rememberPreview(uploaded.id, file);
+                  const url = api.attachments.markdownUrl(uploaded.id);
+                  const attachment: Attachment = {
+                    id: uploaded.id,
+                    name: file.name || uploaded.name,
+                    size: uploaded.size || file.size,
+                    type: uploaded.type || file.type,
+                    url,
+                    uploadedAt: uploaded.uploadedAt ? new Date(uploaded.uploadedAt) : new Date(),
+                  };
+                  setTodo(prev => prev ? { ...prev, attachments: [...(prev.attachments || []), attachment] } : prev);
+                  setDirty(true);
+                  return url;
+                }}
               />
             )}
           </div>

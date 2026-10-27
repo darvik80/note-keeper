@@ -7,6 +7,7 @@ import React, {useEffect, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {Header} from '../components/Header';
 import {PageShell} from '../components/PageShell';
+import {EmptyState} from '../components/EmptyState';
 import {Modal} from '../components/Modal';
 import {MarkdownPreview} from '../components/MarkdownPreview';
 import {useToast} from '../contexts/ToastContext';
@@ -91,34 +92,31 @@ export const Search: React.FC = () => {
 
   return (
     <PageShell error={error} onDismissError={() => setError(null)}>
-      <Header title="Search" />
+      <Header title="Search" subtitle="Full-text across notes and todos" />
 
-      <div className="flex-1 overflow-auto p-8">
-        <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSearch} className="mb-6">
-            <div className="flex gap-3 mb-4">
+      <div className="flex-1 overflow-auto px-5 sm:px-8 lg:px-10 pb-8">
+        <div className="max-w-3xl">
+          <form onSubmit={handleSearch} className="mb-8">
+            <div className="flex gap-2 mb-4">
               <div className="flex-1 relative">
                 <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary"></i>
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search notes and todos..."
-                  className="w-full pl-12 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:border-primary bg-background text-text"
+                  placeholder="Search notes and todos…"
+                  className="input-field pl-11 py-3"
                   autoFocus
                 />
               </div>
-              <button
-                type="submit"
-                className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90"
-              >
+              <button type="submit" className="nk-btn nk-btn-primary px-5">
                 Search
               </button>
               {query && (
                 <button
                   type="button"
                   onClick={() => setShowSaveDialog(true)}
-                  className="px-4 py-3 border border-border rounded-lg hover:bg-hover text-text"
+                  className="nk-btn nk-btn-ghost"
                   title="Save Query"
                 >
                   <i className="fas fa-bookmark"></i>
@@ -126,16 +124,16 @@ export const Search: React.FC = () => {
               )}
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-1 p-1 rounded-full bg-hover w-fit">
               {(['all', 'notes', 'todos'] as const).map(type => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => setSearchType(type)}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors duration-[180ms] ${
                     searchType === type
-                      ? 'bg-primary text-white'
-                      : 'bg-surface border border-border text-text hover:bg-hover'
+                      ? 'bg-surface text-primary'
+                      : 'text-text-secondary hover:text-text'
                   }`}
                 >
                   {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -184,7 +182,7 @@ export const Search: React.FC = () => {
                 {results.notes.map(note => (
                   <div
                     key={note.id}
-                    className="bg-surface p-4 rounded-lg border border-border hover:border-primary transition-colors cursor-pointer"
+                    className="nk-card nk-card-hover p-5 cursor-pointer"
                     onClick={() => navigate(`/notes/${note.id}`)}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -198,7 +196,7 @@ export const Search: React.FC = () => {
                         {note.folder}
                       </span>
                       {note.tags.slice(0, 3).map(tag => (
-                        <span key={tag} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                        <span key={tag} className="nk-tag">
                           #{tag}
                         </span>
                       ))}
@@ -216,7 +214,7 @@ export const Search: React.FC = () => {
                 {results.todos.map(todo => (
                   <div
                     key={todo.id}
-                    className="bg-surface p-4 rounded-lg border border-border hover:border-primary transition-colors cursor-pointer"
+                    className="nk-card nk-card-hover p-5 cursor-pointer"
                     onClick={() => navigate(`/todos/${todo.id}`)}
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -244,10 +242,7 @@ export const Search: React.FC = () => {
           )}
 
           {query && results.notes.length === 0 && results.todos.length === 0 && (
-            <div className="text-center py-12 text-text-secondary">
-              <i className="fas fa-search text-4xl mb-4"></i>
-              <p>No results found for "{query}"</p>
-            </div>
+            <EmptyState icon="fa-search" message={`No results for “${query}”`} />
           )}
         </div>
       </div>
@@ -261,13 +256,13 @@ export const Search: React.FC = () => {
             <>
               <button
                 onClick={() => setShowSaveDialog(false)}
-                className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-hover transition-colors text-text"
+                className="flex-1 nk-btn nk-btn-ghost border border-border"
               >
                 Cancel
               </button>
               <button
                 onClick={saveQuery}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+                className="flex-1 nk-btn nk-btn-primary"
               >
                 Save
               </button>

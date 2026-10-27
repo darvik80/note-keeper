@@ -3,30 +3,39 @@ package dev.cogitor.notekeeper.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -42,13 +51,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import dev.cogitor.notekeeper.ui.components.MarkdownText
+import dev.cogitor.notekeeper.ui.components.NkFab
+import dev.cogitor.notekeeper.ui.components.NkGhostField
+import dev.cogitor.notekeeper.ui.components.NkMarkdownBar
+import dev.cogitor.notekeeper.ui.components.insertMarkdown
+import dev.cogitor.notekeeper.ui.components.nkTopBarColors
+import dev.cogitor.notekeeper.ui.components.wrapMarkdown
 import dev.cogitor.notekeeper.ui.viewmodel.NoteDetailViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun NoteDetailScreen(
     viewModel: NoteDetailViewModel,
@@ -60,9 +78,10 @@ fun NoteDetailScreen(
     val attachments by viewModel.attachments.collectAsState()
     val shareResult by viewModel.shareResult.collectAsState()
 
-    var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
-    var tags by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf(TextFieldValue("")) }
+    var content by remember { mutableStateOf(TextFieldValue("")) }
+    var tagDraft by remember { mutableStateOf("") }
+    var tagList by remember { mutableStateOf(listOf<String>()) }
     var priority by remember { mutableStateOf("medium") }
     var isNewNote by remember { mutableStateOf(noteId == null) }
     var isEditing by remember { mutableStateOf(true) }
@@ -80,32 +99,38 @@ fun NoteDetailScreen(
     }
 
     LaunchedEffect(noteId) {
-        if (noteId != null) {
-            viewModel.loadNote(noteId)
-        }
+        if (noteId != null) viewModel.loadNote(noteId)
     }
 
     LaunchedEffect(note) {
         note?.let {
-            title = it.title
-            content = it.content ?: ""
-            tags = (it.tags ?: emptyList()).joinToString(", ")
+            title = TextFieldValue(it.title, TextRange(it.title.length))
+            val body = it.content.orEmpty()
+            content = TextFieldValue(body, TextRange(body.length))
+            tagList = it.tags.orEmpty()
             priority = it.priority ?: "medium"
             isNewNote = false
         }
     }
 
-    LaunchedEffect(title, content, tags, priority) {
-        if (isNewNote || note == null || title.isBlank()) return@LaunchedEffect
+    LaunchedEffect(title.text, content.text, tagList, priority) {
+        if (isNewNote || note == null || title.text.isBlank()) return@LaunchedEffect
         delay(800)
-        val tagList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
-        viewModel.updateNote(title, content, tagList, priority)
+        viewModel.updateNote(title.text, content.text, tagList, priority)
+    }
+
+    fun commitTagDraft() {
+        val next = tagDraft.trim().trimStart('#')
+        if (next.isNotBlank() && next !in tagList) tagList = tagList + next
+        tagDraft = ""
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(if (isNewNote) "New Note" else "Edit Note") },
+                title = { },
+                colors = nkTopBarColors(),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
@@ -115,35 +140,45 @@ fun NoteDetailScreen(
                     IconButton(onClick = { isEditing = !isEditing }) {
                         Icon(
                             if (isEditing) Icons.Outlined.Visibility else Icons.Outlined.Edit,
-                            contentDescription = if (isEditing) "Preview" else "Edit"
+                            contentDescription = if (isEditing) "Preview" else "Edit",
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                     if (!isNewNote) {
                         IconButton(onClick = { viewModel.toggleFavorite() }) {
                             Icon(
                                 if (note?.isFavorite == true) Icons.Outlined.Star else Icons.Outlined.StarBorder,
-                                contentDescription = "Favorite"
+                                contentDescription = "Favorite",
+                                tint = if (note?.isFavorite == true) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onBackground
                             )
+                        }
+                        IconButton(onClick = { filePicker.launch(arrayOf("*/*")) }) {
+                            Icon(Icons.Outlined.AttachFile, contentDescription = "Attach")
                         }
                     }
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            NkFab(
                 onClick = {
-                    if (title.isNotBlank() && !isSaving) {
-                        val tagList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                    if (title.text.isNotBlank() && !isSaving) {
+                        commitTagDraft()
                         if (isNewNote) {
-                            viewModel.createNote(title, content, tagList, priority)
+                            viewModel.createNote(title.text, content.text, tagList, priority)
                         } else {
-                            viewModel.updateNote(title, content, tagList, priority)
+                            viewModel.updateNote(title.text, content.text, tagList, priority)
                         }
                     }
                 }
             ) {
                 if (isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.padding(8.dp))
+                    CircularProgressIndicator(
+                        modifier = Modifier.padding(8.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
                 } else {
                     Icon(Icons.Outlined.Check, contentDescription = "Save")
                 }
@@ -155,36 +190,93 @@ fun NoteDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(16.dp)
+                    .imePadding()
+                    .padding(horizontal = 20.dp)
             ) {
-                OutlinedTextField(
+                NkGhostField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    placeholder = "Title",
+                    textStyle = MaterialTheme.typography.displaySmall,
+                    singleLine = true,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
                 )
-                OutlinedTextField(
-                    value = tags,
-                    onValueChange = { tags = it },
-                    label = { Text("Tags (comma separated)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Row(Modifier.fillMaxWidth()) {
-                    TextButton(onClick = { content += "**bold**" }) { Text("B") }
-                    TextButton(onClick = { content += "\n- item" }) { Text("List") }
-                    TextButton(onClick = { content += "\n- [ ] task" }) { Text("Task") }
-                    TextButton(onClick = { content += "`code`" }) { Text("Code") }
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    tagList.forEach { tag ->
+                        InputChip(
+                            selected = false,
+                            onClick = { tagList = tagList.filterNot { it == tag } },
+                            label = { Text("#$tag") },
+                            trailingIcon = {
+                                Icon(Icons.Outlined.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp))
+                            }
+                        )
+                    }
+                    BasicTextField(
+                        value = tagDraft,
+                        onValueChange = { value ->
+                            if (value.endsWith(",") || value.endsWith(" ") || value.endsWith("\n")) {
+                                tagDraft = value
+                                commitTagDraft()
+                            } else {
+                                tagDraft = value
+                            }
+                        },
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onBackground
+                        ),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        modifier = Modifier
+                            .padding(vertical = 10.dp)
+                            .weight(1f, fill = false),
+                        decorationBox = { inner ->
+                            Box {
+                                if (tagDraft.isEmpty() && tagList.isEmpty()) {
+                                    Text(
+                                        "tags",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                    )
+                                }
+                                inner()
+                            }
+                        }
+                    )
                 }
-                OutlinedTextField(
+                Row(
+                    modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("low", "medium", "high").forEach { level ->
+                        FilterChip(
+                            selected = priority == level,
+                            onClick = { priority = level },
+                            label = { Text(level.replaceFirstChar { it.uppercase() }) }
+                        )
+                    }
+                }
+                NkMarkdownBar(
+                    onWrap = { before, after -> content = wrapMarkdown(content, before, after) },
+                    onInsert = { snippet -> content = insertMarkdown(content, snippet) }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                )
+                NkGhostField(
                     value = content,
                     onValueChange = { content = it },
-                    label = { Text("Content (Markdown)") },
+                    placeholder = "Write…",
+                    textStyle = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
-                    minLines = 10
+                        .weight(1f)
+                        .padding(bottom = 72.dp)
                 )
             }
         } else {
@@ -192,60 +284,46 @@ fun NoteDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(16.dp)
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
             ) {
                 item {
                     Text(
-                        text = title,
-                        style = MaterialTheme.typography.headlineSmall,
+                        text = title.text.ifBlank { "Untitled" },
+                        style = MaterialTheme.typography.displaySmall,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    if (tags.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
+                    if (tagList.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
                         Text(
-                            text = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
-                                .joinToString(" ") { "#$it" },
-                            style = MaterialTheme.typography.labelMedium,
+                            tagList.joinToString("  ") { "#$it" },
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(Modifier.height(16.dp))
                     MarkdownText(
-                        markdown = content,
+                        markdown = content.text,
                         modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.bodyLarge
                     )
                     if (attachments.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Attachments",
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(Modifier.height(24.dp))
+                        Text("Attachments", style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.height(8.dp))
                         attachments.forEach { attachment ->
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = attachment.name,
+                                    attachment.name,
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.weight(1f)
                                 )
-                                IconButton(
-                                    onClick = { viewModel.removeAttachment(attachment) },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
+                                IconButton(onClick = { viewModel.removeAttachment(attachment) }) {
                                     Icon(Icons.Outlined.Delete, contentDescription = "Remove")
                                 }
                             }
-                        }
-                    }
-                    if (!isNewNote) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        TextButton(onClick = { filePicker.launch(arrayOf("*/*")) }) {
-                            Icon(Icons.Outlined.AttachFile, contentDescription = null)
-                            Text("Add attachment")
                         }
                     }
                 }

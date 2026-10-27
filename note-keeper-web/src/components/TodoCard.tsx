@@ -43,21 +43,19 @@ export const TodoCard: React.FC<TodoCardProps> = ({
         tabIndex={0}
         onClick={onNavigate}
         onKeyDown={handleKeyDown}
-        className="bg-surface rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow cursor-pointer"
+        className="nk-card nk-card-hover p-5 cursor-pointer"
       >
         <div className="flex items-start justify-between mb-2">
-          <h4 className="font-bold text-text text-lg flex-1">{todo.title}</h4>
-          <i className="fas fa-star text-yellow-500 shrink-0" aria-label="Favorite"></i>
+          <h4 className="font-semibold text-text text-[17px] flex-1 tracking-tight">{todo.title}</h4>
+          <i className="fas fa-star text-primary shrink-0" aria-label="Favorite"></i>
         </div>
         {todo.description && (
           <MarkdownPreview content={todo.description} maxLines={3} className="mb-3" />
         )}
         {todo.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {todo.tags.map(tag => (
-              <span key={tag} className="text-xs bg-hover px-2 py-1 rounded">
-                #{tag}
-              </span>
+              <span key={tag} className="nk-tag">#{tag}</span>
             ))}
           </div>
         )}
@@ -67,7 +65,7 @@ export const TodoCard: React.FC<TodoCardProps> = ({
 
   return (
     <div
-      className={`bg-surface rounded-xl p-6 shadow-sm border border-border hover:shadow-md transition-all overflow-hidden ${
+      className={`nk-card nk-card-hover p-5 overflow-hidden ${
         !isRecurring && todo.completed ? 'opacity-60' : ''
       }`}
     >
@@ -75,42 +73,42 @@ export const TodoCard: React.FC<TodoCardProps> = ({
         {onToggleComplete && (
           <button
             onClick={onToggleComplete}
-            className={`mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${
+            className={`mt-1 w-5 h-5 rounded-full border flex items-center justify-center transition-colors duration-[180ms] shrink-0 ${
               (isRecurring ? doneThisCycle : todo.completed)
-                ? 'bg-primary border-primary text-white'
+                ? 'bg-primary border-primary text-[#0B0E11]'
                 : 'border-border hover:border-primary'
             }`}
             aria-label={doneThisCycle || todo.completed ? 'Mark incomplete' : 'Mark complete'}
           >
-            {(isRecurring ? doneThisCycle : todo.completed) && <i className="fas fa-check text-xs" aria-hidden="true"></i>}
+            {(isRecurring ? doneThisCycle : todo.completed) && <i className="fas fa-check text-[10px]" aria-hidden="true"></i>}
           </button>
         )}
 
         <div className="flex-1 cursor-pointer min-w-0" onClick={onNavigate}>
-          <div className="flex items-start justify-between mb-2 gap-2">
-            <h3 className={`font-bold text-lg ${
+          <div className="flex items-start justify-between mb-1.5 gap-2">
+            <h3 className={`font-semibold text-[17px] tracking-tight ${
               (isRecurring ? doneThisCycle : todo.completed) ? 'line-through text-text-secondary' : 'text-text'
             }`}>
               {todo.title}
             </h3>
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-0.5 shrink-0">
               <PriorityBadge priority={todo.priority} />
               {todo.sharedWith && todo.sharedWith !== '[]' && (
-                <i className="fas fa-share-alt text-green-500 text-sm" title="Shared" aria-label="Shared"></i>
+                <i className="fas fa-share-alt text-secondary text-sm p-1" title="Shared" aria-label="Shared"></i>
               )}
               {onToggleFavorite && (
                 <button
                   onClick={onToggleFavorite}
-                  className="hover:scale-110 transition-transform p-1"
+                  className="p-1.5 rounded-lg hover:bg-background transition-colors duration-[180ms]"
                   aria-label={todo.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                 >
-                  <i className={`fas fa-star ${todo.isFavorite ? 'text-yellow-500' : 'text-text-secondary/40'}`}></i>
+                  <i className={`fas fa-star ${todo.isFavorite ? 'text-primary' : 'text-text-secondary/40'}`}></i>
                 </button>
               )}
               {onArchive && (
                 <button
                   onClick={onArchive}
-                  className="p-1 text-text-secondary hover:text-text transition-colors"
+                  className="p-1.5 text-text-secondary hover:text-text rounded-lg hover:bg-background transition-colors duration-[180ms]"
                   title="Archive"
                   aria-label="Archive todo"
                 >
@@ -120,7 +118,7 @@ export const TodoCard: React.FC<TodoCardProps> = ({
               {onDelete && (
                 <button
                   onClick={onDelete}
-                  className="p-1 text-red-500 hover:text-red-600 transition-colors"
+                  className="p-1.5 text-danger hover:opacity-80 rounded-lg hover:bg-background transition-colors duration-[180ms]"
                   title="Delete"
                   aria-label="Delete todo"
                 >
@@ -134,7 +132,7 @@ export const TodoCard: React.FC<TodoCardProps> = ({
             <MarkdownPreview content={todo.description} maxLines={3} className="mb-3" />
           )}
 
-          <div className="flex items-center gap-4 text-sm text-text-secondary flex-wrap">
+          <div className="flex items-center gap-4 text-[13px] text-text-secondary flex-wrap">
             {todo.dueDate && (
               <span>
                 <i className="fas fa-calendar mr-1" aria-hidden="true"></i>
@@ -148,7 +146,7 @@ export const TodoCard: React.FC<TodoCardProps> = ({
                   {todo.schedule!.repeat}
                 </span>
                 {todo.lastCompletedAt && (
-                  <span className="text-green-500" title="Last completed">
+                  <span className="text-secondary" title="Last completed">
                     <i className="fas fa-check-circle mr-1" aria-hidden="true"></i>
                     last: {formatDay(todo.lastCompletedAt)}
                   </span>
@@ -159,17 +157,15 @@ export const TodoCard: React.FC<TodoCardProps> = ({
                     next: {formatDayTime(todo.reminder)}
                   </span>
                 )}
-                {doneThisCycle && <span className="text-green-500">done this cycle</span>}
+                {doneThisCycle && <span className="text-secondary">done this cycle</span>}
               </span>
             )}
           </div>
 
           {todo.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="flex flex-wrap gap-1.5 mt-3">
               {todo.tags.map(tag => (
-                <span key={tag} className="text-xs bg-hover px-2 py-1 rounded">
-                  #{tag}
-                </span>
+                <span key={tag} className="nk-tag">#{tag}</span>
               ))}
             </div>
           )}

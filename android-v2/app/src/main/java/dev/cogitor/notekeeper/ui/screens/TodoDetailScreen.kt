@@ -42,7 +42,6 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -70,6 +69,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.notification.NotificationHelper
+import dev.cogitor.notekeeper.ui.components.NkFab
+import dev.cogitor.notekeeper.ui.components.nkTopBarColors
 import dev.cogitor.notekeeper.ui.viewmodel.TodoDetailViewModel
 import java.time.Instant
 import java.time.LocalDate
@@ -150,9 +151,11 @@ fun TodoDetailScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text(if (isNewTodo) "New Todo" else "Todo") },
+                colors = nkTopBarColors(),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
@@ -191,7 +194,7 @@ fun TodoDetailScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            NkFab(
                 onClick = {
                     if (title.isNotBlank() && !isSaving) {
                         val tagList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }

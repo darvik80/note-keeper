@@ -1,66 +1,25 @@
 /**
  * @module ShortcutContext
  * @category Contexts
- * React context for global keyboard shortcut handling.
- *
- * {@link ShortcutProvider} attaches a single `keydown` listener to `window`
- * and interprets key combos according to the user's persisted
- * {@link Settings.shortcuts} bindings.  Built-in actions:
- *
- * | Default binding | Action                                   |
- * |-----------------|------------------------------------------|
- * | `Ctrl+N`        | Create a new note and navigate to it     |
- * | `Ctrl+T`        | Create a new todo and navigate to it     |
- * | `Ctrl+K`        | Navigate to the Search page              |
- * | `Ctrl+B`        | Dispatch `"toggle-sidebar"` custom event |
- *
- * Wrap the router with {@link ShortcutProvider} and access the context via
- * {@link useShortcuts}.
+ * Global keyboard shortcuts. Search opens the command palette.
  */
 import React, {createContext, useContext, useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {storage} from '../utils/storage';
 import {api} from '../utils/api';
 
-/**
- * Shape of the value exposed by {@link ShortcutContext}.
- */
 interface ShortcutContextType {
-  /**
-   * Register a custom shortcut handler at runtime.
-   *
-   * > **Note:** This is currently a stub — the `callback` is not invoked.
-   * > Override behaviour is not yet implemented.
-   *
-   * @param key - Key combo string (e.g. `"ctrl+shift+p"`).
-   * @param callback - Function to call when the combo is pressed.
-   */
   registerShortcut: (key: string, callback: () => void) => void;
 }
 
-/**
- * Internal React context — use {@link useShortcuts} instead.
- */
 const ShortcutContext = createContext<ShortcutContextType | undefined>(undefined);
 
-/**
- * Provider that installs global keyboard shortcut handling for the application.
- *
- * Must be placed **inside** a React Router provider so that `useNavigate` is
- * available.
- *
- * @param children - Child component tree.
- *
- * @example
- * ```tsx
- * // App.tsx
- * <HashRouter>
- *   <ShortcutProvider>
- *     <Layout />
- *   </ShortcutProvider>
- * </HashRouter>
- * ```
- */
+const isTypingTarget = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+};
+
 export const ShortcutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
 
@@ -69,10 +28,17 @@ export const ShortcutProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const shortcuts = settings?.shortcuts;
 
     const handleKeyDown = async (e: KeyboardEvent) => {
-      if (!e.key) return;
-      const key = `${e.ctrlKey ? 'ctrl+' : ''}${e.shiftKey ? 'shift+' : ''}${e.altKey ? 'alt+' : ''}${e.key.toLowerCase()}`;
+      if (!e.key || !shortcuts) return;
+      const modifier = e.metaKey || e.ctrlKey;
+      const key = `${modifier ? 'ctrl+' : ''}${e.shiftKey ? 'shift+' : ''}${e.altKey ? 'alt+' : ''}${e.key.toLowerCase()}`;
 
-      if (!shortcuts) return;
+      if (key === shortcuts.search) {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('open-command-palette'));
+        return;
+      }
+
+      if (isTypingTarget(e.target)) return;
 
       if (key === shortcuts.newNote) {
         e.preventDefault();
@@ -87,7 +53,8 @@ export const ShortcutProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             isEncrypted: false,
           });
           navigate(`/notes/${newNote.id}`);
-        } catch (err) {
+        } catch {
+          /* ignore */
         }
       } else if (key === shortcuts.newTodo) {
         e.preventDefault();
@@ -101,11 +68,9 @@ export const ShortcutProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             completed: false,
           });
           navigate(`/todos/${newTodo.id}`);
-        } catch (err) {
+        } catch {
+          /* ignore */
         }
-      } else if (key === shortcuts.search) {
-        e.preventDefault();
-        navigate('/search');
       } else if (key === shortcuts.toggleSidebar) {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent('toggle-sidebar'));
@@ -127,13 +92,6 @@ export const ShortcutProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 };
 
-/**
- * Hook to access the shortcut registration API.
- *
- * **Must** be called inside a {@link ShortcutProvider}.
- *
- * @returns `{ registerShortcut }` from the nearest {@link ShortcutProvider}.
- */
 export const useShortcuts = () => {
   const context = useContext(ShortcutContext);
   if (!context) {

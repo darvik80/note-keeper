@@ -293,7 +293,7 @@ export interface FolderStructure {
  * Union of all supported UI theme names.
  * Each value maps to a colour palette in {@link themes}.
  */
-export type Theme = 'light' | 'dark' | 'green' | 'cyan' | 'blue' | 'purple' | 'darcula' | 'rose' | 'amber' | 'teal' | 'indigo' | 'slate';
+export type Theme = 'cogitor' | 'light' | 'dark' | 'green' | 'cyan' | 'blue' | 'purple' | 'darcula' | 'rose' | 'amber' | 'teal' | 'indigo' | 'slate';
 
 // ---------------------------------------------------------------------------
 // API DTOs — sent to the backend

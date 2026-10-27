@@ -29,8 +29,9 @@ import java.util.Locale;
 @ConditionalOnExpression("T(org.springframework.util.StringUtils).hasText('${spring.security.oauth2.client.registration.google.client-id:}') || T(org.springframework.util.StringUtils).hasText('${spring.security.oauth2.client.registration.yandex.client-id:}')")
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
-    static final String REDIRECT_SESSION_KEY = "oauth_redirect";
-    static final String ANDROID_REDIRECT = "notekeeper://oauth";
+    public static final String REDIRECT_SESSION_KEY = "oauth_redirect";
+    public static final String ANDROID_REDIRECT = "notekeeper://oauth";
+    public static final String REDIRECT_COOKIE = "nk_oauth_redirect";
 
     private static final Logger log = LoggerFactory.getLogger(OAuth2SuccessHandler.class);
 
@@ -91,19 +92,25 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         response.sendRedirect(redirectUrl);
     }
 
-    static boolean isAllowedMobileRedirect(String redirect) {
+    public static boolean isAllowedMobileRedirect(String redirect) {
         return ANDROID_REDIRECT.equals(redirect);
     }
 
     private static String takeMobileRedirect(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
-        if (session == null) {
-            return null;
+        if (session != null) {
+            Object stored = session.getAttribute(REDIRECT_SESSION_KEY);
+            session.removeAttribute(REDIRECT_SESSION_KEY);
+            if (stored instanceof String redirect && isAllowedMobileRedirect(redirect)) {
+                return redirect;
+            }
         }
-        Object stored = session.getAttribute(REDIRECT_SESSION_KEY);
-        session.removeAttribute(REDIRECT_SESSION_KEY);
-        if (stored instanceof String redirect && isAllowedMobileRedirect(redirect)) {
-            return redirect;
+        if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if (REDIRECT_COOKIE.equals(cookie.getName()) && isAllowedMobileRedirect(cookie.getValue())) {
+                    return ANDROID_REDIRECT;
+                }
+            }
         }
         return null;
     }

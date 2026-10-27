@@ -115,12 +115,24 @@ export const Vault: React.FC = () => {
 
   return (
     <PageShell error={error} onDismissError={() => setError(null)}>
-      <Header title="Vault" />
+      <Header
+        title="Vault"
+        subtitle={selectedFolder ? selectedFolder.name : 'Secrets stay on your account'}
+        actions={
+          <button
+            onClick={() => { setEditing(emptyItem(folderId)); setShowSecret(false); }}
+            className="nk-btn nk-btn-primary"
+          >
+            New item
+          </button>
+        }
+      />
       <div className="flex flex-1 min-h-0">
-        <aside className="w-56 shrink-0 border-r border-border p-4 overflow-y-auto hidden sm:block">
+        <aside className="w-56 shrink-0 p-4 overflow-y-auto hidden sm:block">
+          <p className="px-3 mb-1 text-[11px] font-medium uppercase tracking-wider text-text-secondary">Folders</p>
           <button
             onClick={() => setFolderId(undefined)}
-            className={`block w-full text-left px-3 py-2 rounded-lg mb-1 ${!folderId ? 'bg-primary/10 text-primary' : 'hover:bg-hover'}`}
+            className={`block w-full text-left px-3 py-2 rounded-xl mb-0.5 text-[14px] ${!folderId ? 'bg-primary/15 text-primary' : 'text-text-secondary hover:bg-hover hover:text-text'}`}
           >
             All items
           </button>
@@ -128,9 +140,9 @@ export const Vault: React.FC = () => {
             <button
               key={folder.id}
               onClick={() => setFolderId(folder.id)}
-              className={`block w-full text-left px-3 py-2 rounded-lg mb-1 ${folderId === folder.id ? 'bg-primary/10 text-primary' : 'hover:bg-hover'}`}
+              className={`block w-full text-left px-3 py-2 rounded-xl mb-0.5 text-[14px] ${folderId === folder.id ? 'bg-primary/15 text-primary' : 'text-text-secondary hover:bg-hover hover:text-text'}`}
             >
-              <i className="fas fa-folder mr-2"></i>{folder.name}
+              {folder.name}
             </button>
           ))}
           <div className="mt-4 flex gap-2">
@@ -138,35 +150,29 @@ export const Vault: React.FC = () => {
               value={newFolder}
               onChange={e => setNewFolder(e.target.value)}
               placeholder="New folder"
-              className="flex-1 px-2 py-1 border border-border rounded text-sm bg-background"
+              className="flex-1 input-field py-1.5 text-sm"
             />
-            <button onClick={saveFolder} className="px-2 py-1 bg-primary text-white rounded text-sm">+</button>
+            <button onClick={saveFolder} className="nk-btn nk-btn-primary px-3">+</button>
           </div>
         </aside>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-8">
           <div className="flex gap-2 mb-4">
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && search()}
               placeholder="Search title, host, username"
-              className="flex-1 px-4 py-2 border border-border rounded-lg bg-background"
+              className="flex-1 input-field"
             />
-            <button onClick={search} className="px-4 py-2 border border-border rounded-lg">Search</button>
-            <button
-              onClick={() => { setEditing(emptyItem(folderId)); setShowSecret(false); }}
-              className="px-4 py-2 bg-primary text-white rounded-lg"
-            >
-              New item
-            </button>
+            <button onClick={search} className="nk-btn nk-btn-ghost border border-border">Search</button>
           </div>
 
           {selectedFolder && <p className="text-sm text-text-secondary mb-3">{selectedFolder.name}</p>}
 
           <div className="space-y-2">
             {items.map(item => (
-              <div key={item.id} className="p-4 bg-surface border border-border rounded-xl flex items-center justify-between gap-3">
+              <div key={item.id} className="nk-card p-4 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-medium text-text truncate">{item.title} {item.host ? <span className="text-text-secondary font-normal">({item.host})</span> : null}</p>
                   <p className="text-xs text-text-secondary">{item.type} {item.username ? `· ${item.username}` : ''}</p>
@@ -187,15 +193,15 @@ export const Vault: React.FC = () => {
                 </div>
               </div>
             ))}
-            {items.length === 0 && <p className="text-text-secondary text-sm">No vault items.</p>}
+            {items.length === 0 && <p className="text-text-secondary text-[15px] py-8">No vault items.</p>}
           </div>
         </div>
       </div>
 
       {editing && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-          <div className="bg-surface w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold mb-4">{editing.id ? 'Edit item' : 'New item'}</h3>
+          <div className="nk-card w-full max-w-lg rounded-t-[22px] sm:rounded-[22px] p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold tracking-tight mb-4">{editing.id ? 'Edit item' : 'New item'}</h3>
             <div className="space-y-3">
               <select
                 value={editing.type}
@@ -248,8 +254,8 @@ export const Vault: React.FC = () => {
               )}
             </div>
             <div className="flex gap-2 mt-6">
-              <button onClick={() => setEditing(null)} className="flex-1 px-4 py-2 border border-border rounded-lg">Cancel</button>
-              <button onClick={saveItem} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg">Save</button>
+              <button onClick={() => setEditing(null)} className="flex-1 nk-btn nk-btn-ghost border border-border">Cancel</button>
+              <button onClick={saveItem} className="flex-1 nk-btn nk-btn-primary">Save</button>
             </div>
           </div>
         </div>

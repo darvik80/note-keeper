@@ -5,6 +5,8 @@ import { ToastProvider } from './contexts/ToastContext';
 import { ShortcutProvider } from './contexts/ShortcutContext';
 import { Sidebar } from './components/Sidebar';
 import { PageLoader } from './components/PageLoader';
+import { CommandPalette, openCommandPalette } from './components/CommandPalette';
+import { CogitorMark } from './components/CogitorMark';
 import Login from './pages/Login';
 
 const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -53,20 +55,27 @@ const AppLayout: React.FC = () => {
       <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
 
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <div className="lg:hidden flex items-center justify-between p-4 bg-surface border-b border-border">
+        <div className="lg:hidden flex items-center justify-between px-4 py-2.5">
           <button
             onClick={() => setIsMobileMenuOpen(true)}
-            className="p-2 text-text hover:bg-hover rounded-lg transition-colors"
+            className="p-2 text-text hover:bg-hover rounded-xl transition-colors duration-[180ms]"
             aria-label="Open menu"
           >
-            <i className="fas fa-bars text-xl"></i>
+            <i className="fas fa-bars text-lg"></i>
           </button>
-          <h1 className="text-lg font-bold text-primary flex items-center gap-2">
-            <i className="fas fa-book"></i>
-            NoteKeeper
-          </h1>
-          <div className="w-10"></div>
+          <div className="w-8 h-8 rounded-[10px] bg-[#0B0E11] flex items-center justify-center text-[#EDEFF2]">
+            <CogitorMark size={20} />
+          </div>
+          <button
+            type="button"
+            onClick={openCommandPalette}
+            className="p-2 text-text hover:bg-hover rounded-xl transition-colors duration-[180ms]"
+            aria-label="Open command palette"
+          >
+            <i className="fas fa-search"></i>
+          </button>
         </div>
+        <CommandPalette />
 
         <div className="flex flex-1 flex-col min-h-0 w-full overflow-hidden">
           <Routes>

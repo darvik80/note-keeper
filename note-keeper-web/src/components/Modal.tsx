@@ -57,13 +57,13 @@ export const Modal: React.FC<ModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`relative bg-surface rounded-xl border border-border shadow-xl w-full ${SIZES[size]} p-6`}
+        className={`relative nk-card w-full ${SIZES[size]} p-6 nk-fade`}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 id={titleId} className="text-lg font-bold text-text">{title}</h2>
+          <h2 id={titleId} className="text-xl font-semibold tracking-tight text-text">{title}</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-hover rounded-lg transition-colors text-text-secondary hover:text-text"
+            className="p-2 hover:bg-hover rounded-xl transition-colors duration-[180ms] text-text-secondary hover:text-text"
             aria-label="Close dialog"
           >
             <i className="fas fa-times" aria-hidden="true"></i>

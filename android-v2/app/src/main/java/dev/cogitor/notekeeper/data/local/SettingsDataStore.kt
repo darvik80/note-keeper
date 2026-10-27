@@ -12,6 +12,7 @@ private val Context.settingsDataStore by preferencesDataStore(name = "settings_p
 class SettingsDataStore(private val context: Context) {
     private val SERVER_URL_KEY = stringPreferencesKey("server_url")
     private val NOTIFICATION_CHANNEL_KEY = stringPreferencesKey("default_notification_channel")
+    private val THEME_KEY = stringPreferencesKey("theme_id")
 
     val serverUrl: Flow<String> = context.settingsDataStore.data.map { prefs ->
         prefs[SERVER_URL_KEY] ?: DEFAULT_URL
@@ -19,6 +20,10 @@ class SettingsDataStore(private val context: Context) {
 
     val defaultNotificationChannel: Flow<String> = context.settingsDataStore.data.map { prefs ->
         prefs[NOTIFICATION_CHANNEL_KEY] ?: DEFAULT_CHANNEL
+    }
+
+    val themeId: Flow<String> = context.settingsDataStore.data.map { prefs ->
+        prefs[THEME_KEY] ?: DEFAULT_THEME
     }
 
     suspend fun saveServerUrl(url: String) {
@@ -33,8 +38,15 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    suspend fun saveThemeId(themeId: String) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[THEME_KEY] = themeId
+        }
+    }
+
     companion object {
         const val DEFAULT_URL = "https://note.darvik.synology.me:8443/api/v1/"
         const val DEFAULT_CHANNEL = "reminders"
+        const val DEFAULT_THEME = "cogitor"
     }
 }

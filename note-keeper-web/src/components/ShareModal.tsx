@@ -180,7 +180,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       footer={
         <button
           onClick={onClose}
-          className="w-full px-4 py-2 border border-border rounded-lg hover:bg-hover transition-colors text-text"
+          className="w-full nk-btn nk-btn-ghost border border-border"
         >
           Close
         </button>
@@ -210,7 +210,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           <label className="block text-sm font-medium text-text mb-2">Found users</label>
           <div className="space-y-2 max-h-40 overflow-y-auto">
             {users.map(user => (
-              <div key={user.id} className="flex items-center justify-between p-2 bg-secondary/10 rounded-lg">
+              <div key={user.id} className="flex items-center justify-between p-2.5 bg-hover rounded-xl">
                 <div>
                   <p className="text-sm font-medium text-text">{user.name}</p>
                   <p className="text-xs text-text-secondary">{user.email}</p>
@@ -218,7 +218,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                 <button
                   onClick={() => handleShare(user.id)}
                   disabled={loading || sharedUsers.includes(user.id)}
-                  className="px-3 py-1 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                  className="nk-btn nk-btn-primary text-sm py-1.5 px-3 disabled:opacity-50"
                 >
                   {sharedUsers.includes(user.id) ? 'Added' : 'Add'}
                 </button>
@@ -237,7 +237,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             {sharedUsers.map(userId => {
               const user = sharedUserDetails.get(userId);
               return (
-                <div key={userId} className="flex items-center justify-between p-2 bg-hover rounded-lg">
+                <div key={userId} className="flex items-center justify-between p-2.5 bg-hover rounded-xl">
                   <div>
                     <p className="text-sm font-medium text-text">{user?.name || userId}</p>
                     {user?.email && <p className="text-xs text-text-secondary">{user.email}</p>}

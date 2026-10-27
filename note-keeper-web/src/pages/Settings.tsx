@@ -325,26 +325,26 @@ export const Settings: React.FC = () => {
     <PageShell error={error} onDismissError={() => setError(null)} className="overflow-hidden">
       <Header
         title="Settings"
+        subtitle="Integrations, keys, backup"
         actions={
           (activeTab === 'integrations' || activeTab === 'shortcuts' || activeTab === 'daily-report') && (
             <button
               onClick={saveSettings}
-              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              className="nk-btn nk-btn-primary"
             >
-              <i className="fas fa-save mr-2"></i>
-              {saved ? 'Saved!' : 'Save Settings'}
+              {saved ? 'Saved' : 'Save'}
             </button>
           )
         }
       />
 
-      <div className="flex-1 overflow-auto p-8 min-h-0">
-        <div className="max-w-5xl mx-auto">
+      <div className="flex-1 overflow-auto px-5 sm:px-8 lg:px-10 pb-8 min-h-0">
+        <div className="max-w-3xl">
           <SettingsTabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
           {activeTab === 'integrations' && (
             <div className="space-y-8">
-              <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+              <div className="nk-card p-6">
                 <h3 className="text-xl font-bold text-text flex items-center gap-2 mb-2">
                   <i className="fas fa-bell text-primary"></i>
                   Default Reminder Notifications
@@ -388,7 +388,7 @@ export const Settings: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+              <div className="nk-card p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-xl font-bold text-text flex items-center gap-2">
@@ -511,7 +511,7 @@ export const Settings: React.FC = () => {
                 )}
               </div>
 
-              <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+              <div className="nk-card p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-xl font-bold text-text flex items-center gap-2">
@@ -614,19 +614,19 @@ export const Settings: React.FC = () => {
                 )}
               </div>
 
-              <div className="bg-gradient-to-r from-primary to-secondary text-white rounded-xl p-6">
-                <h3 className="text-lg font-bold mb-2">About NoteKeeper</h3>
-                <p className="text-sm opacity-90">
-                  Open-source Evernote alternative with powerful features for notes and todos management.
+              <div className="nk-card p-6">
+                <h3 className="text-[17px] font-semibold tracking-tight text-text mb-1">NoteKeeper</h3>
+                <p className="text-[15px] text-text-secondary">
+                  Notes and todos. Cogitor skin by default.
                 </p>
-                <p className="text-xs opacity-75 mt-4">Version 1.0.0</p>
+                <p className="text-[13px] text-text-secondary mt-3">Version 1.0.0</p>
               </div>
             </div>
           )}
 
           {activeTab === 'shortcuts' && (
             <div className="space-y-6">
-              <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+              <div className="nk-card p-6">
                 <h3 className="text-xl font-bold text-text mb-4">
                   <i className="fas fa-keyboard mr-2"></i>
                   Keyboard Shortcuts
@@ -672,8 +672,8 @@ export const Settings: React.FC = () => {
 
                   <div className="flex items-center justify-between p-4 bg-background rounded-lg">
                     <div>
-                      <p className="font-medium text-text">Search</p>
-                      <p className="text-sm text-text-secondary">Open search dialog</p>
+                      <p className="font-medium text-text">Command palette</p>
+                      <p className="text-sm text-text-secondary">Search notes, todos, and commands</p>
                     </div>
                     <input
                       type="text"
@@ -705,10 +705,9 @@ export const Settings: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-900">
-                    <i className="fas fa-info-circle mr-2"></i>
-                    Use format: <code className="bg-blue-100 px-2 py-1 rounded">ctrl+key</code>, <code className="bg-blue-100 px-2 py-1 rounded">shift+key</code>, or <code className="bg-blue-100 px-2 py-1 rounded">alt+key</code>
+                <div className="mt-6 p-4 bg-hover rounded-xl">
+                  <p className="text-[13px] text-text-secondary">
+                    Format: <code className="bg-background px-2 py-0.5 rounded-lg">ctrl+key</code>, <code className="bg-background px-2 py-0.5 rounded-lg">shift+key</code>, or <code className="bg-background px-2 py-0.5 rounded-lg">alt+key</code>
                   </p>
                 </div>
               </div>
@@ -725,7 +724,7 @@ export const Settings: React.FC = () => {
 
           {activeTab === 'backup' && (
             <div className="space-y-8">
-              <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+              <div className="nk-card p-6">
                 <div className="mb-6">
                   <h3 className="text-xl font-bold text-text flex items-center gap-2">
                     <i className="fas fa-download text-green-500"></i>
@@ -767,7 +766,7 @@ export const Settings: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+              <div className="nk-card p-6">
                 <div className="mb-6">
                   <h3 className="text-xl font-bold text-text flex items-center gap-2">
                     <i className="fas fa-upload text-blue-500"></i>
@@ -786,7 +785,7 @@ export const Settings: React.FC = () => {
                       ? 'bg-green-500 text-white'
                       : backupStatus === 'error'
                       ? 'bg-red-500 text-white'
-                      : 'bg-blue-500 text-white hover:bg-blue-600'
+                      : 'bg-primary text-[#0B0E11] hover:opacity-90'
                   } disabled:opacity-50`}>
                     <i className={`fas ${
                       backupStatus === 'importing' ? 'fa-spinner fa-spin' :
@@ -821,7 +820,7 @@ export const Settings: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-surface rounded-xl p-6 shadow-sm border border-border">
+              <div className="nk-card p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-xl font-bold text-text flex items-center gap-2">
@@ -834,7 +833,7 @@ export const Settings: React.FC = () => {
                   </div>
                   <button
                     onClick={saveBackupSettings}
-                    className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                    className="nk-btn nk-btn-primary"
                   >
                     <i className="fas fa-save mr-2"></i>
                     {settingsSaved ? 'Saved!' : 'Save Settings'}

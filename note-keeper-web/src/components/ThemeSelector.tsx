@@ -1,41 +1,22 @@
 /**
  * @module ThemeSelector
  * @category Components
- * Dropdown button for switching the active UI theme.
- *
- * On mobile the button shows only the theme icon; on `sm` and wider it also
- * shows the theme name.  The dropdown is scrollable and lists all 12 themes.
- * Clicking outside closes the dropdown via a `mousedown` listener.
- *
- * Delegates theme persistence and CSS application to {@link useTheme}.
+ * Theme picker with colour swatches.
  */
 import React, {useEffect, useRef, useState} from 'react';
 import {Theme} from '../types';
 import {themes} from '../utils/themes';
 import {useTheme} from '../contexts/ThemeContext';
 
-/**
- * Theme picker dropdown.  No props required — reads and updates via {@link useTheme}.
- */
+const ORDER: Theme[] = [
+  'cogitor', 'light', 'dark', 'darcula', 'slate',
+  'green', 'teal', 'cyan', 'blue', 'indigo', 'purple', 'rose', 'amber',
+];
+
 export const ThemeSelector: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const themeOptions: { value: Theme; icon: string }[] = [
-    { value: 'light', icon: 'fa-sun' },
-    { value: 'dark', icon: 'fa-moon' },
-    { value: 'green', icon: 'fa-leaf' },
-    { value: 'cyan', icon: 'fa-water' },
-    { value: 'blue', icon: 'fa-cloud' },
-    { value: 'purple', icon: 'fa-star' },
-    { value: 'darcula', icon: 'fa-code' },
-    { value: 'rose', icon: 'fa-heart' },
-    { value: 'amber', icon: 'fa-fire' },
-    { value: 'teal', icon: 'fa-spa' },
-    { value: 'indigo', icon: 'fa-gem' },
-    { value: 'slate', icon: 'fa-circle-half-stroke' },
-  ];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -48,42 +29,55 @@ export const ThemeSelector: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentTheme = themeOptions.find(opt => opt.value === theme);
+  const current = themes[theme];
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 sm:gap-2 p-2 sm:px-4 sm:py-2 bg-surface border border-border rounded-lg hover:bg-hover transition-colors"
-        title={themes[theme].name}
+        className="flex items-center gap-2 p-1.5 sm:pl-1.5 sm:pr-3 sm:py-1.5 rounded-full border border-border hover:bg-hover transition-colors duration-[180ms]"
+        title={current.name}
+        aria-label={`Theme: ${current.name}`}
       >
-        <i className={`fas ${currentTheme?.icon} text-primary`}></i>
-        <span className="hidden sm:inline text-text font-medium">{themes[theme].name}</span>
-        <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'} text-text-secondary text-xs`}></i>
+        <span
+          className="w-5 h-5 rounded-full border border-border shrink-0"
+          style={{ background: current.colors.primary }}
+        />
+        <span className="hidden sm:inline text-[13px] text-text font-medium">{current.name}</span>
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-52 bg-surface border border-border rounded-lg shadow-lg overflow-y-auto z-50 max-h-80">
-          {themeOptions.map(option => (
-            <button
-              key={option.value}
-              onClick={() => {
-                setTheme(option.value);
-                setIsOpen(false);
-              }}
-              className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-hover transition-colors ${
-                theme === option.value ? 'bg-primary/10' : ''
-              }`}
-            >
-              <i className={`fas ${option.icon} ${theme === option.value ? 'text-primary' : 'text-text-secondary'}`}></i>
-              <span className={`font-medium ${theme === option.value ? 'text-primary' : 'text-text'}`}>
-                {themes[option.value].name}
-              </span>
-              {theme === option.value && (
-                <i className="fas fa-check text-primary ml-auto"></i>
-              )}
-            </button>
-          ))}
+        <div className="absolute right-0 mt-2 w-64 nk-card z-50 p-3 nk-fade">
+          <p className="px-1 pb-2 text-[11px] font-medium uppercase tracking-wider text-text-secondary">
+            Appearance
+          </p>
+          <div className="grid grid-cols-1 gap-0.5 max-h-80 overflow-y-auto">
+            {ORDER.map(id => {
+              const option = themes[id];
+              const selected = theme === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => {
+                    setTheme(id);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-2 py-2 rounded-xl text-left transition-colors duration-[180ms] ${
+                    selected ? 'bg-hover' : 'hover:bg-hover'
+                  }`}
+                >
+                  <span className="flex h-7 w-7 rounded-full overflow-hidden border border-border shrink-0">
+                    <span className="w-1/2 h-full" style={{ background: option.colors.background }} />
+                    <span className="w-1/2 h-full" style={{ background: option.colors.primary }} />
+                  </span>
+                  <span className={`flex-1 text-[14px] ${selected ? 'text-primary font-medium' : 'text-text'}`}>
+                    {option.name}
+                  </span>
+                  {selected && <i className="fas fa-check text-primary text-xs" aria-hidden="true"></i>}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

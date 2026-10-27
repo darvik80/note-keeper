@@ -4,8 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,29 +18,28 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.cogitor.notekeeper.data.model.Note
 import dev.cogitor.notekeeper.data.model.SyncStatus
+import dev.cogitor.notekeeper.ui.components.NkCard
 import dev.cogitor.notekeeper.ui.components.NkEmptyState
+import dev.cogitor.notekeeper.ui.components.NkFab
+import dev.cogitor.notekeeper.ui.components.NkScreenHeader
 import dev.cogitor.notekeeper.ui.components.PriorityDot
 import dev.cogitor.notekeeper.ui.components.SwipeHint
 import dev.cogitor.notekeeper.ui.viewmodel.NoteListViewModel
@@ -59,36 +59,35 @@ fun NoteListScreen(
     val syncStatus by viewModel.syncStatus.collectAsState()
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Notes") },
-                actions = {
-                    IconButton(onClick = { viewModel.syncNotes() }) {
-                        if (isSyncing) CircularProgressIndicator(Modifier.padding(8.dp), strokeWidth = 2.dp)
-                        else Icon(Icons.Outlined.Sync, contentDescription = "Sync")
-                    }
-                    IconButton(onClick = onSettingsClick) {
-                        Icon(Icons.Outlined.Settings, contentDescription = "Settings")
-                    }
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = "Log out")
-                    }
-                }
-            )
-        },
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddClick) {
+            NkFab(onClick = onAddClick) {
                 Icon(Icons.Outlined.Add, contentDescription = "New note")
             }
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
+            NkScreenHeader(
+                title = "Notes",
+                subtitle = if (notes.isEmpty()) null else "${notes.size}"
+            ) {
+                IconButton(onClick = { viewModel.syncNotes() }) {
+                    if (isSyncing) CircularProgressIndicator(Modifier.padding(8.dp), strokeWidth = 2.dp)
+                    else Icon(Icons.Outlined.Sync, contentDescription = "Sync")
+                }
+                IconButton(onClick = onSettingsClick) {
+                    Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+                }
+                IconButton(onClick = onLogout) {
+                    Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = "Log out")
+                }
+            }
             if (syncStatus.isNotEmpty()) {
                 Text(
                     syncStatus,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 2.dp)
                 )
             }
             PullToRefreshBox(
@@ -100,8 +99,8 @@ fun NoteListScreen(
                     NkEmptyState(Icons.Outlined.Notes, "No notes yet", "Tap + to write one")
                 } else {
                     LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(notes, key = { it.id }) { note ->
                             val dismissState = rememberSwipeToDismissBoxState(
@@ -131,51 +130,49 @@ fun NoteListScreen(
 
 @Composable
 private fun NoteRow(note: Note, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        ListItem(
-            colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
-            headlineContent = {
-                Text(note.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            },
-            supportingContent = {
-                Column {
+    NkCard(onClick = onClick) {
+        Column(Modifier.padding(18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    note.title.ifBlank { "Untitled" },
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                if (note.syncStatus != SyncStatus.SYNCED) {
                     Text(
-                        (note.content ?: "").ifBlank { "Empty note" }.take(90),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        when (note.syncStatus) {
+                            SyncStatus.PENDING_CREATE -> "+"
+                            SyncStatus.PENDING_UPDATE -> "•"
+                            SyncStatus.PENDING_DELETE -> "–"
+                            else -> ""
+                        },
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     )
-                    val tags = note.tags.orEmpty()
-                    if (tags.isNotEmpty()) {
-                        Text(
-                            tags.take(3).joinToString("  ") { "#$it" },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
                 }
-            },
-            trailingContent = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (note.syncStatus != SyncStatus.SYNCED) {
-                        Text(
-                            when (note.syncStatus) {
-                                SyncStatus.PENDING_CREATE -> "+"
-                                SyncStatus.PENDING_UPDATE -> "•"
-                                SyncStatus.PENDING_DELETE -> "–"
-                                else -> ""
-                            },
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                    PriorityDot(note.priority)
-                }
+                PriorityDot(note.priority)
             }
-        )
+            val preview = (note.content ?: "").ifBlank { "Empty note" }.take(110)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                preview,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            val tags = note.tags.orEmpty()
+            if (tags.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    tags.take(3).joinToString("  ") { "#$it" },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
     }
 }

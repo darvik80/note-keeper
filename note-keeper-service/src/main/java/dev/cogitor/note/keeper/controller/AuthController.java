@@ -2,9 +2,11 @@ package dev.cogitor.note.keeper.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import dev.cogitor.note.keeper.config.OAuth2SuccessHandler;
@@ -13,7 +15,8 @@ import dev.cogitor.note.keeper.dto.AuthResponse;
 import dev.cogitor.note.keeper.model.User;
 import dev.cogitor.note.keeper.service.AuthService;
 
-import java.io.IOException;
+import java.net.URI;
+import java.time.Duration;
 import java.util.Set;
 
 /**
@@ -49,20 +52,32 @@ public class AuthController {
 
     /**
      * Start Google/Yandex OAuth. Optional {@code redirect=notekeeper://oauth} for Android.
+     * Returns 302 Location — do not use {@code HttpServletResponse.sendRedirect} from
+     * {@code @RestController} (Spring still tries to write a JSON body → 500).
      */
     @GetMapping("/oauth/{provider}")
-    public void startOAuth(@PathVariable String provider,
-                           @RequestParam(required = false) String redirect,
-                           HttpServletRequest request,
-                           HttpServletResponse response) throws IOException {
+    public ResponseEntity<Void> startOAuth(@PathVariable String provider,
+                                           @RequestParam(required = false) String redirect,
+                                           HttpServletRequest request) {
         if (!Set.of("google", "yandex").contains(provider)) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown OAuth provider");
-            return;
+            return ResponseEntity.badRequest().build();
         }
+        HttpHeaders headers = new HttpHeaders();
         if (redirect != null && OAuth2SuccessHandler.isAllowedMobileRedirect(redirect)) {
             request.getSession(true).setAttribute(OAuth2SuccessHandler.REDIRECT_SESSION_KEY, redirect);
+            ResponseCookie cookie = ResponseCookie.from(OAuth2SuccessHandler.REDIRECT_COOKIE, redirect)
+                    .path("/")
+                    .maxAge(Duration.ofMinutes(10))
+                    .httpOnly(true)
+                    .secure("https".equalsIgnoreCase(request.getScheme())
+                            || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto")))
+                    .sameSite("Lax")
+                    .build();
+            headers.add(HttpHeaders.SET_COOKIE, cookie.toString());
         }
-        response.sendRedirect(request.getContextPath() + "/oauth2/authorization/" + provider);
+        String target = request.getContextPath() + "/oauth2/authorization/" + provider;
+        headers.setLocation(URI.create(target));
+        return new ResponseEntity<>(headers, HttpStatus.FOUND);
     }
 
     /**

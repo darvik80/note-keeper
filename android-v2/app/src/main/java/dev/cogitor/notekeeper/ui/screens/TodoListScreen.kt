@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,29 +17,28 @@ import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.cogitor.notekeeper.data.model.Todo
+import dev.cogitor.notekeeper.ui.components.NkCard
 import dev.cogitor.notekeeper.ui.components.NkEmptyState
+import dev.cogitor.notekeeper.ui.components.NkFab
+import dev.cogitor.notekeeper.ui.components.NkScreenHeader
 import dev.cogitor.notekeeper.ui.components.PriorityDot
 import dev.cogitor.notekeeper.ui.components.SwipeHint
 import dev.cogitor.notekeeper.ui.viewmodel.TodoListViewModel
@@ -61,33 +59,29 @@ fun TodoListScreen(
     val showCompleted by viewModel.showCompleted.collectAsState()
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Todos") },
-                actions = {
-                    IconButton(onClick = { viewModel.syncTodos() }) {
-                        if (isSyncing) CircularProgressIndicator(Modifier.padding(8.dp), strokeWidth = 2.dp)
-                        else Icon(Icons.Outlined.Sync, contentDescription = "Sync")
-                    }
-                }
-            )
-        },
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddClick) {
+            NkFab(onClick = onAddClick) {
                 Icon(Icons.Outlined.Add, contentDescription = "New todo")
             }
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
+            NkScreenHeader(title = "Todos", subtitle = if (todos.isEmpty()) null else "${todos.size}") {
+                IconButton(onClick = { viewModel.syncTodos() }) {
+                    if (isSyncing) CircularProgressIndicator(Modifier.padding(8.dp), strokeWidth = 2.dp)
+                    else Icon(Icons.Outlined.Sync, contentDescription = "Sync")
+                }
+            }
             if (syncStatus.isNotEmpty()) {
                 Text(
                     syncStatus,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 2.dp)
                 )
             }
-            Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = !showCompleted,
                     onClick = { if (showCompleted) viewModel.toggleShowCompleted() },
@@ -108,8 +102,8 @@ fun TodoListScreen(
                     NkEmptyState(Icons.Outlined.TaskAlt, "No todos yet", "Tap + to add a task")
                 } else {
                     LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(todos, key = { it.id }) { todo ->
                             val dismissState = rememberSwipeToDismissBoxState(
@@ -158,33 +152,30 @@ private fun TodoRow(todo: Todo, onClick: () -> Unit, onToggle: () -> Unit) {
     val overdue = todo.dueDate?.let {
         try { LocalDate.parse(it.take(10)).isBefore(LocalDate.now()) && !todo.completed } catch (_: Exception) { false }
     } ?: false
-    Surface(
+    NkCard(
         onClick = onClick,
-        shape = MaterialTheme.shapes.medium,
         color = if (overdue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
-        else MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth()
+        else MaterialTheme.colorScheme.surface
     ) {
-        ListItem(
-            colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
-            leadingContent = {
-                IconButton(onClick = onToggle) {
-                    Icon(
-                        if (todo.completed) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
-                        contentDescription = "Complete",
-                        tint = if (todo.completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                    )
-                }
-            },
-            headlineContent = {
+        Row(
+            Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onToggle) {
+                Icon(
+                    if (todo.completed) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                    contentDescription = "Complete",
+                    tint = if (todo.completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                )
+            }
+            Column(Modifier.weight(1f).padding(end = 8.dp)) {
                 Text(
                     todo.title,
-                    maxLines = 1,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     textDecoration = if (todo.completed) TextDecoration.LineThrough else TextDecoration.None
                 )
-            },
-            supportingContent = {
                 val meta = buildList {
                     todo.dueDate?.let { add(formatShortDate(it)) }
                     val tags = todo.tags.orEmpty()
@@ -194,12 +185,13 @@ private fun TodoRow(todo: Todo, onClick: () -> Unit, onToggle: () -> Unit) {
                     Text(
                         meta.joinToString("  ·  "),
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
-            },
-            trailingContent = { PriorityDot(todo.priority) }
-        )
+            }
+            PriorityDot(todo.priority)
+        }
     }
 }
 

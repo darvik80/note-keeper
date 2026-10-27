@@ -60,7 +60,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           <div
             key={t.id}
             role="status"
-            className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-sm animate-slide-in ${STYLES[t.type]}`}
+            className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-[22px] border animate-slide-in ${STYLES[t.type]}`}
           >
             <i className={`fas ${ICONS[t.type]} shrink-0`} aria-hidden="true"></i>
             <span className="flex-1 text-sm font-medium">{t.message}</span>

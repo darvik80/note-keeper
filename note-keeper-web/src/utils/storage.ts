@@ -7,6 +7,7 @@
  * All reads are null-safe: missing or corrupted keys return sensible defaults.
  */
 import {Settings, Theme} from '../types';
+import {themes} from './themes';
 
 /** `localStorage` key for the full {@link Settings} object. */
 const SETTINGS_KEY = 'notekeeper_settings';
@@ -95,7 +96,8 @@ export const storage = {
    */
   getTheme: (): Theme => {
     const theme = localStorage.getItem(THEME_KEY);
-    return (theme as Theme) || 'light';
+    if (theme && theme in themes) return theme as Theme;
+    return 'cogitor';
   },
 
   /**
