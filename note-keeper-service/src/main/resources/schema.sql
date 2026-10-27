@@ -176,7 +176,8 @@ CREATE INDEX IF NOT EXISTS idx_user_tag_owner ON user_tag(owner_id);
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
-CREATE INDEX IF NOT EXISTS idx_users_yandex_id ON users(yandex_id);
+-- idx_users_yandex_id: existing DBs lack yandex_id; CREATE TABLE IF NOT EXISTS
+-- does not ALTER. Index is created in migration 013_yandex_id.
 
 CREATE TABLE IF NOT EXISTS api_token (
     id TEXT PRIMARY KEY,

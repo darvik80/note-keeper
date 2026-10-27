@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
-CREATE INDEX IF NOT EXISTS idx_users_yandex_id ON users(yandex_id);
+-- idx_users_yandex_id: created in migration 013_yandex_id after ADD COLUMN
 
 CREATE TABLE IF NOT EXISTS user_credentials (
     user_id VARCHAR(255) PRIMARY KEY,

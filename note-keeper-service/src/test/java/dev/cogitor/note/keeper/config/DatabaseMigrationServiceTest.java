@@ -74,6 +74,8 @@ class DatabaseMigrationServiceTest {
                 anyString(),
                 anyString()
         );
+        verify(jdbcTemplate, atLeastOnce()).execute(matches("(?s).*users_mig_013.*"));
+        verify(jdbcTemplate, atLeastOnce()).execute(contains("idx_users_yandex_id"));
     }
 
     @Test

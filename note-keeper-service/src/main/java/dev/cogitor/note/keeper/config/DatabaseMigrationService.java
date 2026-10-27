@@ -425,32 +425,31 @@ public class DatabaseMigrationService {
                 """);
             return;
         }
-        if (columnExists("users", "yandex_id")) {
-            return;
+        if (!columnExists("users", "yandex_id")) {
+            jdbcTemplate.execute("""
+                CREATE TABLE users_mig_013 (
+                    id TEXT PRIMARY KEY,
+                    email TEXT UNIQUE NOT NULL,
+                    name TEXT NOT NULL,
+                    avatar_url TEXT,
+                    provider TEXT NOT NULL DEFAULT 'local' CHECK(provider IN ('local', 'google', 'yandex')),
+                    google_id TEXT UNIQUE,
+                    yandex_id TEXT UNIQUE,
+                    is_active INTEGER NOT NULL DEFAULT 1,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """);
+            jdbcTemplate.execute("""
+                INSERT INTO users_mig_013 (id, email, name, avatar_url, provider, google_id, yandex_id, is_active, created_at, updated_at)
+                SELECT id, email, name, avatar_url, provider, google_id, NULL, is_active, created_at, updated_at
+                FROM users
+                """);
+            jdbcTemplate.execute("DROP TABLE users");
+            jdbcTemplate.execute("ALTER TABLE users_mig_013 RENAME TO users");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)");
         }
-        jdbcTemplate.execute("""
-            CREATE TABLE users_mig_013 (
-                id TEXT PRIMARY KEY,
-                email TEXT UNIQUE NOT NULL,
-                name TEXT NOT NULL,
-                avatar_url TEXT,
-                provider TEXT NOT NULL DEFAULT 'local' CHECK(provider IN ('local', 'google', 'yandex')),
-                google_id TEXT UNIQUE,
-                yandex_id TEXT UNIQUE,
-                is_active INTEGER NOT NULL DEFAULT 1,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
-            )
-            """);
-        jdbcTemplate.execute("""
-            INSERT INTO users_mig_013 (id, email, name, avatar_url, provider, google_id, yandex_id, is_active, created_at, updated_at)
-            SELECT id, email, name, avatar_url, provider, google_id, NULL, is_active, created_at, updated_at
-            FROM users
-            """);
-        jdbcTemplate.execute("DROP TABLE users");
-        jdbcTemplate.execute("ALTER TABLE users_mig_013 RENAME TO users");
-        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)");
-        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)");
         jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_users_yandex_id ON users(yandex_id)");
     }
 
