@@ -1,5 +1,6 @@
 package dev.cogitor.notekeeper.data.remote
 
+import dev.cogitor.notekeeper.BuildConfig
 import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.local.TokenDataStore
 import dev.cogitor.notekeeper.data.remote.api.AttachmentApiService
@@ -38,7 +39,14 @@ object RetrofitClient {
     fun currentBaseUrl(): String = baseUrl
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        level = if (BuildConfig.DEBUG) {
+            HttpLoggingInterceptor.Level.BASIC
+        } else {
+            HttpLoggingInterceptor.Level.NONE
+        }
+        redactHeader("Authorization")
+        redactHeader("Cookie")
+        redactHeader("Set-Cookie")
     }
 
     private val authInterceptor = okhttp3.Interceptor { chain ->

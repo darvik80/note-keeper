@@ -40,7 +40,7 @@ public class NativeRuntimeHints implements RuntimeHintsRegistrar {
                 Todo.class, Todo.Schedule.class, TodoCompletionLog.class,
                 Attachment.class, SavedQuery.class,
                 ApiToken.class, VaultFolder.class, VaultItem.class,
-                AuthRequest.class, AuthResponse.class, ErrorResponse.class,
+                AuthRequest.class, AuthResponse.class, OAuthExchangeRequest.class, ErrorResponse.class,
                 NoteInput.class, TodoInput.class, NoteTemplateInput.class, SavedQueryInput.class,
                 ApiTokenCreateRequest.class, ApiTokenResponse.class,
                 VaultFolderInput.class, VaultItemInput.class, VaultSyncResponse.class,

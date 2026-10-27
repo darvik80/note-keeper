@@ -1,6 +1,6 @@
 {
-  "name": "evernote-clone",
-  "version": "2.0.1",
+  "name": "note-keeper",
+  "version": "2.0.2",
   "scripts": {
     "dev": "webpack serve",
     "build": "webpack --mode production",

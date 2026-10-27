@@ -1,7 +1,7 @@
 # NoteKeeper — Product Requirements Document (PRD)
 
-**Version:** 1.0  
-**Last Updated:** 2026-09-03  
+**Version:** 2.0.2  
+**Last Updated:** 2026-10-27  
 **Status:** Active  
 **Author:** NoteKeeper Team
 
@@ -56,6 +56,10 @@ NoteKeeper solves this by providing a unified notes + todos platform that runs a
 - Users authenticate via Google OAuth2 OIDC
 - On first login, user account auto-created with Google profile data
 - Subsequent logins link to existing account via `googleId`
+
+#### FR-AUTH-002b: Yandex OAuth2 Login — ✅ Done
+- Same flow as Google (`YANDEX_CLIENT_ID` / `YANDEX_CLIENT_SECRET`)
+- Settings → Account can link/unlink Google and Yandex on one user
 
 #### FR-AUTH-003: JWT Token Management — ✅ Done
 - All API requests (except `/auth/**`) require `Authorization: Bearer <token>`
@@ -258,11 +262,12 @@ NoteKeeper solves this by providing a unified notes + todos platform that runs a
 | Templates | `/templates` | Manage note templates |
 | Archive | `/archive` | Archived notes + todos |
 | Trash | `/trash` | Soft-deleted items with restore/permanent-delete |
-| Settings | `/settings` | Integrations, backup, shortcuts, theme, daily report |
-| Login | `/login` | Auth form (local + Google) |
+| Vault | `/vault` | Password / secret folders and items |
+| Settings | `/settings` | Account, integrations, daily report, API tokens, API docs, backup, theme |
+| Login | `/login` | Auth form (local + Google + Yandex) |
 
 #### FR-UI-002: Theming — ✅ Done
-- 12 themes with 8 semantic color tokens each
+- 13 themes (default `cogitor`) with 8 semantic color tokens each
 - CSS custom properties on `:root`; Tailwind classes resolve to vars
 - Theme persisted in localStorage
 - Dark mode support (colorScheme: dark for dark/darcula themes)
@@ -272,10 +277,9 @@ NoteKeeper solves this by providing a unified notes + todos platform that runs a
 - Mobile (< lg breakpoint): drawer sidebar with hamburger toggle
 - Touch-friendly targets; no horizontal scroll
 
-#### FR-UI-004: Keyboard Shortcuts — ✅ Done
-- Configurable in Settings
-- Defaults: Ctrl+N (new note), Ctrl+T (new todo), Ctrl+K (search), Ctrl+B (toggle sidebar), Esc (exit fullscreen)
-- Global listener via ShortcutContext
+#### FR-UI-004: Keyboard Shortcuts — ❌ Removed
+- Customizable shortcut settings removed in 2.0.1
+- Command palette still opens from the UI
 
 #### FR-UI-005: Markdown Rendering — ✅ Done
 - GitHub Flavored Markdown (tables, strikethrough, task lists)
@@ -342,7 +346,7 @@ NoteKeeper solves this by providing a unified notes + todos platform that runs a
 |-----|-------------|
 | NFR-COMP-001 | Backend: Java 25+ (JVM mode) or GraalVM CE 25+ (native mode) |
 | NFR-COMP-002 | Frontend: Modern browsers (Chrome, Firefox, Safari, Edge — last 2 versions) |
-| NFR-COMP-003 | Mobile: Responsive web UI; Android companion app (API 26+) |
+| NFR-COMP-003 | Mobile: Responsive web UI; Android companion (`android/`, API 31+) |
 | NFR-COMP-004 | Database: SQLite 3.35+ or PostgreSQL 14+ |
 | NFR-COMP-005 | OS: Linux (x86-64-v2+), Windows, macOS (JVM mode) |
 
@@ -469,6 +473,9 @@ graph TB
 |---------|---------|----------|--------|
 | Local auth (register/login) | ✅ | ✅ | Complete |
 | Google OAuth2 | ✅ | ✅ | Complete |
+| Yandex OAuth2 + link providers | ✅ | ✅ | Complete |
+| Vault | ✅ | ✅ | Complete |
+| API tokens (`nk_`) | ✅ | ✅ | Complete |
 | Notes CRUD | ✅ | ✅ | Complete |
 | Note encryption | ✅ | ✅ | Complete |
 | Note history | ✅ | ✅ | Complete |
@@ -491,14 +498,14 @@ graph TB
 | Analytics | ✅ | ✅ | Complete |
 | Calendar view | ✅ | ✅ | Complete |
 | WebSocket push | ✅ | ✅ | Complete |
-| 12 themes | ✅ | ✅ | Complete |
+| 13 themes (default cogitor) | ✅ | ✅ | Complete |
 | Responsive design | ✅ | ✅ | Complete |
-| Keyboard shortcuts | ✅ | ✅ | Complete |
+| Keyboard shortcuts | — | ❌ | Removed |
 | GraalVM native image | ✅ | ✅ | Complete |
 | Docker (JVM) | ✅ | — | Complete |
 | Docker (native) | ✅ | — | Complete |
 | CI/CD (Gitea) | ✅ | — | Complete |
-| Android app | — | ✅ | In Progress |
+| Android app (`android/`) | — | ✅ | Complete (minSdk 31) |
 | Todo location notifications | ✅ (schema) | ❌ | Planned |
 | Email notifications | ❌ | ❌ | Planned |
 | Multi-language i18n | ❌ | ❌ | Planned |
@@ -510,11 +517,11 @@ graph TB
 
 ## 6. Release Plan
 
-### v0.1 — Current (MVP)
-All features marked "Complete" in the table above.
+### v2.0 — Current
+See [CHANGELOG.md](../CHANGELOG.md) and [user-guide.md](user-guide.md). Features marked "Complete" in the table above. Latest patch: **2.0.2**.
 
-### v0.2 — Near-term
-- Android app completion and Play Store release
+### Near-term
+- Play Store release for Android
 - Todo location-based reminders (geofencing)
 - Email notification channel (SMTP)
 - Bulk operations (multi-select notes/todos for archive/delete/tag)

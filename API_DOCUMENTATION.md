@@ -1,6 +1,8 @@
 # NoteKeeper REST API Documentation
 
-Complete API reference for building custom clients.
+Written examples for notes, todos, attachments, and backup. **Swagger UI is complete:** `/swagger-ui.html` (`/v3/api-docs`). Product overview: [README.md](README.md).
+
+Also in the API (see Swagger): vault, personal tokens, OAuth (Google/Yandex), settings, tags, analytics, templates, search, MCP (`POST /mcp`).
 
 ## Base URL
 
@@ -10,11 +12,13 @@ http://localhost:8080/api/v1
 
 ## Authentication
 
-All endpoints (except `/auth`) require JWT token in `Authorization` header:
+All endpoints except `/auth/**` and public `/config` need:
 
 ```
 Authorization: Bearer <token>
 ```
+
+Token is either a JWT from login/OAuth, or a personal token `nk_…` (Settings → API tokens). Scopes: `notes`, `todos`, `vault`, `mcp`.
 
 ### Get Token
 

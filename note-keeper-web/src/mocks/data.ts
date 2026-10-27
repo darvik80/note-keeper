@@ -31,7 +31,7 @@ export let notes: any[] = [
   {
     id: 'note-001',
     title: 'Welcome to NoteKeeper',
-    content: '# Welcome!\n\nThis is your **personal note-taking app**.\n\n## Features\n- Markdown support\n- Encryption\n- Tags & folders\n- Templates\n\n> Start by editing this note or creating a new one.',
+    content: '# Welcome!\n\nSelf-hosted **notes**, **todos**, and a **password vault**.\n\n## What you can do\n- Markdown (tables, task lists, diagrams)\n- Folders, tags, favorites, encryption\n- Recurring todos with Telegram / DingTalk reminders\n\n| Client | Talks to |\n|--------|----------|\n| Web | `/api/v1` |\n| Android | `/api/v1` |\n\n> Edit this note or create a new one from the sidebar.',
     tags: ['welcome', 'getting-started'],
     folder: 'Personal',
     priority: 'medium',
@@ -230,6 +230,52 @@ export const templates: any[] = [
 ];
 
 // ── Saved queries ────────────────────────────────────────────────────────────
+
+export let vaultFolders: any[] = [
+  { id: 'vf-001', ownerId: mockUser.id, name: 'Work', updatedAt: now },
+  { id: 'vf-002', ownerId: mockUser.id, name: 'Personal', updatedAt: now },
+];
+
+export let vaultItems: any[] = [
+  {
+    id: 'vi-001',
+    folderId: 'vf-001',
+    ownerId: mockUser.id,
+    type: 'password',
+    title: 'Gitea',
+    username: 'demo',
+    host: 'git.example.local',
+    url: 'https://git.example.local',
+    tags: ['work'],
+    revision: 1,
+    updatedAt: now,
+    password: 'demo-not-a-real-secret',
+  },
+  {
+    id: 'vi-002',
+    folderId: 'vf-002',
+    ownerId: mockUser.id,
+    type: 'api_token',
+    title: 'NoteKeeper MCP',
+    username: '',
+    host: '',
+    url: '',
+    tags: ['api'],
+    revision: 1,
+    updatedAt: now,
+    secret: 'nk_demo_xxxxxxxx',
+  },
+];
+
+export const apiTokens: any[] = [
+  {
+    id: 'tok-001',
+    name: 'MCP',
+    prefix: 'nk_demo',
+    scopes: ['notes', 'todos', 'mcp'],
+    createdAt: lastWeek,
+  },
+];
 
 export let savedQueries: any[] = [
   {

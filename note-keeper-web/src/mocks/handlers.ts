@@ -8,6 +8,7 @@ import { http, HttpResponse } from 'msw';
 import {
   mockUser, MOCK_PASSWORD,
   notes, todos, templates, savedQueries,
+  vaultFolders, vaultItems, apiTokens,
   generateId, findNote, findTodo,
 } from './data';
 
@@ -46,6 +47,16 @@ export const handlers = [
   // POST /auth/google
   http.post(`${API}/auth/google`, async () => {
     return HttpResponse.json({ token: 'mock-jwt-token', user: mockUser });
+  }),
+
+  http.get(`${API}/config`, () => {
+    return HttpResponse.json({ oauth: { google: true, yandex: true } });
+  }),
+
+  http.get(`${API}/auth/me`, ({ request }) => {
+    const user = authUser(request);
+    if (!user) return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    return HttpResponse.json(user);
   }),
 
   // GET /users/me
@@ -522,6 +533,54 @@ export const handlers = [
     notes.forEach(n => n.tags.forEach((t: string) => tagSet.add(t)));
     todos.forEach(t => t.tags.forEach((tag: string) => tagSet.add(tag)));
     return HttpResponse.json([...tagSet]);
+  }),
+
+  http.get(`${API}/tokens`, () => HttpResponse.json(apiTokens)),
+
+  http.get(`${API}/vault/folders`, () => HttpResponse.json(vaultFolders)),
+
+  http.post(`${API}/vault/folders`, async ({ request }) => {
+    const body = await request.json() as any;
+    const folder = {
+      id: generateId(),
+      ownerId: mockUser.id,
+      name: body.name || 'Folder',
+      parentId: body.parentId,
+      updatedAt: new Date().toISOString(),
+    };
+    vaultFolders.push(folder);
+    return HttpResponse.json(folder, { status: 201 });
+  }),
+
+  http.get(`${API}/vault/items`, ({ request }) => {
+    const url = new URL(request.url);
+    const folder = url.searchParams.get('folder');
+    const q = (url.searchParams.get('q') || '').toLowerCase();
+    let result = vaultItems.filter(i => !i.deletedAt);
+    if (folder) result = result.filter(i => i.folderId === folder);
+    if (q) {
+      result = result.filter(i =>
+        (i.title || '').toLowerCase().includes(q) ||
+        (i.host || '').toLowerCase().includes(q) ||
+        (i.username || '').toLowerCase().includes(q)
+      );
+    }
+    return HttpResponse.json(result);
+  }),
+
+  http.post(`${API}/vault/items`, async ({ request }) => {
+    const body = await request.json() as any;
+    const item = {
+      id: generateId(),
+      ownerId: mockUser.id,
+      revision: 1,
+      updatedAt: new Date().toISOString(),
+      tags: body.tags || [],
+      type: body.type || 'password',
+      ...body,
+    };
+    vaultItems.unshift(item);
+    return HttpResponse.json(item, { status: 201 });
   }),
 ];
 

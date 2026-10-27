@@ -192,7 +192,7 @@ fun SettingsScreen(
                 Column(Modifier.padding(16.dp)) {
                     Text("NoteKeeper", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Android v2.0",
+                        "Android 2.0.2",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

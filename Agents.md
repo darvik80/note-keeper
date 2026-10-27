@@ -9,8 +9,9 @@ Reference guide for AI agents working on this codebase.
 Full-stack note-taking application. Multi-module Maven project:
 - **note-keeper-service** — Spring Boot 4.1 backend (Java 25, MyBatis, SQLite/PostgreSQL, GraalVM native)
 - **note-keeper-web** — React 18 + TypeScript frontend (Tailwind CSS, Webpack)
+- **android** — Android client (Compose, minSdk 31)
 
-Frontend is bundled into the backend JAR as static resources.
+Frontend is bundled into the backend JAR as static resources. Product docs: `README.md`, `CHANGELOG.md`, `docs/user-guide.md`.
 
 ---
 
@@ -20,30 +21,31 @@ Frontend is bundled into the backend JAR as static resources.
 note-keeper/
 ├── pom.xml                          # Parent POM (aggregator)
 ├── note-keeper-service/             # Backend
-│   ├── src/main/java/xyz/crearts/note/keeper/
-│   │   ├── controller/              # 11 REST controllers
+│   ├── src/main/java/dev/cogitor/note/keeper/
+│   │   ├── controller/              # REST (notes, todos, vault, tokens, auth, mcp, …)
 │   │   ├── service/                 # Business logic + ReminderService scheduler
-│   │   ├── mapper/                  # 11 MyBatis mappers (interfaces)
-│   │   ├── model/                   # 9 entity classes (Lombok @Data)
+│   │   ├── mapper/                  # MyBatis mapper interfaces
+│   │   ├── model/                   # Entities (Lombok @Data)
 │   │   ├── dto/                     # Request/response DTOs
-│   │   ├── config/                  # Security, JWT filter, CORS, backup scheduler
+│   │   ├── config/                  # Security, JWT, CORS, backup, GraalVM hints
 │   │   ├── client/                  # TelegramClient, DingTalkClient
 │   │   └── exception/               # GlobalExceptionHandler
 │   ├── src/main/resources/
-│   │   ├── application.yml          # Main config (port, DB, encryption key, storage)
+│   │   ├── application.yml          # Main config (port 8080, DB, encryption, OAuth)
 │   │   ├── schema.sql               # SQLite DDL
 │   │   └── mapper/                  # MyBatis XML mapper files
 │   └── POSTGRESQL_AND_BACKUP_GUIDE.md
-└── note-keeper-web/                 # Frontend
-    ├── src/
-    │   ├── App.tsx                  # Router + layout
-    │   ├── pages/                   # 14 page components
-    │   ├── components/              # Header, Sidebar, FolderTree, MarkdownRenderer, ShareModal, ThemeSelector
-    │   ├── contexts/                # ThemeContext, ShortcutContext
-    │   ├── utils/                   # api.ts, themes.ts, storage.ts, folderUtils.ts
-    │   └── types/index.ts           # All TypeScript interfaces
-    ├── tailwind.config.js
-    └── webpack.config.js
+├── note-keeper-web/                 # Frontend
+│   ├── src/
+│   │   ├── App.tsx                  # Router + layout
+│   │   ├── pages/                   # Notes, todos, vault, settings, …
+│   │   ├── components/
+│   │   ├── contexts/                # ThemeContext, ToastContext
+│   │   ├── utils/                   # api.ts, themes.ts, storage.ts, folderUtils.ts
+│   │   └── types/index.ts
+│   ├── tailwind.config.js
+│   └── webpack.config.js            # dev server :3001
+└── android/                         # Android app (Compose)
 ```
 
 ---
@@ -54,14 +56,14 @@ note-keeper/
 ```bash
 mvn clean install
 java -jar note-keeper-service/target/note-keeper-service-*.jar
-# → http://localhost:8081
+# → http://localhost:8080
 ```
 
 ### Backend only (faster iteration)
 ```bash
 cd note-keeper-service
 mvn spring-boot:run
-# API: http://localhost:8081/api/v1
+# API: http://localhost:8080/api/v1
 ```
 
 ### Frontend dev server
@@ -69,7 +71,7 @@ mvn spring-boot:run
 cd note-keeper-web
 npm install
 npm run dev
-# → http://localhost:5173 (proxies /api → localhost:8081)
+# → http://localhost:3001 (proxies /api → localhost:8080)
 ```
 
 ### Frontend production build
@@ -108,15 +110,18 @@ All endpoints except `/api/v1/auth/**` require `Authorization: Bearer <token>`.
 
 | Domain         | Endpoints                                                                                   |
 |----------------|---------------------------------------------------------------------------------------------|
-| Auth           | POST /auth/register, /auth/login, /auth/google                                              |
+| Auth           | POST /auth/register, /auth/login; GET /auth/oauth/{google\|yandex}; POST/DELETE /auth/link/{provider}; GET /auth/me |
 | Notes          | CRUD /notes/{id}, /notes/import, /notes/{id}/archive, /notes/{id}/restore, /notes/{id}/history, /notes/{id}/share, /notes/shared-with-me |
-| Todos          | CRUD /todos/{id}, /todos/{id}/archive, /todos/{id}/restore, /todos/{id}/share, /todos/shared-with-me |
+| Todos          | CRUD /todos/{id}, /todos/{id}/archive, /todos/{id}/restore, /todos/{id}/share, /todos/shared-with-me, POST /todos/{id}/toggle-complete |
+| Vault          | /vault/folders, /vault/items, /vault/sync                                                   |
+| Tokens         | GET/POST /tokens, DELETE /tokens/{id} (`nk_…`, scopes notes\|todos\|vault\|mcp)             |
 | Attachments    | POST /attachments/upload, /attachments/upload-batch, DELETE /{id}, GET /{id}/download      |
 | Search         | GET /search, GET/POST/DELETE /search/queries                                                |
 | Templates      | GET/POST/DELETE /templates                                                                  |
 | Backup         | GET /backup/export, POST /backup/import, GET /backup/list, GET /backup/settings, POST /backup/settings |
 | Integrations   | POST /integrations/telegram, /integrations/dingtalk                                         |
 | Analytics      | GET /analytics?timeRange=week\|month\|year                                                  |
+| MCP            | POST /mcp                                                                                   |
 
 ### Filter params
 - Notes: `folder`, `tag`, `priority`, `isFavorite`, `isEncrypted`, `isArchived`, `isDeleted`
@@ -133,12 +138,14 @@ All endpoints except `/api/v1/auth/**` require `Authorization: Bearer <token>`.
 ### Key Tables
 | Table              | Purpose                                                  |
 |--------------------|----------------------------------------------------------|
-| users              | User accounts (email, Google OAuth, googleId)            |
+| users              | User accounts (email, googleId, yandexId)                |
 | user_credentials   | SHA-256 + salt password hashes                           |
 | user_settings      | Telegram/DingTalk config, backup settings (JSON fields)  |
 | note               | Notes: folder hierarchy, tags (TEXT array), soft delete  |
 | note_history       | Version history (created/edited/restored)                |
 | todo               | Tasks: due date, location, schedule/recurrence (JSON)    |
+| vault_folder / vault_item | Password vault                                   |
+| api_token          | Personal tokens (`nk_`, hashed)                          |
 | attachment         | Files linked to notes or todos (parent_id + parent_type) |
 | note_template      | Reusable templates with category                         |
 | saved_query        | User-saved search queries                                |
@@ -152,7 +159,9 @@ JSON stored as TEXT columns. MyBatis `StringListTypeHandler` handles `List<Strin
 - **JWT** (JJWT 0.12.5): HS256, 24h expiry, subject = userId (UUID)
 - **Filter**: `JwtAuthenticationFilter` reads `Authorization: Bearer` header
 - **Passwords**: SHA-256 + random salt (in `UserCredentials`)
-- **CORS**: localhost:3000, 5173, 8081 allowed
+- **OAuth**: Google + Yandex; Settings can link both to one user
+- **API tokens**: `Authorization: Bearer nk_…` (scopes `notes`, `todos`, `vault`, `mcp`)
+- **CORS**: localhost:3001, 5173, 8080 + production origin
 - **CSRF**: disabled (stateless API)
 
 ---
@@ -179,10 +188,10 @@ app:
 
 ### API Client (`src/utils/api.ts`)
 Centralised client with auto-attached Bearer token. Modules:
-`api.auth`, `api.notes`, `api.todos`, `api.templates`, `api.search`, `api.analytics`, `api.attachments`, `api.integrations`
+`api.auth`, `api.notes`, `api.todos`, `api.vault`, `api.templates`, `api.search`, `api.analytics`, `api.attachments`, `api.integrations`
 
 ### Theming
-12 themes defined in `src/utils/themes.ts`. Applied via CSS custom properties on `:root`. Use CSS vars in components:
+13 themes in `src/utils/themes.ts` (default `cogitor`). Applied via CSS custom properties on `:root`. Use CSS vars in components:
 ```
 --color-primary, --color-secondary, --color-background, --color-surface,
 --color-text, --color-text-secondary, --color-border, --color-hover
@@ -209,7 +218,7 @@ Tailwind classes `text-primary`, `bg-surface`, `border-border`, etc. map to thes
 ### Frontend
 - Pages live in `src/pages/`, reusable components in `src/components/`
 - No global state library — props + React context only
-- API errors logged to console (no toast system yet)
+- Toasts via `ToastContext`; API errors also logged to console
 - Tailwind utilities preferred over custom CSS
 - `onKeyDown` for keyboard events (not deprecated `onKeyPress`)
 
@@ -270,3 +279,5 @@ Auth: HMAC-SHA256 signature (timestamp + `\n` + secret), appended as query param
 | API client | `note-keeper-web/src/utils/api.ts` |
 | Theme definitions | `note-keeper-web/src/utils/themes.ts` |
 | Router + mobile layout | `note-keeper-web/src/App.tsx` |
+| Android app | `android/` |
+| User guide | `docs/user-guide.md` |

@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -43,10 +45,12 @@ import androidx.navigation.compose.rememberNavController
 import dev.cogitor.notekeeper.data.local.NoteDatabase
 import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.local.TokenDataStore
+import dev.cogitor.notekeeper.data.model.OAuthExchangeRequest
 import dev.cogitor.notekeeper.data.remote.RetrofitClient
 import dev.cogitor.notekeeper.data.repository.NoteRepository
 import dev.cogitor.notekeeper.data.sync.NetworkConnectivityObserver
 import dev.cogitor.notekeeper.data.sync.SyncWorker
+import dev.cogitor.notekeeper.ui.oauth.OAuthLauncher
 import dev.cogitor.notekeeper.ui.screens.LoginScreen
 import dev.cogitor.notekeeper.ui.screens.NoteDetailScreen
 import dev.cogitor.notekeeper.ui.screens.NoteListScreen
@@ -66,6 +70,7 @@ import dev.cogitor.notekeeper.ui.viewmodel.TodoDetailViewModel
 import dev.cogitor.notekeeper.ui.viewmodel.TodoListViewModel
 import dev.cogitor.notekeeper.ui.viewmodel.VaultViewModel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
@@ -78,10 +83,10 @@ class MainActivity : ComponentActivity() {
         tokenDataStore = TokenDataStore(this)
         val settingsDataStore = SettingsDataStore(this)
         RetrofitClient.initTokenStore(tokenDataStore)
-        handleOAuthIntent(intent)
 
         val savedUrl = runBlocking { settingsDataStore.serverUrl.first() }
         RetrofitClient.setBaseUrl(savedUrl)
+        handleOAuthIntent(intent)
 
         val database = NoteDatabase.getDatabase(this)
         val repository = NoteRepository(
@@ -152,9 +157,20 @@ class MainActivity : ComponentActivity() {
     private fun handleOAuthIntent(intent: Intent?) {
         val data = intent?.data ?: return
         if (data.scheme != "notekeeper" || data.host != "oauth") return
-        val token = data.getQueryParameter("token")
-        if (!token.isNullOrBlank()) {
-            runBlocking { tokenDataStore.saveToken(token) }
+        val code = data.getQueryParameter("code") ?: return
+        val state = data.getQueryParameter("state")
+        if (!OAuthLauncher.takePendingState(state)) return
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.authApiService.exchangeOAuth(
+                    OAuthExchangeRequest(code, state)
+                )
+                val token = response.body()?.token
+                if (response.isSuccessful && !token.isNullOrBlank()) {
+                    tokenDataStore.saveToken(token)
+                }
+            } catch (_: Exception) {
+            }
         }
     }
 }
@@ -231,7 +247,9 @@ fun NoteKeeperNavHost(
         NavHost(
             navController = navController,
             startDestination = "login",
-            modifier = Modifier.padding(padding)
+            modifier = Modifier
+                .padding(padding)
+                .consumeWindowInsets(padding)
         ) {
             composable("login") {
                 val viewModel: LoginViewModel = viewModel(

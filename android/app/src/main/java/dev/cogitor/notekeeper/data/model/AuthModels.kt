@@ -6,6 +6,11 @@ data class AuthRequest(
     val name: String? = null
 )
 
+data class OAuthExchangeRequest(
+    val code: String,
+    val state: String? = null
+)
+
 data class AuthResponse(
     val token: String,
     val user: User? = null

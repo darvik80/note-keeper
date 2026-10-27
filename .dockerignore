@@ -8,3 +8,15 @@
 **/dist
 ansible
 android
+.vscode/
+.cursor/
+.claude/
+.env
+.env.*
+application-local.yml
+var/
+.data/
+*.db
+docs/screenshots/
+**/hs_err_*.log
+**/replay_pid*.log

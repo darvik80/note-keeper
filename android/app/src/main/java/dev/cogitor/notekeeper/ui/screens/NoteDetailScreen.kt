@@ -12,8 +12,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -53,6 +54,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -186,11 +190,13 @@ fun NoteDetailScreen(
         }
     ) { padding ->
         if (isEditing) {
+            val imeVisible = WindowInsets.isImeVisible ||
+                ViewCompat.getRootWindowInsets(LocalView.current)
+                    ?.isVisible(WindowInsetsCompat.Type.ime()) == true
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .imePadding()
                     .padding(horizontal = 20.dp)
             ) {
                 NkGhostField(
@@ -282,7 +288,7 @@ fun NoteDetailScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(bottom = 72.dp)
+                        .padding(bottom = if (imeVisible) 8.dp else 72.dp)
                 )
             }
         } else {

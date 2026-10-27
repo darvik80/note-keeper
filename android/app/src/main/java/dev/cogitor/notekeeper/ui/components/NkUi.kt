@@ -1,6 +1,5 @@
 package dev.cogitor.notekeeper.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -130,7 +129,8 @@ fun NkCard(
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
         color = color,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.28f)),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
         modifier = modifier.fillMaxWidth(),
         content = { content() }
     )

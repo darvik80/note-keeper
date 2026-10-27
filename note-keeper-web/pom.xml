@@ -5,12 +5,12 @@
 	<parent>
 		<groupId>dev.cogitor</groupId>
 		<artifactId>notekeeper</artifactId>
-		<version>2.0.1-SNAPSHOT</version>
+		<version>2.0.2</version>
 	</parent>
 	<artifactId>note-keeper-web</artifactId>
 	<packaging>jar</packaging>
 	<name>note-keeper-web</name>
-	<description>NoteKeeper frontend (React + TypeScript)</description>
+	<description>NoteKeeper web UI — notes, todos, vault</description>
 
 	<build>
 		<plugins>

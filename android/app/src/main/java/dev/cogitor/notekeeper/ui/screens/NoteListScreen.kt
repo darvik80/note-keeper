@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -31,6 +32,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.cogitor.notekeeper.data.model.Note
@@ -110,14 +112,17 @@ fun NoteListScreen(
                             val dismissState = rememberSwipeToDismissBoxState()
                             SwipeToDismissBox(
                                 state = dismissState,
+                                modifier = Modifier.clip(MaterialTheme.shapes.medium),
                                 enableDismissFromStartToEnd = false,
                                 onDismiss = { viewModel.archiveNote(note) },
                                 backgroundContent = {
-                                    SwipeHint(
-                                        "Archive",
-                                        end = true,
-                                        color = MaterialTheme.colorScheme.secondaryContainer
-                                    )
+                                    if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                                        SwipeHint(
+                                            "Archive",
+                                            end = true,
+                                            color = MaterialTheme.colorScheme.secondaryContainer
+                                        )
+                                    }
                                 }
                             ) {
                                 NoteRow(note = note, onClick = { onNoteClick(note.id) })

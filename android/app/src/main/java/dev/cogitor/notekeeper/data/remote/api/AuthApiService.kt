@@ -3,6 +3,7 @@ package dev.cogitor.notekeeper.data.remote.api
 import dev.cogitor.notekeeper.data.model.AppConfig
 import dev.cogitor.notekeeper.data.model.AuthRequest
 import dev.cogitor.notekeeper.data.model.AuthResponse
+import dev.cogitor.notekeeper.data.model.OAuthExchangeRequest
 import dev.cogitor.notekeeper.data.model.User
 import retrofit2.Response
 import retrofit2.http.Body
@@ -21,6 +22,9 @@ interface AuthApiService {
 
     @POST("auth/register")
     suspend fun register(@Body request: AuthRequest): Response<AuthResponse>
+
+    @POST("auth/oauth/exchange")
+    suspend fun exchangeOAuth(@Body request: OAuthExchangeRequest): Response<AuthResponse>
 
     @GET("auth/me")
     suspend fun getCurrentUser(@Header("Authorization") authHeader: String): Response<User>

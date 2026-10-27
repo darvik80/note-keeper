@@ -63,7 +63,7 @@ Detail screens may keep a thin top bar for Back. List/root screens should not.
 
 ## Mapping
 
-**Android (`android-v2`):** `AppThemeId.Cogitor` in `ui/theme/AppThemes.kt`. Shared chrome: `NkScreenHeader`, `NkCard`, `NkFab`, `nkTopBarColors` in `ui/components/NkUi.kt`. Hex-C: `res/drawable/ic_cogitor_mark.xml`. Persist `theme_id` in `SettingsDataStore`.
+**Android (`android/`):** `AppThemeId.Cogitor` in `ui/theme/AppThemes.kt`. Shared chrome: `NkScreenHeader`, `NkCard`, `NkFab`, `nkTopBarColors` in `ui/components/NkUi.kt`. Hex-C: `res/drawable/ic_cogitor_mark.xml`. Persist `theme_id` in `SettingsDataStore`.
 
 **Web:** `themes.cogitor` in `note-keeper-web/src/utils/themes.ts`. CSS vars `--color-*`. Tailwind `text-primary` / `bg-surface` / `border-border`. Mark from Cogitor SVG, not Font Awesome letter.
 

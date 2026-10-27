@@ -15,6 +15,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 import dev.cogitor.note.keeper.dto.AuthResponse;
 import dev.cogitor.note.keeper.service.AuthService;
+import dev.cogitor.note.keeper.service.OAuthCodeService;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -31,19 +32,25 @@ import java.util.Locale;
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     public static final String REDIRECT_SESSION_KEY = "oauth_redirect";
+    public static final String STATE_SESSION_KEY = "oauth_state";
     public static final String ANDROID_REDIRECT = "notekeeper://oauth";
+    public static final String ANDROID_PACKAGE = "dev.cogitor.notekeeper.v2";
     public static final String REDIRECT_COOKIE = "nk_oauth_redirect";
+    public static final String STATE_COOKIE = "nk_oauth_state";
     public static final String LINK_USER_SESSION_KEY = "oauth_link_user";
     public static final String LINK_USER_COOKIE = "nk_oauth_link";
 
     private static final Logger log = LoggerFactory.getLogger(OAuth2SuccessHandler.class);
 
     private final AuthService authService;
+    private final OAuthCodeService oauthCodeService;
     private final String publicBaseUrl;
 
     public OAuth2SuccessHandler(AuthService authService,
+                                OAuthCodeService oauthCodeService,
                                 @Value("${app.public-base-url:}") String publicBaseUrl) {
         this.authService = authService;
+        this.oauthCodeService = oauthCodeService;
         this.publicBaseUrl = publicBaseUrl == null ? "" : publicBaseUrl.replaceAll("/+$", "");
     }
 
@@ -100,8 +107,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         String mobileRedirect = takeMobileRedirect(request);
         if (mobileRedirect != null) {
-            String redirectUrl = mobileRedirect + "?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
-            log.info("OAuth2 mobile redirect");
+            String state = takeState(request);
+            String code = oauthCodeService.issue(token, state);
+            String redirectUrl = baseUrl + "/api/v1/auth/oauth/app?code="
+                    + URLEncoder.encode(code, StandardCharsets.UTF_8);
+            if (state != null && !state.isBlank()) {
+                redirectUrl += "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8);
+            }
+            log.info("OAuth2 mobile redirect via app bridge");
             response.sendRedirect(redirectUrl);
             return;
         }
@@ -113,6 +126,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     public static boolean isAllowedMobileRedirect(String redirect) {
         return ANDROID_REDIRECT.equals(redirect);
+    }
+
+    public static boolean isAllowedState(String state) {
+        return state != null && state.matches("[A-Za-z0-9_-]{16,128}");
+    }
+
+    public static boolean isAllowedCode(String code) {
+        return code != null && code.matches("[A-Za-z0-9_-]{16,128}");
     }
 
     private static String takeMobileRedirect(HttpServletRequest request) {
@@ -128,6 +149,25 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             for (var cookie : request.getCookies()) {
                 if (REDIRECT_COOKIE.equals(cookie.getName()) && isAllowedMobileRedirect(cookie.getValue())) {
                     return ANDROID_REDIRECT;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static String takeState(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            Object stored = session.getAttribute(STATE_SESSION_KEY);
+            session.removeAttribute(STATE_SESSION_KEY);
+            if (stored instanceof String state && isAllowedState(state)) {
+                return state;
+            }
+        }
+        if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if (STATE_COOKIE.equals(cookie.getName()) && isAllowedState(cookie.getValue())) {
+                    return cookie.getValue();
                 }
             }
         }

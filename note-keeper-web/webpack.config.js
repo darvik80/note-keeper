@@ -63,6 +63,7 @@ module.exports = (_env, argv) => {
     },
     devServer: {
       port: 3001,
+      client: { overlay: false },
       allowedHosts: ['all', '.alibaba-inc.com'],
       static: {
         directory: path.resolve(__dirname, 'public'),

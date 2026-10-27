@@ -31,6 +31,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import dev.cogitor.notekeeper.ui.components.NkFab
 import dev.cogitor.notekeeper.ui.components.NkScreenHeader
 import dev.cogitor.notekeeper.ui.components.PriorityDot
 import dev.cogitor.notekeeper.ui.components.SwipeHint
+import dev.cogitor.notekeeper.ui.viewmodel.TodoListFilter
 import dev.cogitor.notekeeper.ui.viewmodel.TodoListViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -56,7 +58,7 @@ fun TodoListScreen(
     val todos by viewModel.todos.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
     val syncStatus by viewModel.syncStatus.collectAsState()
-    val showCompleted by viewModel.showCompleted.collectAsState()
+    val filter by viewModel.filter.collectAsState()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -71,7 +73,11 @@ fun TodoListScreen(
             .padding(padding)) {
             NkScreenHeader(
                 title = "Todos",
-                subtitle = if (todos.isEmpty()) null else "${todos.size}"
+                subtitle = when {
+                    todos.isEmpty() -> null
+                    filter == TodoListFilter.Done -> "${todos.size} done"
+                    else -> "${todos.size} open"
+                }
             ) {
                 IconButton(onClick = { viewModel.syncTodos() }) {
                     if (isSyncing) CircularProgressIndicator(
@@ -94,13 +100,13 @@ fun TodoListScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilterChip(
-                    selected = !showCompleted,
-                    onClick = { if (showCompleted) viewModel.toggleShowCompleted() },
+                    selected = filter == TodoListFilter.Active,
+                    onClick = { viewModel.setFilter(TodoListFilter.Active) },
                     label = { Text("Active") }
                 )
                 FilterChip(
-                    selected = showCompleted,
-                    onClick = { if (!showCompleted) viewModel.toggleShowCompleted() },
+                    selected = filter == TodoListFilter.Done,
+                    onClick = { viewModel.setFilter(TodoListFilter.Done) },
                     label = { Text("Done") }
                 )
             }
@@ -110,7 +116,15 @@ fun TodoListScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 if (todos.isEmpty()) {
-                    NkEmptyState(Icons.Outlined.TaskAlt, "No todos yet", "Tap + to add a task")
+                    if (filter == TodoListFilter.Done) {
+                        NkEmptyState(
+                            Icons.Outlined.TaskAlt,
+                            "No completed tasks",
+                            "Mark a todo done to see it here"
+                        )
+                    } else {
+                        NkEmptyState(Icons.Outlined.TaskAlt, "No open tasks", "Tap + to add a task")
+                    }
                 } else {
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
@@ -120,6 +134,7 @@ fun TodoListScreen(
                             val dismissState = rememberSwipeToDismissBoxState()
                             SwipeToDismissBox(
                                 state = dismissState,
+                                modifier = Modifier.clip(MaterialTheme.shapes.medium),
                                 onDismiss = { value ->
                                     when (value) {
                                         SwipeToDismissBoxValue.EndToStart -> viewModel.archiveTodo(todo)
@@ -128,14 +143,16 @@ fun TodoListScreen(
                                     }
                                 },
                                 backgroundContent = {
-                                    val toStart =
-                                        dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
-                                    SwipeHint(
-                                        if (toStart) "Archive" else "Done",
-                                        end = toStart,
-                                        color = if (toStart) MaterialTheme.colorScheme.secondaryContainer
-                                        else MaterialTheme.colorScheme.tertiaryContainer
-                                    )
+                                    if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                                        val toStart =
+                                            dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
+                                        SwipeHint(
+                                            if (toStart) "Archive" else if (todo.completed) "Open" else "Done",
+                                            end = toStart,
+                                            color = if (toStart) MaterialTheme.colorScheme.secondaryContainer
+                                            else MaterialTheme.colorScheme.tertiaryContainer
+                                        )
+                                    }
                                 }
                             ) {
                                 TodoRow(

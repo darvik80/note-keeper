@@ -9,7 +9,10 @@ import dev.cogitor.notekeeper.data.sync.NetworkConnectivityObserver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
+
+enum class TodoListFilter { Active, Done }
 
 class TodoListViewModel(
     private val repository: TodoRepository,
@@ -25,12 +28,14 @@ class TodoListViewModel(
     private val _syncStatus = MutableStateFlow<String>("")
     val syncStatus: StateFlow<String> = _syncStatus.asStateFlow()
 
-    private val _showCompleted = MutableStateFlow(false)
-    val showCompleted: StateFlow<Boolean> = _showCompleted.asStateFlow()
+    private val _filter = MutableStateFlow(TodoListFilter.Active)
+    val filter: StateFlow<TodoListFilter> = _filter.asStateFlow()
 
     init {
         viewModelScope.launch {
-            repository.getAllActiveTodos().collect { list ->
+            _filter.flatMapLatest { current ->
+                repository.getTodosByCompletion(completed = current == TodoListFilter.Done)
+            }.collect { list ->
                 _todos.value = list
             }
         }
@@ -56,19 +61,8 @@ class TodoListViewModel(
         }
     }
 
-    fun toggleShowCompleted() {
-        _showCompleted.value = !_showCompleted.value
-        viewModelScope.launch {
-            if (_showCompleted.value) {
-                repository.getTodosByCompletion(true).collect { list ->
-                    _todos.value = list
-                }
-            } else {
-                repository.getAllActiveTodos().collect { list ->
-                    _todos.value = list
-                }
-            }
-        }
+    fun setFilter(filter: TodoListFilter) {
+        _filter.value = filter
     }
 
     fun deleteTodo(todo: Todo) {
