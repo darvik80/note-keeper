@@ -124,7 +124,7 @@ fun LoginScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(R.drawable.ic_cogitor_mark),
+                    painter = painterResource(R.drawable.ic_notekeeper_mark),
                     contentDescription = null,
                     modifier = Modifier.size(44.dp)
                 )

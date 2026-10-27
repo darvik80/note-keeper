@@ -1,7 +1,7 @@
 /**
  * @module Settings
  * @category Pages
- * @description User settings page — integration config, keyboard shortcuts, theme, and backup.
+ * @description User settings page — account, integrations, tokens, backup.
  */
 import React, {useEffect, useState} from 'react';
 import {Header} from '../components/Header';
@@ -30,7 +30,7 @@ const utcTimeToLocal = (utcTime: string): string => {
   return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 };
 
-/** Settings page for configuring Telegram, DingTalk, email integrations, keyboard shortcuts, and backup. */
+/** Settings page for account, Telegram/DingTalk, daily report, tokens, and backup. */
 export const Settings: React.FC = () => {
   const { toast } = useToast();
   const [settings, setSettings] = useState<SettingsType>(storage.getSettings());
@@ -328,7 +328,7 @@ export const Settings: React.FC = () => {
         title="Settings"
         subtitle="Account, integrations, keys, backup"
         actions={
-          (activeTab === 'integrations' || activeTab === 'shortcuts' || activeTab === 'daily-report') && (
+          (activeTab === 'integrations' || activeTab === 'daily-report') && (
             <button
               onClick={saveSettings}
               className="nk-btn nk-btn-primary"
@@ -623,96 +623,6 @@ export const Settings: React.FC = () => {
                   Notes and todos. Cogitor skin by default.
                 </p>
                 <p className="text-[13px] text-text-secondary mt-3">Version 1.0.0</p>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'shortcuts' && (
-            <div className="space-y-6">
-              <div className="nk-card p-6">
-                <h3 className="text-xl font-bold text-text mb-4">
-                  <i className="fas fa-keyboard mr-2"></i>
-                  Keyboard Shortcuts
-                </h3>
-                <p className="text-sm text-text-secondary mb-6">
-                  Customize keyboard shortcuts for quick actions
-                </p>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-background rounded-lg">
-                    <div>
-                      <p className="font-medium text-text">New Note</p>
-                      <p className="text-sm text-text-secondary">Create a new note quickly</p>
-                    </div>
-                    <input
-                      type="text"
-                      value={settings.shortcuts.newNote}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        shortcuts: { ...settings.shortcuts, newNote: e.target.value }
-                      })}
-                      className="px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text w-32 text-center font-mono"
-                      placeholder="ctrl+n"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 bg-background rounded-lg">
-                    <div>
-                      <p className="font-medium text-text">New Todo</p>
-                      <p className="text-sm text-text-secondary">Create a new todo quickly</p>
-                    </div>
-                    <input
-                      type="text"
-                      value={settings.shortcuts.newTodo}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        shortcuts: { ...settings.shortcuts, newTodo: e.target.value }
-                      })}
-                      className="px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text w-32 text-center font-mono"
-                      placeholder="ctrl+t"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 bg-background rounded-lg">
-                    <div>
-                      <p className="font-medium text-text">Command palette</p>
-                      <p className="text-sm text-text-secondary">Search notes, todos, and commands</p>
-                    </div>
-                    <input
-                      type="text"
-                      value={settings.shortcuts.search}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        shortcuts: { ...settings.shortcuts, search: e.target.value }
-                      })}
-                      className="px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text w-32 text-center font-mono"
-                      placeholder="ctrl+k"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 bg-background rounded-lg">
-                    <div>
-                      <p className="font-medium text-text">Toggle Sidebar</p>
-                      <p className="text-sm text-text-secondary">Show/hide sidebar</p>
-                    </div>
-                    <input
-                      type="text"
-                      value={settings.shortcuts.toggleSidebar}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        shortcuts: { ...settings.shortcuts, toggleSidebar: e.target.value }
-                      })}
-                      className="px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-primary bg-surface text-text w-32 text-center font-mono"
-                      placeholder="ctrl+b"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-6 p-4 bg-hover rounded-xl">
-                  <p className="text-[13px] text-text-secondary">
-                    Format: <code className="bg-background px-2 py-0.5 rounded-lg">ctrl+key</code>, <code className="bg-background px-2 py-0.5 rounded-lg">shift+key</code>, or <code className="bg-background px-2 py-0.5 rounded-lg">alt+key</code>
-                  </p>
-                </div>
               </div>
             </div>
           )}

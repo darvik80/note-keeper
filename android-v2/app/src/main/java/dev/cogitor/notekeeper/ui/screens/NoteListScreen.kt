@@ -107,11 +107,11 @@ fun NoteListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(notes, key = { it.id }) { note ->
-                            val dismissState =
-                                rememberSwipeToDismissBoxState(COMPILED_CODE, COMPILED_CODE)
+                            val dismissState = rememberSwipeToDismissBoxState()
                             SwipeToDismissBox(
                                 state = dismissState,
                                 enableDismissFromStartToEnd = false,
+                                onDismiss = { viewModel.archiveNote(note) },
                                 backgroundContent = {
                                     SwipeHint(
                                         "Archive",

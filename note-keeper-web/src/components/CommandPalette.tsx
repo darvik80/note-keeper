@@ -87,7 +87,6 @@ export const CommandPalette: React.FC = () => {
         id: 'cmd-note',
         group: 'Commands',
         label: 'New note',
-        hint: 'Ctrl+N',
         icon: 'fa-plus',
         run: async () => {
           try {
@@ -108,7 +107,6 @@ export const CommandPalette: React.FC = () => {
         id: 'cmd-todo',
         group: 'Commands',
         label: 'New todo',
-        hint: 'Ctrl+T',
         icon: 'fa-check',
         run: async () => {
           try {

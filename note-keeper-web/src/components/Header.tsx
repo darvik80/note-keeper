@@ -20,8 +20,6 @@ interface HeaderProps {
   actions?: React.ReactNode;
 }
 
-const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-
 export const Header: React.FC<HeaderProps> = ({ title, subtitle, actions }) => {
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -90,7 +88,6 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, actions }) => {
         >
           <i className="fas fa-search text-xs" aria-hidden="true"></i>
           <span>Search</span>
-          <kbd className="nk-kbd">{isMac ? '⌘K' : 'Ctrl+K'}</kbd>
         </button>
         <ThemeSelector />
         <div className="relative" ref={menuRef}>

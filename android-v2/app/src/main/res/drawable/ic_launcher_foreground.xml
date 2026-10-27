@@ -4,7 +4,6 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Cogitor mark from cogitor-go CogitorMark, inset for adaptive safe zone. -->
     <group
         android:pivotX="0"
         android:pivotY="0"
@@ -14,9 +13,18 @@
         android:translateY="18">
         <path
             android:fillColor="#EDEFF2"
-            android:pathData="M93.3,33V25L50,0 6.7,25v50L50,100l43.3,-25v-8H75.1L50,81.5 22.7,65.75v-31.5L50,18.5 75.1,33z" />
+            android:pathData="M22,14h36L78,34v48a10,10 0,0 1,-10 10H22A10,10 0,0 1,12 82V24A10,10 0,0 1,22 14z" />
         <path
-            android:fillColor="#6E8BFF"
-            android:pathData="M50,30l17.3,10v20L50,70 32.7,60V40z" />
+            android:fillColor="#E8A33D"
+            android:pathData="M58,14L78,34H58z" />
+        <path
+            android:fillColor="#141A21"
+            android:pathData="M28,48h44v5H28z" />
+        <path
+            android:fillColor="#141A21"
+            android:pathData="M28,60h36v5H28z" />
+        <path
+            android:fillColor="#141A21"
+            android:pathData="M28,72h40v5H28z" />
     </group>
 </vector>

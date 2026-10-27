@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type SettingsTab = 'account' | 'integrations' | 'shortcuts' | 'daily-report' | 'tokens' | 'api' | 'backup';
+export type SettingsTab = 'account' | 'integrations' | 'daily-report' | 'tokens' | 'api' | 'backup';
 
 interface SettingsTabBarProps {
   activeTab: SettingsTab;
@@ -10,7 +10,6 @@ interface SettingsTabBarProps {
 const TABS: { id: SettingsTab; label: string; short: string }[] = [
   { id: 'account', label: 'Account', short: 'Account' },
   { id: 'integrations', label: 'Integrations', short: 'Connect' },
-  { id: 'shortcuts', label: 'Shortcuts', short: 'Keys' },
   { id: 'daily-report', label: 'Daily Report', short: 'Report' },
   { id: 'tokens', label: 'API tokens', short: 'Tokens' },
   { id: 'api', label: 'API docs', short: 'API' },

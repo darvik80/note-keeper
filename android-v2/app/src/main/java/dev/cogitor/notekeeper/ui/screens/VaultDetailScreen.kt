@@ -175,5 +175,5 @@ fun VaultDetailScreen(
 
 private fun copy(context: Context, value: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    clipboard.primaryClip = ClipData.newPlainText("vault", value)
+    clipboard.setPrimaryClip(ClipData.newPlainText("vault", value))
 }

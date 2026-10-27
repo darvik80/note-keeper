@@ -1,10 +1,11 @@
-# FAR vault plugin lives elsewhere
+# FAR NoteKeeper plugins live elsewhere
 
-Код плагина: [`D:\Projects\cpp\far-manager\plugins\secret-vault`](file:///D:/Projects/cpp/far-manager/plugins/secret-vault)
+Код: [`D:\Projects\cpp\far-manager`](file:///D:/Projects/cpp/far-manager)
 
-Локальный DPAPI-vault + NoteKeeper REST (`nk_` PAT, scope `vault`).
+- `plugins/secret-vault` — локальный DPAPI-vault + REST `/api/v1/vault` (scope `vault`)
+- `plugins/ssh-client` — пароль/ключ из Secret Vault, иначе NoteKeeper vault (по имени или хосту)
+- `plugins/note-keeper` — панель notes/todos (scopes `notes`, `todos`)
+- Общий клиент: `common/notekeeper` (URL + PAT)
 
-- Настройки плагина в Far: URL + PAT
-- Alt+F9 — push/pull `/api/v1/vault/sync`
-- Панель открылась — pull
-- Сохранение записи — push (`If-Match: revision`, 409 → last-write-wins)
+PAT: `%APPDATA%\Far Manager\NoteKeeper\settings.ini`, иначе Secret Vault `sync.ini`.
+

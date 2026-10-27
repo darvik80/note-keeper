@@ -2,7 +2,6 @@ import React, { Suspense, lazy, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
-import { ShortcutProvider } from './contexts/ShortcutContext';
 import { Sidebar } from './components/Sidebar';
 import { PageLoader } from './components/PageLoader';
 import { CommandPalette, openCommandPalette } from './components/CommandPalette';
@@ -105,9 +104,7 @@ const App: React.FC = () => (
   <ThemeProvider>
     <ToastProvider>
       <HashRouter>
-        <ShortcutProvider>
-          <AppLayout />
-        </ShortcutProvider>
+        <AppLayout />
       </HashRouter>
     </ToastProvider>
   </ThemeProvider>

@@ -41,8 +41,6 @@ const GROUPS: { label?: string; items: { path: string; icon: string; label: stri
   },
 ];
 
-const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-
 export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -147,7 +145,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileM
           >
             <i className="fas fa-search w-4 text-center text-sm"></i>
             <span className="flex-1 text-left">Commands</span>
-            <kbd className="nk-kbd">{isMac ? '⌘K' : 'Ctrl+K'}</kbd>
           </button>
           <button
             onClick={() => handleNavigate('/settings')}

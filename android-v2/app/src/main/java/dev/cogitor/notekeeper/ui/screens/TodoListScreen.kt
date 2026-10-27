@@ -117,10 +117,16 @@ fun TodoListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(todos, key = { it.id }) { todo ->
-                            val dismissState =
-                                rememberSwipeToDismissBoxState(COMPILED_CODE, COMPILED_CODE)
+                            val dismissState = rememberSwipeToDismissBoxState()
                             SwipeToDismissBox(
                                 state = dismissState,
+                                onDismiss = { value ->
+                                    when (value) {
+                                        SwipeToDismissBoxValue.EndToStart -> viewModel.archiveTodo(todo)
+                                        SwipeToDismissBoxValue.StartToEnd -> viewModel.toggleComplete(todo)
+                                        else -> Unit
+                                    }
+                                },
                                 backgroundContent = {
                                     val toStart =
                                         dismissState.targetValue == SwipeToDismissBoxValue.EndToStart

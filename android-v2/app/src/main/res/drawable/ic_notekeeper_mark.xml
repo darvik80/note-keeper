@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Folded note. Paper + amber dog-ear. Not the Cogitor hex-C. -->
+    <path
+        android:fillColor="#EDEFF2"
+        android:pathData="M22,14h36L78,34v48a10,10 0,0 1,-10 10H22A10,10 0,0 1,12 82V24A10,10 0,0 1,22 14z" />
+    <path
+        android:fillColor="#E8A33D"
+        android:pathData="M58,14L78,34H58z" />
+    <path
+        android:fillColor="#141A21"
+        android:pathData="M28,48h44v5H28z" />
+    <path
+        android:fillColor="#141A21"
+        android:pathData="M28,60h36v5H28z" />
+    <path
+        android:fillColor="#141A21"
+        android:pathData="M28,72h40v5H28z" />
+</vector>
