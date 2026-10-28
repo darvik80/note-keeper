@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import dev.cogitor.note.keeper.dto.ErrorResponse;
 
 import java.util.HashMap;
@@ -27,6 +28,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
         ErrorResponse error = new ErrorResponse("NotFound", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Void> handleMissingStatic(NoResourceFoundException ex) {
+        log.debug("Missing static resource: {}", ex.getMessage());
+        return ResponseEntity.notFound().build();
     }
 
     @ExceptionHandler(ConflictException.class)

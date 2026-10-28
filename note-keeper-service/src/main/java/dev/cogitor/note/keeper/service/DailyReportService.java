@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import dev.cogitor.note.keeper.client.DingTalkClient;
+import dev.cogitor.note.keeper.config.PublicUrls;
 import dev.cogitor.note.keeper.client.TelegramClient;
 import dev.cogitor.note.keeper.client.TelegramMarkdownUtil;
 import dev.cogitor.note.keeper.mapper.TodoMapper;
@@ -180,7 +181,7 @@ public class DailyReportService {
 
     private String buildTodoLink(String todoId) {
         if (publicBaseUrl != null && !publicBaseUrl.isBlank()) {
-            return publicBaseUrl.replaceAll("/+$", "") + "/#/todos/" + todoId;
+            return PublicUrls.normalize(publicBaseUrl) + "/#/todos/" + todoId;
         }
         return "#/todos/" + todoId;
     }

@@ -20,8 +20,9 @@ module.exports = (_env, argv) => {
     entry: './src/index.tsx',
     output: {
       path: path.resolve(__dirname, 'dist'),
-      filename: isProd ? '[name].[contenthash:8].js' : '[name].js',
-      chunkFilename: isProd ? '[name].[contenthash:8].js' : '[name].js',
+      publicPath: '/',
+      filename: isProd ? 'js/[name].[contenthash:8].js' : '[name].js',
+      chunkFilename: isProd ? 'js/[id].[contenthash:8].js' : '[name].js',
       clean: true,
     },
     optimization: {

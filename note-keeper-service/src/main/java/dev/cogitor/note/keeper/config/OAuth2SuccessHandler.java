@@ -51,7 +51,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                                 @Value("${app.public-base-url:}") String publicBaseUrl) {
         this.authService = authService;
         this.oauthCodeService = oauthCodeService;
-        this.publicBaseUrl = publicBaseUrl == null ? "" : publicBaseUrl.replaceAll("/+$", "");
+        this.publicBaseUrl = PublicUrls.normalize(publicBaseUrl);
     }
 
     @Override

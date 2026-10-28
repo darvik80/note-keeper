@@ -2,10 +2,11 @@ Template: note-keeper/public_url
 Type: string
 Default:
 Description: Public base URL:
- Public origin of this NoteKeeper instance, no trailing slash.
- Used for reverse proxies and OAuth redirects.
+ Public origin of this NoteKeeper instance. Include the scheme
+ (https:// or http://), no trailing slash.
  .
  Example: https://note.example.com
+ A bare host is stored as https://<host>.
  Leave empty to infer from the request (localhost / X-Forwarded-*).
 
 Template: note-keeper/port

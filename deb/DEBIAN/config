@@ -21,7 +21,11 @@ if [ "$RET" = "postgresql" ]; then
 fi
 
 db_get note-keeper/public_url
-PUBLIC=$(printf '%s' "$RET" | sed 's|/*$||')
+PUBLIC=$(printf '%s' "$RET" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s|/*$||')
+case "$PUBLIC" in
+    ""|http://*|https://*) ;;
+    *) PUBLIC="https://${PUBLIC}" ;;
+esac
 db_get note-keeper/port
 PORT="$RET"
 [ -n "$PORT" ] || PORT=8080

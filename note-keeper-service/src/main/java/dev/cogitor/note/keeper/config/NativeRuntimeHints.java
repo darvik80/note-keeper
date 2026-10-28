@@ -30,6 +30,10 @@ public class NativeRuntimeHints implements RuntimeHintsRegistrar {
         hints.resources().registerPattern("data-postgresql.sql");
         hints.resources().registerPattern("static/*");
         hints.resources().registerPattern("static/**");
+        hints.resources().registerPattern("static/js/*");
+        hints.resources().registerPattern("static/*.html");
+        hints.resources().registerPattern("static/*.js");
+        hints.resources().registerPattern("static/*.svg");
         hints.resources().registerPattern("application.yml");
         hints.resources().registerPattern("application-*.yml");
 

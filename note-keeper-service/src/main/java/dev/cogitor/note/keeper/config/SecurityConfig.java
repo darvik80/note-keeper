@@ -71,7 +71,9 @@ public class SecurityConfig {
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .requestMatchers("/", "/index.html", "/favicon.svg", "/favicon.ico", "/static/**", "/assets/**", "/*.js", "/*.css", "/*.png", "/*.jpg", "/*.svg").permitAll()
+                .requestMatchers("/", "/index.html", "/favicon.svg", "/favicon.ico",
+                        "/static/**", "/assets/**", "/js/**",
+                        "/*.js", "/*.css", "/*.png", "/*.jpg", "/*.svg").permitAll()
                 .requestMatchers("/mcp", "/mcp/**").hasAuthority("SCOPE_mcp")
                 .requestMatchers("/api/v1/vault/**").hasAuthority("SCOPE_vault")
                 .requestMatchers("/api/v1/tokens/**").hasAuthority("SCOPE_tokens")
