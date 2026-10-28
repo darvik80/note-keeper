@@ -48,6 +48,12 @@ class NoteDetailViewModel(
     private val _history = MutableStateFlow<List<NoteHistory>>(emptyList())
     val history: StateFlow<List<NoteHistory>> = _history.asStateFlow()
 
+    private val _historyLoading = MutableStateFlow(false)
+    val historyLoading: StateFlow<Boolean> = _historyLoading.asStateFlow()
+
+    private val _historyError = MutableStateFlow<String?>(null)
+    val historyError: StateFlow<String?> = _historyError.asStateFlow()
+
     private val _templates = MutableStateFlow<List<NoteTemplate>>(emptyList())
     val templates: StateFlow<List<NoteTemplate>> = _templates.asStateFlow()
 
@@ -163,17 +169,33 @@ class NoteDetailViewModel(
 
     fun loadHistory() {
         viewModelScope.launch {
-            _note.value?.id?.let { _history.value = repository.history(it) }
+            val note = _note.value ?: return@launch
+            _history.value = emptyList()
+            _historyError.value = null
+            if (note.syncStatus == SyncStatus.PENDING_CREATE) {
+                _historyError.value = "Note not on server yet. Wait for sync, then open History."
+                return@launch
+            }
+            _historyLoading.value = true
+            repository.history(note.id)
+                .onSuccess { _history.value = it }
+                .onFailure { _historyError.value = it.message ?: "Could not load history" }
+            _historyLoading.value = false
         }
     }
 
     fun restoreVersion(historyId: String) {
         viewModelScope.launch {
             val current = _note.value ?: return@launch
-            val restored = repository.restoreVersion(current, historyId) ?: return@launch
+            val restored = repository.restoreVersion(current, historyId)
+            if (restored == null) {
+                _messages.emit("Restore failed")
+                return@launch
+            }
             _note.value = restored
             _attachments.value = restored.attachments.orEmpty()
             _messages.emit("Version restored")
+            loadHistory()
         }
     }
 

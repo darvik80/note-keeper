@@ -65,7 +65,7 @@ On a card: favorite, archive, trash. Encrypted notes show a lock; shared notes s
 
 **Share** invites another user by email/name (they must already have an account).
 
-**History** (clock in the note toolbar; Android overflow → History): each server save writes `created` / `edited` / `restored`. Tap a row to restore that body. Restore saves immediately and adds a `restored` row.
+**History** (clock in the note toolbar — web and Android): each server save writes `created` / `edited` / `restored`. Tap a row to **preview** that Markdown. Restore writes the body now and adds a `restored` row. Android needs the note synced; unsynced local notes have no server history yet.
 
 **Import:** `.txt` and `.md` only, into the current folder. PDF/Office files are not parsed.
 

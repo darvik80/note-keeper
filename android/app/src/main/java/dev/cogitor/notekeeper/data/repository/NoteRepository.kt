@@ -4,6 +4,7 @@ import dev.cogitor.notekeeper.data.local.NoteDao
 import dev.cogitor.notekeeper.data.model.Attachment
 import dev.cogitor.notekeeper.data.model.Note
 import dev.cogitor.notekeeper.data.model.NoteFolders
+import dev.cogitor.notekeeper.data.model.NoteHistory
 import dev.cogitor.notekeeper.data.model.SyncStatus
 import dev.cogitor.notekeeper.data.remote.api.AttachmentApiService
 import dev.cogitor.notekeeper.data.remote.api.NoteApiService
@@ -219,9 +220,11 @@ class NoteRepository(
         }
     }
 
-    suspend fun history(id: String) = runCatching {
-        apiService.getNoteHistory(id).body().orEmpty()
-    }.getOrElse { emptyList() }
+    suspend fun history(id: String): Result<List<NoteHistory>> = runCatching {
+        val response = apiService.getNoteHistory(id)
+        check(response.isSuccessful) { "History failed (${response.code()})" }
+        response.body().orEmpty()
+    }
 
     suspend fun restoreVersion(note: Note, historyId: String): Note? {
         return try {

@@ -5,6 +5,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -74,6 +77,7 @@ import dev.cogitor.notekeeper.ui.components.MarkdownText
 import dev.cogitor.notekeeper.ui.components.NkEditPreviewToggle
 import dev.cogitor.notekeeper.ui.components.NkFab
 import dev.cogitor.notekeeper.data.model.NoteFolders
+import dev.cogitor.notekeeper.data.model.NoteHistory
 import dev.cogitor.notekeeper.ui.components.NkFolderField
 import dev.cogitor.notekeeper.ui.components.NkGhostField
 import dev.cogitor.notekeeper.ui.components.NkShareDialog
@@ -89,6 +93,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -108,6 +113,8 @@ fun NoteDetailScreen(
     val shareResult by viewModel.shareResult.collectAsState()
     val knownFolders by viewModel.knownFolders.collectAsState()
     val history by viewModel.history.collectAsState()
+    val historyLoading by viewModel.historyLoading.collectAsState()
+    val historyError by viewModel.historyError.collectAsState()
     val templates by viewModel.templates.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -122,6 +129,7 @@ fun NoteDetailScreen(
     var showShareDialog by remember { mutableStateOf(false) }
     var showMore by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
+    var historyPreview by remember { mutableStateOf<NoteHistory?>(null) }
     var showTemplates by remember { mutableStateOf(false) }
     var confirmForever by remember { mutableStateOf(false) }
     var showSaveTemplate by remember { mutableStateOf(false) }
@@ -245,6 +253,12 @@ fun NoteDetailScreen(
                     } else if (isNewNote && templates.isNotEmpty()) {
                         TextButton(onClick = { showTemplates = true }) { Text("Template") }
                     } else if (!isNewNote) {
+                        IconButton(onClick = {
+                            viewModel.loadHistory()
+                            showHistory = true
+                        }) {
+                            Icon(Icons.Outlined.History, contentDescription = "History")
+                        }
                         IconButton(onClick = { viewModel.toggleFavorite() }) {
                             Icon(
                                 if (note?.isFavorite == true) Icons.Outlined.Star else Icons.Outlined.StarBorder,
@@ -264,15 +278,6 @@ fun NoteDetailScreen(
                                     templateName = title.text.trim().ifBlank { "Untitled" }
                                     showSaveTemplate = true
                                 }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("History") },
-                                onClick = {
-                                    showMore = false
-                                    viewModel.loadHistory()
-                                    showHistory = true
-                                },
-                                leadingIcon = { Icon(Icons.Outlined.History, contentDescription = null) }
                             )
                             DropdownMenuItem(
                                 text = { Text("Share") },
@@ -496,32 +501,48 @@ fun NoteDetailScreen(
             onDismiss = { showShareDialog = false }
         )
     }
-    if (showHistory) {
+    if (showHistory && historyPreview == null) {
         AlertDialog(
             onDismissRequest = { showHistory = false },
             title = { Text("History") },
             text = {
-                Column {
-                    if (history.isEmpty()) {
-                        Text("No versions yet. Each save on the server adds a row. Open overflow → History after sync.")
-                    }
-                    history.asReversed().forEach { entry ->
-                        TextButton(onClick = {
-                            viewModel.restoreVersion(entry.id)
-                            showHistory = false
-                        }) {
-                            Column(Modifier.fillMaxWidth()) {
-                                Text(
-                                    "${entry.action ?: "edit"}  ${entry.timestamp.orEmpty()}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                val snippet = entry.content.orEmpty().trim().replace("\n", " ")
-                                if (snippet.isNotBlank()) {
-                                    Text(
-                                        snippet.take(80),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                    when {
+                        historyLoading -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .padding(24.dp)
+                                    .size(28.dp)
+                            )
+                        }
+                        historyError != null -> {
+                            Text(historyError!!)
+                        }
+                        history.isEmpty() -> {
+                            Text("No versions yet. Save the note on the server, then open History.")
+                        }
+                        else -> {
+                            Text(
+                                "Tap a version to preview. Restore is on the next screen.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            history.asReversed().forEach { entry ->
+                                TextButton(onClick = { historyPreview = entry }) {
+                                    Column(Modifier.fillMaxWidth()) {
+                                        Text(
+                                            "${entry.action ?: "edit"}  ${formatHistoryTime(entry.timestamp)}",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        val snippet = entry.content.orEmpty().trim().replace("\n", " ")
+                                        if (snippet.isNotBlank()) {
+                                            Text(
+                                                snippet.take(80),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -530,6 +551,38 @@ fun NoteDetailScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showHistory = false }) { Text("Close") }
+            }
+        )
+    }
+    historyPreview?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { historyPreview = null },
+            title = { Text("${entry.action ?: "edit"}") },
+            text = {
+                Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
+                    Text(
+                        formatHistoryTime(entry.timestamp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    val body = entry.content.orEmpty()
+                    if (body.isBlank()) {
+                        Text("Empty version", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        MarkdownText(markdown = body)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { historyPreview = null }) { Text("Back") }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.restoreVersion(entry.id)
+                    historyPreview = null
+                    showHistory = false
+                }) { Text("Restore") }
             }
         )
     }
@@ -646,6 +699,21 @@ fun NoteDetailScreen(
                 TextButton(onClick = { showReminderTimePicker = false }) { Text("Cancel") }
             }
         )
+    }
+}
+
+private fun formatHistoryTime(raw: String?): String {
+    if (raw.isNullOrBlank()) return ""
+    return try {
+        Instant.parse(raw).atZone(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT))
+    } catch (_: Exception) {
+        try {
+            LocalDateTime.parse(raw)
+                .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT))
+        } catch (_: Exception) {
+            raw
+        }
     }
 }
 

@@ -28,6 +28,7 @@ export const NoteEditor: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restoreEntry, setRestoreEntry] = useState<NoteHistory | null>(null);
+  const [previewEntry, setPreviewEntry] = useState<NoteHistory | null>(null);
   const [dirty, setDirty] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
@@ -41,10 +42,24 @@ export const NoteEditor: React.FC = () => {
     if (!showHistory || !note?.id) return;
     let cancelled = false;
     api.notes.getHistory(note.id).then((history) => {
-      if (!cancelled) setNote(prev => prev ? { ...prev, history } : prev);
+      if (cancelled) return;
+      setNote(prev => prev ? { ...prev, history } : prev);
     }).catch(() => { /* keep nested history if fetch fails */ });
     return () => { cancelled = true; };
   }, [showHistory, note?.id]);
+
+  useEffect(() => {
+    if (!showHistory) {
+      setPreviewEntry(null);
+      return;
+    }
+    const rows = note?.history;
+    if (!rows?.length) return;
+    setPreviewEntry(prev => {
+      if (prev && rows.some(h => h.id === prev.id)) return prev;
+      return [...rows].reverse()[0];
+    });
+  }, [showHistory, note?.history]);
 
   useEffect(() => {
     const id = params.id;
@@ -294,32 +309,62 @@ export const NoteEditor: React.FC = () => {
 
       <div className="flex-1 overflow-auto p-4 sm:p-8 min-h-0">
         {showHistory && (
-          <div className="mb-6 p-4 bg-surface border border-border rounded-lg">
+          <div className="mb-6 p-4 bg-surface border border-border rounded-[22px]">
             <h3 className="text-sm font-bold text-text mb-3 flex items-center gap-2">
               <i className="fas fa-clock-rotate-left"></i>
               History {note.history?.length ? `(${note.history.length} versions)` : ''}
             </h3>
             {note.history && note.history.length > 0 ? (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {[...note.history].reverse().map((entry) => (
-                  <div key={entry.id} className="flex items-center justify-between gap-2 p-2 bg-hover rounded border border-border">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-xs font-mono text-text-secondary shrink-0">
-                        {new Date(entry.timestamp).toLocaleString()}
-                      </span>
-                      <span className="text-xs px-2 py-1 bg-hover text-text rounded">
-                        {entry.action}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setRestoreEntry(entry)}
-                      className="text-xs px-3 py-1 text-primary hover:bg-hover rounded shrink-0"
-                    >
-                      <i className="fas fa-rotate-left mr-1"></i>
-                      Restore
-                    </button>
-                  </div>
-                ))}
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,16rem)_1fr]">
+                <div className="space-y-1.5 max-h-56 lg:max-h-[min(28rem,50vh)] overflow-y-auto">
+                  {[...note.history].reverse().map((entry) => {
+                    const selected = previewEntry?.id === entry.id;
+                    return (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        onClick={() => setPreviewEntry(entry)}
+                        className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors duration-[180ms] ${
+                          selected
+                            ? 'bg-primary/15 text-text'
+                            : 'text-text-secondary hover:text-text hover:bg-hover'
+                        }`}
+                      >
+                        <span className="block text-[13px] font-medium text-text">
+                          {new Date(entry.timestamp).toLocaleString()}
+                        </span>
+                        <span className="text-[11px] uppercase tracking-wider">{entry.action}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="min-w-0 rounded-xl border border-border/40 bg-background p-4">
+                  {previewEntry ? (
+                    <>
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <p className="text-[13px] text-text-secondary min-w-0 truncate">
+                          Preview · {previewEntry.action} · {new Date(previewEntry.timestamp).toLocaleString()}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setRestoreEntry(previewEntry)}
+                          className="shrink-0 px-3 py-1.5 rounded-xl bg-primary text-[#0B0E11] text-xs font-medium hover:bg-primary/90"
+                        >
+                          Restore
+                        </button>
+                      </div>
+                      <div className="max-h-[min(28rem,50vh)] overflow-y-auto text-text">
+                        {previewEntry.content?.trim() ? (
+                          <MarkdownRenderer content={previewEntry.content} />
+                        ) : (
+                          <p className="text-sm text-text-secondary italic">Empty version</p>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-text-secondary">Pick a version to preview.</p>
+                  )}
+                </div>
               </div>
             ) : (
               <p className="text-sm text-text-secondary">No versions yet. Save the note to start history.</p>
