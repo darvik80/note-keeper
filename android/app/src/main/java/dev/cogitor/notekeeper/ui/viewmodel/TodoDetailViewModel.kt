@@ -155,6 +155,16 @@ class TodoDetailViewModel(
         }
     }
 
+    fun archiveTodo() {
+        viewModelScope.launch {
+            _todo.value?.let { todo ->
+                repository.archiveTodo(todo)
+                _todo.value = todo.copy(isArchived = true, syncStatus = SyncStatus.PENDING_UPDATE)
+                _messages.emit("Archived")
+            }
+        }
+    }
+
     fun restoreTodo() {
         viewModelScope.launch {
             _todo.value?.let { todo ->

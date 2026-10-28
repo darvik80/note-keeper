@@ -240,7 +240,7 @@ fun NoteListScreen(
                     ) {
                         items(notes, key = { it.id }) { note ->
                             val dismissState = rememberSwipeToDismissBoxState(
-                                positionalThreshold = { it * 0.72f }
+                                positionalThreshold = { it * 0.4f }
                             )
                             SwipeToDismissBox(
                                 state = dismissState,

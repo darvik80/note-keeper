@@ -11,13 +11,13 @@ data class Note(
     val folder: String? = "default",
     val subfolder: String? = null,
     val priority: String? = "medium",
-    @SerializedName("isFavorite")
+    @SerializedName(value = "isFavorite", alternate = ["favorite"])
     val isFavorite: Boolean = false,
-    @SerializedName("isEncrypted")
+    @SerializedName(value = "isEncrypted", alternate = ["encrypted"])
     val isEncrypted: Boolean = false,
-    @SerializedName("isArchived")
+    @SerializedName(value = "isArchived", alternate = ["archived"])
     val isArchived: Boolean = false,
-    @SerializedName("isDeleted")
+    @SerializedName(value = "isDeleted", alternate = ["deleted"])
     val isDeleted: Boolean = false,
     val deletedAt: String? = null,
     val reminder: String? = null,

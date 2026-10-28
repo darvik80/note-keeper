@@ -197,7 +197,7 @@ fun TodoListScreen(
                     ) {
                         items(todos, key = { it.id }) { todo ->
                             val dismissState = rememberSwipeToDismissBoxState(
-                                positionalThreshold = { it * 0.72f }
+                                positionalThreshold = { it * 0.4f }
                             )
                             SwipeToDismissBox(
                                 state = dismissState,
@@ -220,7 +220,8 @@ fun TodoListScreen(
                                                 }
                                             }
                                         }
-                                        value == SwipeToDismissBoxValue.StartToEnd -> viewModel.toggleComplete(todo)
+                                        value == SwipeToDismissBoxValue.StartToEnd ->
+                                            viewModel.toggleComplete(todo)
                                     }
                                 },
                                 backgroundContent = {

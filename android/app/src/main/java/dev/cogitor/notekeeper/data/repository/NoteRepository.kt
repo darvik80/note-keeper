@@ -126,21 +126,15 @@ class NoteRepository(
     }
 
     private suspend fun persistArchiveFlag(note: Note, archived: Boolean) {
-        val local = note.copy(
-            isArchived = archived,
-            isDeleted = if (archived) note.isDeleted else false,
-            syncStatus = SyncStatus.PENDING_UPDATE
-        )
-        noteDao.updateNote(NoteMapper.toEntity(local))
-        val response = runCatching {
-            if (archived) apiService.archiveNote(note.id) else apiService.restoreNote(note.id)
-        }.getOrNull()
-        if (response?.isSuccessful == true) {
-            val synced = (response.body()?.let { NoteMapper.fromResponse(it) } ?: local).copy(
-                localId = note.localId,
-                syncStatus = SyncStatus.SYNCED
-            )
-            noteDao.updateNote(NoteMapper.toEntity(synced))
+        // Update by server/local id — Room @Update on localId=0 is a no-op.
+        noteDao.setArchivedFlag(note.id, archived, SyncStatus.PENDING_UPDATE.name)
+        val ok = runCatching {
+            val response = if (archived) apiService.archiveNote(note.id) else apiService.restoreNote(note.id)
+            response.isSuccessful
+        }.getOrDefault(false)
+        // Trust our flag, not Gson body (`archived` vs `isArchived`).
+        if (ok) {
+            noteDao.setArchivedFlag(note.id, archived, SyncStatus.SYNCED.name)
         }
     }
 
@@ -299,28 +293,7 @@ class NoteRepository(
                 }
             }
 
-            // 4. Pull from server
-            val response = apiService.getNotes()
-            if (response.isSuccessful) {
-                response.body()?.let { serverNotes ->
-                    for (serverNote in serverNotes) {
-                        val domainNote = NoteMapper.fromResponse(serverNote)
-                        val existing = noteDao.getNoteById(domainNote.id)
-                        if (existing == null) {
-                            noteDao.insertNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED)))
-                        } else if (existing.syncStatus == SyncStatus.SYNCED.name) {
-                            noteDao.updateNote(
-                                NoteMapper.toEntity(
-                                    domainNote.copy(
-                                        syncStatus = SyncStatus.SYNCED,
-                                        localId = existing.localId
-                                    )
-                                )
-                            )
-                        }
-                    }
-                }
-            }
+            pullNotesFromServer()
             true
         } catch (e: Exception) {
             false
@@ -329,32 +302,36 @@ class NoteRepository(
 
     suspend fun refreshNotes(): Boolean {
         return try {
-            val response = apiService.getNotes()
-            if (response.isSuccessful) {
-                response.body()?.let { serverNotes ->
-                    for (serverNote in serverNotes) {
-                        val domainNote = NoteMapper.fromResponse(serverNote)
-                        val existing = noteDao.getNoteById(domainNote.id)
-                        if (existing == null) {
-                            noteDao.insertNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED)))
-                        } else if (existing.syncStatus == SyncStatus.SYNCED.name) {
-                            noteDao.updateNote(
-                                NoteMapper.toEntity(
-                                    domainNote.copy(
-                                        syncStatus = SyncStatus.SYNCED,
-                                        localId = existing.localId
-                                    )
-                                )
-                            )
-                        }
-                    }
-                }
-                true
-            } else {
-                false
-            }
+            pullNotesFromServer()
+            true
         } catch (e: Exception) {
             false
+        }
+    }
+
+    private suspend fun pullNotesFromServer() {
+        val batches = listOf(
+            apiService.getNotes(isArchived = false, isDeleted = false),
+            apiService.getNotes(isArchived = true, isDeleted = false)
+        )
+        for (response in batches) {
+            if (!response.isSuccessful) continue
+            for (serverNote in response.body().orEmpty()) {
+                val domainNote = NoteMapper.fromResponse(serverNote)
+                val existing = noteDao.getNoteById(domainNote.id)
+                if (existing == null) {
+                    noteDao.insertNote(NoteMapper.toEntity(domainNote.copy(syncStatus = SyncStatus.SYNCED)))
+                } else if (existing.syncStatus == SyncStatus.SYNCED.name) {
+                    noteDao.updateNote(
+                        NoteMapper.toEntity(
+                            domainNote.copy(
+                                syncStatus = SyncStatus.SYNCED,
+                                localId = existing.localId
+                            )
+                        )
+                    )
+                }
+            }
         }
     }
 }

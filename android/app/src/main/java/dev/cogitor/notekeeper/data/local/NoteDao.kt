@@ -41,6 +41,17 @@ interface NoteDao {
     @Query("UPDATE notes SET syncStatus = 'SYNCED' WHERE localId = :localId")
     suspend fun markAsSynced(localId: Long)
 
+    @Query(
+        """
+        UPDATE notes SET
+            isArchived = :archived,
+            isDeleted = CASE WHEN :archived = 1 THEN isDeleted ELSE 0 END,
+            syncStatus = :syncStatus
+        WHERE id = :id
+        """
+    )
+    suspend fun setArchivedFlag(id: String, archived: Boolean, syncStatus: String)
+
     @Query("UPDATE notes SET id = :newId, syncStatus = 'SYNCED' WHERE localId = :localId")
     suspend fun updateServerId(localId: Long, newId: String)
 

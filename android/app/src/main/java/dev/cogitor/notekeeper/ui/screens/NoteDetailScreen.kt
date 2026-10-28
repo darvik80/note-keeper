@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Share
@@ -294,6 +295,15 @@ fun NoteDetailScreen(
                                     filePicker.launch(arrayOf("*/*"))
                                 },
                                 leadingIcon = { Icon(Icons.Outlined.AttachFile, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Archive") },
+                                onClick = {
+                                    showMore = false
+                                    viewModel.archiveNote()
+                                    onBack()
+                                },
+                                leadingIcon = { Icon(Icons.Outlined.Inventory2, contentDescription = null) }
                             )
                             DropdownMenuItem(
                                 text = { Text("Move to Trash") },

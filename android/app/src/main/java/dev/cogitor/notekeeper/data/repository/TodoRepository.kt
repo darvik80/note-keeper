@@ -124,21 +124,13 @@ class TodoRepository(
     }
 
     private suspend fun persistArchiveFlag(todo: Todo, archived: Boolean) {
-        val local = todo.copy(
-            isArchived = archived,
-            isDeleted = if (archived) todo.isDeleted else false,
-            syncStatus = SyncStatus.PENDING_UPDATE
-        )
-        todoDao.updateTodo(TodoMapper.toEntity(local))
-        val response = runCatching {
-            if (archived) apiService.archiveTodo(todo.id) else apiService.restoreTodo(todo.id)
-        }.getOrNull()
-        if (response?.isSuccessful == true) {
-            val synced = (response.body()?.let { TodoMapper.fromResponse(it) } ?: local).copy(
-                localId = todo.localId,
-                syncStatus = SyncStatus.SYNCED
-            )
-            todoDao.updateTodo(TodoMapper.toEntity(synced))
+        todoDao.setArchivedFlag(todo.id, archived, SyncStatus.PENDING_UPDATE.name)
+        val ok = runCatching {
+            val response = if (archived) apiService.archiveTodo(todo.id) else apiService.restoreTodo(todo.id)
+            response.isSuccessful
+        }.getOrDefault(false)
+        if (ok) {
+            todoDao.setArchivedFlag(todo.id, archived, SyncStatus.SYNCED.name)
         }
     }
 
@@ -274,38 +266,36 @@ class TodoRepository(
                 }
             }
 
-            val response = apiService.getTodos()
-            if (response.isSuccessful) {
-                response.body()?.let { serverTodos ->
-                    for (serverTodo in serverTodos) {
-                        val domainTodo = TodoMapper.fromResponse(serverTodo)
-                        val existing = todoDao.getTodoById(domainTodo.id)
-                        if (existing == null) {
-                            todoDao.insertTodo(TodoMapper.toEntity(domainTodo.copy(syncStatus = SyncStatus.SYNCED)))
-                        } else if (existing.syncStatus == SyncStatus.SYNCED.name) {
-                            todoDao.updateTodo(
-                                TodoMapper.toEntity(
-                                    domainTodo.copy(
-                                        syncStatus = SyncStatus.SYNCED,
-                                        localId = existing.localId
-                                    )
-                                )
-                            )
-                        }
-                    }
-                }
-                Result.success(true)
-            } else {
-                Result.failure(
-                    Exception(
-                        "Server ${response.code()}: ${
-                            response.errorBody()?.string()?.take(100)
-                        }"
-                    )
-                )
-            }
+            pullTodosFromServer()
+            Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    private suspend fun pullTodosFromServer() {
+        val batches = listOf(
+            apiService.getTodos(isArchived = false, isDeleted = false),
+            apiService.getTodos(isArchived = true, isDeleted = false)
+        )
+        for (response in batches) {
+            if (!response.isSuccessful) continue
+            for (serverTodo in response.body().orEmpty()) {
+                val domainTodo = TodoMapper.fromResponse(serverTodo)
+                val existing = todoDao.getTodoById(domainTodo.id)
+                if (existing == null) {
+                    todoDao.insertTodo(TodoMapper.toEntity(domainTodo.copy(syncStatus = SyncStatus.SYNCED)))
+                } else if (existing.syncStatus == SyncStatus.SYNCED.name) {
+                    todoDao.updateTodo(
+                        TodoMapper.toEntity(
+                            domainTodo.copy(
+                                syncStatus = SyncStatus.SYNCED,
+                                localId = existing.localId
+                            )
+                        )
+                    )
+                }
+            }
         }
     }
 }

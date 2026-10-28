@@ -203,6 +203,16 @@ class NoteDetailViewModel(
         return repository.downloadAttachment(attachment.id, dest)
     }
 
+    fun archiveNote() {
+        viewModelScope.launch {
+            _note.value?.let { note ->
+                repository.archiveNote(note)
+                _note.value = note.copy(isArchived = true, syncStatus = SyncStatus.PENDING_UPDATE)
+                _messages.emit("Archived")
+            }
+        }
+    }
+
     fun restoreNote() {
         viewModelScope.launch {
             _note.value?.let { note ->

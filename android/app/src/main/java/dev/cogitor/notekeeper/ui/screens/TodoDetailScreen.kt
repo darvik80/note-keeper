@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -285,6 +286,15 @@ fun TodoDetailScreen(
                                     showMore = false
                                     viewModel.sendToChannel(telegram = false)
                                 }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Archive") },
+                                onClick = {
+                                    showMore = false
+                                    viewModel.archiveTodo()
+                                    onBack()
+                                },
+                                leadingIcon = { Icon(Icons.Outlined.Inventory2, contentDescription = null) }
                             )
                             DropdownMenuItem(
                                 text = { Text("Move to Trash") },
