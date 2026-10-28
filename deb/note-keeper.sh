@@ -7,4 +7,4 @@ exec "$JAVA_BIN" \
   --sun-misc-unsafe-memory-access=allow \
   -Dio.netty.tryReflectionSetAccessible=true \
   -jar /opt/note-keeper/lib/note-keeper.jar \
-  --spring.config.location=file:/opt/note-keeper/etc/application.yaml
+  --spring.config.additional-location=file:/opt/note-keeper/etc/application.yaml
