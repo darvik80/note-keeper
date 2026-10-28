@@ -1,0 +1,55 @@
+#!/bin/sh
+set -e
+
+chown -R note-keeper:note-keeper /opt/note-keeper
+chown -R note-keeper:note-keeper /var/log/note-keeper
+
+if [ ! -f /opt/note-keeper/etc/application.yaml ]; then
+    install -m 0644 -o note-keeper -g note-keeper \
+        /opt/note-keeper/share/application.yaml \
+        /opt/note-keeper/etc/application.yaml
+fi
+
+if [ ! -f /opt/note-keeper/etc/.env ]; then
+    JWT_SECRET="$(openssl rand -base64 48 2>/dev/null || head -c 48 /dev/urandom | base64)"
+    cat > /opt/note-keeper/etc/.env <<CONF
+JWT_SECRET=${JWT_SECRET}
+APP_ENCRYPTION_KEY=
+APP_PUBLIC_BASE_URL=
+CONF
+    chmod 0640 /opt/note-keeper/etc/.env
+    chown note-keeper:note-keeper /opt/note-keeper/etc/.env
+fi
+
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload
+    if [ "$1" = "configure" ] || [ "$1" = "abort-remove" ] || [ "$1" = "abort-deconfigure" ]; then
+        systemctl enable note-keeper.service
+        systemctl restart note-keeper.service
+    fi
+fi
+
+HOSTNAME=$(hostname -I 2>/dev/null | awk '{print $1}')
+HOSTNAME=${HOSTNAME:-localhost}
+
+cat <<EOF
+
+==========================================================
+  NoteKeeper — installed
+==========================================================
+
+  UI : http://${HOSTNAME}:8080
+
+  Config : /opt/note-keeper/etc/application.yaml
+  Secrets: /opt/note-keeper/etc/.env
+  Data   : /opt/note-keeper/var
+  Logs   : /var/log/note-keeper/note-keeper.log
+
+  Needs Java 25+ (Temurin). Set JAVA_HOME in .env if java
+  is not on PATH.
+
+  sudo systemctl status  note-keeper
+  sudo systemctl restart note-keeper
+
+==========================================================
+EOF

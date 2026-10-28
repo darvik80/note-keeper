@@ -85,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileM
 
       <div className={`
         fixed lg:static inset-y-0 left-0 z-50
-        w-[240px] bg-background lg:bg-transparent h-screen flex flex-col
+        w-[240px] bg-background lg:bg-transparent h-dvh max-h-dvh flex flex-col
         transform transition-transform duration-[180ms] ease-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
@@ -105,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileM
           </button>
         </div>
 
-        <nav className="flex-1 px-3 overflow-y-auto pb-4">
+        <nav className="flex-1 px-3 overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
           {GROUPS.map((group, gi) => (
             <div key={gi} className={gi > 0 ? 'mt-5' : ''}>
               {group.label && (
@@ -132,32 +132,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileMenuOpen, setIsMobileM
               })}
             </div>
           ))}
+          <div className="mt-5">
+            <p className="px-3 mb-1 text-[11px] font-medium uppercase tracking-wider text-text-secondary">
+              System
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                openCommandPalette();
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl mb-0.5 text-[15px] text-text-secondary hover:text-text hover:bg-hover transition-colors duration-[180ms]"
+            >
+              <i className="fas fa-search w-4 text-center text-sm"></i>
+              <span className="flex-1 text-left">Commands</span>
+            </button>
+            <button
+              onClick={() => handleNavigate('/settings')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl mb-0.5 text-[15px] transition-colors duration-[180ms] ${
+                isActive('/settings')
+                  ? 'bg-primary/15 text-primary'
+                  : 'text-text-secondary hover:text-text hover:bg-hover'
+              }`}
+            >
+              <i className="fas fa-gear w-4 text-center text-sm"></i>
+              <span>Settings</span>
+            </button>
+          </div>
         </nav>
-
-        <div className="px-3 pb-4 space-y-1">
-          <button
-            type="button"
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              openCommandPalette();
-            }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[15px] text-text-secondary hover:text-text hover:bg-hover transition-colors duration-[180ms]"
-          >
-            <i className="fas fa-search w-4 text-center text-sm"></i>
-            <span className="flex-1 text-left">Commands</span>
-          </button>
-          <button
-            onClick={() => handleNavigate('/settings')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[15px] transition-colors duration-[180ms] ${
-              isActive('/settings')
-                ? 'bg-primary/15 text-primary'
-                : 'text-text-secondary hover:text-text hover:bg-hover'
-            }`}
-          >
-            <i className="fas fa-gear w-4 text-center text-sm"></i>
-            <span>Settings</span>
-          </button>
-        </div>
       </div>
     </>
   );

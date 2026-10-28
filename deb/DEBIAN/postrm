@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "purge" ]; then
+    rm -f /lib/systemd/system/note-keeper.service
+    rm -f /etc/logrotate.d/note-keeper
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload
+    fi
+
+    if getent passwd note-keeper >/dev/null 2>&1; then
+        deluser --system note-keeper >/dev/null 2>&1 || true
+    fi
+    if getent group note-keeper >/dev/null 2>&1; then
+        delgroup --system note-keeper >/dev/null 2>&1 || true
+    fi
+
+    rm -rf /opt/note-keeper
+    rm -rf /var/log/note-keeper
+fi

@@ -116,24 +116,30 @@ class TodoRepository(
     }
 
     suspend fun archiveTodo(todo: Todo) {
-        val entity = TodoMapper.toEntity(
-            todo.copy(
-                isArchived = true,
-                syncStatus = SyncStatus.PENDING_UPDATE
-            )
-        )
-        todoDao.updateTodo(entity)
+        persistArchiveFlag(todo, archived = true)
     }
 
     suspend fun restoreTodo(todo: Todo) {
-        val entity = TodoMapper.toEntity(
-            todo.copy(
-                isArchived = false,
-                isDeleted = false,
-                syncStatus = SyncStatus.PENDING_UPDATE
-            )
+        persistArchiveFlag(todo, archived = false)
+    }
+
+    private suspend fun persistArchiveFlag(todo: Todo, archived: Boolean) {
+        val local = todo.copy(
+            isArchived = archived,
+            isDeleted = if (archived) todo.isDeleted else false,
+            syncStatus = SyncStatus.PENDING_UPDATE
         )
-        todoDao.updateTodo(entity)
+        todoDao.updateTodo(TodoMapper.toEntity(local))
+        val response = runCatching {
+            if (archived) apiService.archiveTodo(todo.id) else apiService.restoreTodo(todo.id)
+        }.getOrNull()
+        if (response?.isSuccessful == true) {
+            val synced = (response.body()?.let { TodoMapper.fromResponse(it) } ?: local).copy(
+                localId = todo.localId,
+                syncStatus = SyncStatus.SYNCED
+            )
+            todoDao.updateTodo(TodoMapper.toEntity(synced))
+        }
     }
 
     suspend fun toggleComplete(todo: Todo): Todo {
@@ -249,8 +255,12 @@ class TodoRepository(
                 .filter { it.syncStatus == SyncStatus.PENDING_UPDATE.name }
             for (entity in pendingUpdates) {
                 val todo = TodoMapper.toDomain(entity)
-                val input = TodoMapper.toInput(todo)
-                val response = apiService.updateTodo(todo.id, input)
+                val response = if (todo.isArchived) {
+                    apiService.archiveTodo(todo.id)
+                } else {
+                    runCatching { apiService.restoreTodo(todo.id) }
+                    apiService.updateTodo(todo.id, TodoMapper.toInput(todo))
+                }
                 if (response.isSuccessful) {
                     todoDao.markAsSynced(entity.localId)
                 }

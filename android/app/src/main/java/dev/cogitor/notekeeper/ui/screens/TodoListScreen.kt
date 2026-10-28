@@ -171,7 +171,7 @@ fun TodoListScreen(
                         TodoListFilter.Archive -> NkEmptyState(
                             Icons.Outlined.Inventory2,
                             "Archive is empty",
-                            "Swipe a todo left to archive it"
+                            "Swipe a todo far left to archive it"
                         )
                         TodoListFilter.Trash -> NkEmptyState(
                             Icons.Outlined.DeleteOutline,
@@ -196,7 +196,9 @@ fun TodoListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(todos, key = { it.id }) { todo ->
-                            val dismissState = rememberSwipeToDismissBoxState()
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                positionalThreshold = { it * 0.72f }
+                            )
                             SwipeToDismissBox(
                                 state = dismissState,
                                 modifier = Modifier.clip(MaterialTheme.shapes.medium),

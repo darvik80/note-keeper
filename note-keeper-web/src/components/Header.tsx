@@ -71,14 +71,14 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, actions }) => {
   };
 
   return (
-    <div className="px-5 sm:px-8 lg:px-10 pt-5 sm:pt-7 pb-4 flex flex-wrap items-end justify-between gap-4 min-w-0">
-      <div className="min-w-0 flex-1 pr-3">
-        <h1 className="text-hero text-text truncate">{title}</h1>
+    <div className="px-5 sm:px-8 lg:px-10 pt-5 sm:pt-7 pb-4 flex flex-col gap-3 min-w-0 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+      <div className="min-w-0 w-full sm:flex-1 sm:pr-3">
+        <h1 className="text-[1.75rem] sm:text-hero text-text break-words leading-tight font-bold tracking-tight">{title}</h1>
         {subtitle && (
           <p className="mt-1.5 text-[15px] text-text-secondary">{subtitle}</p>
         )}
       </div>
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
         {actions && <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">{actions}</div>}
         <button
           type="button"

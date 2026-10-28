@@ -117,24 +117,30 @@ class NoteRepository(
     }
 
     suspend fun archiveNote(note: Note) {
-        val entity = NoteMapper.toEntity(
-            note.copy(
-                isArchived = true,
-                syncStatus = SyncStatus.PENDING_UPDATE
-            )
-        )
-        noteDao.updateNote(entity)
+        persistArchiveFlag(note, archived = true)
     }
 
     suspend fun restoreNote(note: Note) {
-        val entity = NoteMapper.toEntity(
-            note.copy(
-                isArchived = false,
-                isDeleted = false,
-                syncStatus = SyncStatus.PENDING_UPDATE
-            )
+        persistArchiveFlag(note, archived = false)
+    }
+
+    private suspend fun persistArchiveFlag(note: Note, archived: Boolean) {
+        val local = note.copy(
+            isArchived = archived,
+            isDeleted = if (archived) note.isDeleted else false,
+            syncStatus = SyncStatus.PENDING_UPDATE
         )
-        noteDao.updateNote(entity)
+        noteDao.updateNote(NoteMapper.toEntity(local))
+        val response = runCatching {
+            if (archived) apiService.archiveNote(note.id) else apiService.restoreNote(note.id)
+        }.getOrNull()
+        if (response?.isSuccessful == true) {
+            val synced = (response.body()?.let { NoteMapper.fromResponse(it) } ?: local).copy(
+                localId = note.localId,
+                syncStatus = SyncStatus.SYNCED
+            )
+            noteDao.updateNote(NoteMapper.toEntity(synced))
+        }
     }
 
     suspend fun shareNote(note: Note, userId: String): String {
@@ -269,8 +275,13 @@ class NoteRepository(
                 .filter { it.syncStatus == SyncStatus.PENDING_UPDATE.name }
             for (entity in pendingUpdates) {
                 val note = NoteMapper.toDomain(entity)
-                val input = NoteMapper.toInput(note)
-                val response = apiService.updateNote(note.id, input)
+                val response = if (note.isArchived) {
+                    apiService.archiveNote(note.id)
+                } else {
+                    val restored = runCatching { apiService.restoreNote(note.id) }.getOrNull()
+                    if (restored != null && !restored.isSuccessful) restored
+                    else apiService.updateNote(note.id, NoteMapper.toInput(note))
+                }
                 if (response.isSuccessful) {
                     noteDao.markAsSynced(entity.localId)
                 }

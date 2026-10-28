@@ -104,6 +104,10 @@ public class NoteController {
             @RequestParam(required = false) String subfolder,
             @AuthenticationPrincipal String ownerId) throws IOException {
         String filename = file.getOriginalFilename();
+        String lower = filename != null ? filename.toLowerCase(java.util.Locale.ROOT) : "";
+        if (!lower.endsWith(".txt") && !lower.endsWith(".md") && !lower.endsWith(".markdown")) {
+            throw new IllegalArgumentException("Only .txt and .md files can be imported");
+        }
         String title = filename != null ? filename.replaceFirst("\\.[^.]+$", "") : "Imported Note";
         String content = new String(file.getBytes(), StandardCharsets.UTF_8);
         Note note = noteService.importNote(title, content, folder, subfolder, ownerId);

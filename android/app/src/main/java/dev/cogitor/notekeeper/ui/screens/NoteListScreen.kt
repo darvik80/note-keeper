@@ -80,17 +80,22 @@ fun NoteListScreen(
     val folderPath by viewModel.folderPath.collectAsState()
     val folders by viewModel.folders.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val importPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri?.let {
             val path = copyUriToCache(context, it) ?: return@let
+            val name = java.io.File(path).name.lowercase()
+            if (!name.endsWith(".txt") && !name.endsWith(".md") && !name.endsWith(".markdown")) {
+                scope.launch { snackbarHostState.showSnackbar("Only .txt and .md") }
+                return@let
+            }
             val (folder, sub) = NoteFolders.parse(folderPath)
             viewModel.importNote(java.io.File(path), folder, sub)
         }
     }
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -119,7 +124,7 @@ fun NoteListScreen(
                     else -> "${notes.size}"
                 }
             ) {
-                IconButton(onClick = { importPicker.launch(arrayOf("text/*", "text/markdown", "*/*")) }) {
+                IconButton(onClick = { importPicker.launch(arrayOf("text/plain", "text/markdown")) }) {
                     Icon(Icons.Outlined.FileOpen, contentDescription = "Import markdown")
                 }
                 IconButton(onClick = { viewModel.syncNotes() }) {
@@ -204,7 +209,7 @@ fun NoteListScreen(
                         NoteListFilter.Archive -> NkEmptyState(
                             Icons.Outlined.Inventory2,
                             "Archive is empty",
-                            "Swipe a note left to archive it"
+                            "Swipe a note far left to archive it"
                         )
                         NoteListFilter.Trash -> NkEmptyState(
                             Icons.Outlined.DeleteOutline,
@@ -234,7 +239,9 @@ fun NoteListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(notes, key = { it.id }) { note ->
-                            val dismissState = rememberSwipeToDismissBoxState()
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                positionalThreshold = { it * 0.72f }
+                            )
                             SwipeToDismissBox(
                                 state = dismissState,
                                 modifier = Modifier.clip(MaterialTheme.shapes.medium),

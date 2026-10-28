@@ -93,6 +93,17 @@ docker build -f Dockerfile.native -t note-keeper-native .
 docker run -d -p 8080:8080 -v ./var:/app/.data note-keeper-native
 ```
 
+### Debian package
+
+Needs `dpkg-deb` (Linux CI). Java 25+ on the host at runtime.
+
+```bash
+bash deb/build.sh          # dist/note-keeper_<version>_amd64.deb
+sudo dpkg -i dist/note-keeper_*.deb
+```
+
+Gitea Actions (`.gitea/workflows/build-deb.yml`) publishes to `Cogitor/packages` generic `cogitor-products`.
+
 ## Configuration
 
 `note-keeper-service/src/main/resources/application.yml`. Override with env vars or Spring profiles.

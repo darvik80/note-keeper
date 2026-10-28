@@ -1,0 +1,10 @@
+/var/log/note-keeper/note-keeper.log {
+    weekly
+    rotate 8
+    size 10M
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+}

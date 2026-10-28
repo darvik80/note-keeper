@@ -1,0 +1,107 @@
+name: Build & Publish .deb
+
+# Builds the .deb, then:
+#   publish — uploads to cogitor-products package registry
+#   release — Gitea Release on version tags
+#
+# Re-run jobs from the Gitea Actions UI.
+
+on:
+  push:
+    branches: ["v2.0.0", "master"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build .deb
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      deb: ${{ steps.version.outputs.deb }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 26
+        uses: actions/setup-java@v4
+        with:
+          java-version: "26"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION="$(tr -d '[:space:]' < version.txt)"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "deb=note-keeper_${VERSION}_amd64.deb" >> "$GITHUB_OUTPUT"
+
+      - name: Build .deb
+        run: bash deb/build.sh "${{ steps.version.outputs.version }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.version.outputs.deb }}
+          path: dist/${{ steps.version.outputs.deb }}
+          retention-days: 30
+
+  publish:
+    runs-on: ubuntu-latest
+    name: Publish to cogitor-products
+    needs: build
+    steps:
+      - name: Download .deb
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.build.outputs.deb }}
+
+      - name: Upload to cogitor-products
+        env:
+          GITEA_TOKEN: ${{ secrets.DEB_GITEA_TOKEN }}
+          DEB: ${{ needs.build.outputs.deb }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          test -n "$GITEA_TOKEN" || { echo "missing secret DEB_GITEA_TOKEN"; exit 1; }
+          BASE="https://gitea.darvik.synology.me:8443/api/packages/Cogitor/generic/cogitor-products"
+          AUTH="Authorization: token ${GITEA_TOKEN}"
+
+          curl -k -sSf -X DELETE -H "$AUTH" "${BASE}/latest/$(basename "$DEB")" || true
+          curl -k -sSf -H "$AUTH" --upload-file "$DEB" "${BASE}/latest/$(basename "$DEB")"
+
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            curl -k -sSf -H "$AUTH" --upload-file "$DEB" "${BASE}/${VERSION}/$(basename "$DEB")"
+            echo "published ${VERSION} + latest to cogitor-products"
+          else
+            echo "published latest to cogitor-products"
+          fi
+
+  release:
+    runs-on: ubuntu-latest
+    name: Create Gitea Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download .deb
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.build.outputs.deb }}
+
+      - name: Create Release
+        uses: https://gitea.com/actions/release-action@main
+        with:
+          files: ${{ needs.build.outputs.deb }}
+          tag: ${{ github.ref_name }}
+          title: "v${{ needs.build.outputs.version }}"
+          body: |
+            NoteKeeper v${{ needs.build.outputs.version }}
+
+            **Install:**
+            ```
+            sudo dpkg -i ${{ needs.build.outputs.deb }}
+            sudo apt-get install -f
+            ```
+
+            Needs Java 25+. UI at `http://<host>:8080`.
+          api_key: ${{ secrets.GITEA_TOKEN }}

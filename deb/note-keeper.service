@@ -1,0 +1,26 @@
+[Unit]
+Description=NoteKeeper
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=note-keeper
+Group=note-keeper
+WorkingDirectory=/opt/note-keeper
+EnvironmentFile=-/opt/note-keeper/etc/.env
+ExecStart=/opt/note-keeper/bin/note-keeper
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/note-keeper/note-keeper.log
+StandardError=append:/var/log/note-keeper/note-keeper.log
+SyslogIdentifier=note-keeper
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/note-keeper/var /opt/note-keeper/etc /var/log/note-keeper
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -63,9 +63,11 @@ On a card: favorite, archive, trash. Encrypted notes show a lock; shared notes s
 - Preview: GFM (tables, task lists, strikethrough), fenced code, Mermaid, images (including JWT-protected attachments).
 - Tags, folder, priority, reminder (display only — no push), favorite.
 
-**Share** invites another user by email/name (they must already have an account). **History** (labeled in the note toolbar) lists created/edited/restored versions. Restore saves immediately and writes a new `restored` history row.
+**Share** invites another user by email/name (they must already have an account).
 
-**Import:** list page can upload text files into the current folder.
+**History** (clock in the note toolbar; Android overflow → History): each server save writes `created` / `edited` / `restored`. Tap a row to restore that body. Restore saves immediately and adds a `restored` row.
+
+**Import:** `.txt` and `.md` only, into the current folder. PDF/Office files are not parsed.
 
 Server encryption key: `app.encryption.key` / `APP_ENCRYPTION_KEY`. If the key changes, encrypted notes become unreadable.
 

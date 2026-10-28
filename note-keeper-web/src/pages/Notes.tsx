@@ -188,6 +188,12 @@ export const Notes: React.FC = () => {
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.txt') && !name.endsWith('.md') && !name.endsWith('.markdown')) {
+      setError('Only .txt and .md files');
+      event.target.value = '';
+      return;
+    }
     const { folder, subfolder } = parsePath(selectedFolder);
     try {
       const newNote = await api.notes.importFile(
@@ -253,9 +259,9 @@ export const Notes: React.FC = () => {
         <div className="bg-secondary/10 border-b border-secondary/20 px-4 lg:px-8 py-3">
           <div className="flex items-center gap-4 flex-wrap">
             <label className="text-sm font-medium text-text">
-              Import from: MD, PDF, DOC, DOCX, XLS, CSV
+              Import from .txt or .md
             </label>
-            <input type="file" accept=".md,.pdf,.doc,.docx,.xls,.csv" onChange={handleImport} className="text-sm" />
+            <input type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" onChange={handleImport} className="text-sm" />
             <button onClick={() => setShowImport(false)} className="ml-auto text-secondary hover:opacity-80 p-1" aria-label="Close import">
               <i className="fas fa-times"></i>
             </button>

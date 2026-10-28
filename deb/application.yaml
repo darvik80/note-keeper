@@ -1,0 +1,18 @@
+server:
+  port: 8080
+  forward-headers-strategy: native
+
+spring:
+  profiles:
+    active: sqlite
+
+app:
+  storage:
+    base-dir: /opt/note-keeper/var
+  encryption:
+    key: ${APP_ENCRYPTION_KEY:}
+  public-base-url: ${APP_PUBLIC_BASE_URL:}
+
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRY_MS:86400000}

@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+
+if ! getent group note-keeper >/dev/null 2>&1; then
+    addgroup --system note-keeper
+fi
+
+if ! getent passwd note-keeper >/dev/null 2>&1; then
+    adduser --system \
+            --group \
+            --home /opt/note-keeper \
+            --no-create-home \
+            --shell /usr/sbin/nologin \
+            note-keeper
+fi
+
+mkdir -p /opt/note-keeper/etc
+mkdir -p /opt/note-keeper/var
+mkdir -p /opt/note-keeper/lib
+mkdir -p /var/log/note-keeper
+chown -R note-keeper:note-keeper /opt/note-keeper
+chown -R note-keeper:note-keeper /var/log/note-keeper
+
+if [ "$1" = "upgrade" ] && [ -d /run/systemd/system ]; then
+    deb-systemd-invoke stop note-keeper.service >/dev/null 2>&1 || true
+fi

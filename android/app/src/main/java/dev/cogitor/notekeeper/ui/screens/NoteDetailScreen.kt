@@ -502,13 +502,28 @@ fun NoteDetailScreen(
             title = { Text("History") },
             text = {
                 Column {
-                    if (history.isEmpty()) Text("No versions yet")
-                    history.forEach { entry ->
+                    if (history.isEmpty()) {
+                        Text("No versions yet. Each save on the server adds a row. Open overflow → History after sync.")
+                    }
+                    history.asReversed().forEach { entry ->
                         TextButton(onClick = {
                             viewModel.restoreVersion(entry.id)
                             showHistory = false
                         }) {
-                            Text("${entry.action ?: "edit"}  ${entry.timestamp.orEmpty()}")
+                            Column(Modifier.fillMaxWidth()) {
+                                Text(
+                                    "${entry.action ?: "edit"}  ${entry.timestamp.orEmpty()}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                val snippet = entry.content.orEmpty().trim().replace("\n", " ")
+                                if (snippet.isNotBlank()) {
+                                    Text(
+                                        snippet.take(80),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
                 }

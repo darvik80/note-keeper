@@ -1,0 +1,15 @@
+Package: note-keeper
+Version: 0.0.0
+Section: web
+Priority: optional
+Architecture: amd64
+Depends: systemd
+Maintainer: Cogitor <admin@cogitor.local>
+Homepage: https://cogitor.dev
+Description: NoteKeeper (notes, todos, vault)
+ Self-hosted notes, todos, and password vault with a bundled web UI.
+ Requires Java 25+ (Eclipse Temurin) on PATH or JAVA_HOME.
+ .
+ After install: http://<host>:8080
+ Data: /opt/note-keeper/var
+ Config: /opt/note-keeper/etc
