@@ -15,7 +15,7 @@ Open the app URL (default `http://localhost:8080`, HashRouter: `#/login`).
 | Method | How |
 |--------|-----|
 | Email | Register or sign in with email + password |
-| Google / Yandex | Buttons show when the server has `GOOGLE_CLIENT_ID` / `YANDEX_CLIENT_ID` |
+| Google / Yandex | Optional. Buttons show only when that provider's client id is set |
 | Link accounts | After login: **Settings → Account** — attach Google or Yandex to the same user |
 
 JWT lasts 24 hours. On Android, sign-in uses Custom Tabs and returns via `notekeeper://oauth` (Chrome preferred so Edge does not intercept the redirect).

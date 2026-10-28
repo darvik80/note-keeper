@@ -9,7 +9,6 @@ User=note-keeper
 Group=note-keeper
 WorkingDirectory=/opt/note-keeper
 Environment=LD_LIBRARY_PATH=/opt/note-keeper/lib
-EnvironmentFile=-/opt/note-keeper/etc/.env
 ExecStart=/opt/note-keeper/bin/note-keeper
 Restart=on-failure
 RestartSec=5

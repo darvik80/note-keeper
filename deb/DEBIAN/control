@@ -3,13 +3,13 @@ Version: 0.0.0
 Section: web
 Priority: optional
 Architecture: amd64
-Depends: systemd, ca-certificates
+Depends: systemd, ca-certificates, debconf (>= 0.5) | debconf-2.0
 Maintainer: Cogitor <admin@cogitor.local>
 Homepage: https://cogitor.dev
 Description: NoteKeeper (notes, todos, vault)
  Self-hosted notes, todos, and password vault with a bundled web UI.
  GraalVM native image — no JVM at runtime. amd64, x86-64-v2.
  .
- After install: http://<host>:8080
+ After install: http://<host>:<port> (debconf asks URL, port, DB, optional OAuth).
  Data: /opt/note-keeper/var
- Config: /opt/note-keeper/etc
+ Config: /opt/note-keeper/etc/application.yaml

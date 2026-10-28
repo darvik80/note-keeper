@@ -28,7 +28,7 @@ import java.util.Locale;
  * and redirecting back to the web app or Android custom scheme.
  */
 @Component
-@ConditionalOnExpression("T(org.springframework.util.StringUtils).hasText('${spring.security.oauth2.client.registration.google.client-id:}') || T(org.springframework.util.StringUtils).hasText('${spring.security.oauth2.client.registration.yandex.client-id:}')")
+@ConditionalOnExpression("T(org.springframework.util.StringUtils).hasText('${GOOGLE_CLIENT_ID:${app.oauth.google.client-id:}}') || T(org.springframework.util.StringUtils).hasText('${YANDEX_CLIENT_ID:${app.oauth.yandex.client-id:}}')")
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     public static final String REDIRECT_SESSION_KEY = "oauth_redirect";

@@ -102,6 +102,14 @@ bash deb/build.sh          # dist/note-keeper_<version>_amd64.deb
 sudo dpkg -i dist/note-keeper_*.deb
 ```
 
+Installer (debconf) asks: public URL, listen port (default 8080), database (`sqlite` or `postgresql`), optional Google/Yandex client id/secret/callback. Empty OAuth fields disable that provider. Reconfigure later:
+
+```bash
+sudo dpkg-reconfigure note-keeper
+```
+
+Noninteractive (`DEBIAN_FRONTEND=noninteractive`) keeps defaults: sqlite, port 8080, no OAuth. Answers live in `/opt/note-keeper/etc/application.yaml` (mode 0640).
+
 Gitea Actions (`.gitea/workflows/build-deb.yml`, runner `devops.local`) publishes to `Cogitor/packages` generic `cogitor-products`.
 
 ## Configuration
@@ -143,8 +151,8 @@ Without a fixed key, a random one is generated each start — encrypted notes be
 | Mode | Config |
 |------|--------|
 | Local | `POST /api/v1/auth/register` |
-| Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
-| Yandex | `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET` |
+| Google | optional `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
+| Yandex | optional `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_REDIRECT_URI` |
 | JWT | `JWT_SECRET` (generated if empty) |
 | Public URL | `APP_PUBLIC_BASE_URL` — OAuth redirects and links in reports |
 

@@ -92,9 +92,10 @@ install -m 0644 "${SCRIPT_DIR}/note-keeper.service" "${PKG}/lib/systemd/system/n
 sed "s/^Version:.*/Version: ${VERSION}/" "${SCRIPT_DIR}/DEBIAN/control" \
     > "${PKG}/DEBIAN/control"
 
-for f in preinst postinst prerm postrm; do
+for f in preinst postinst prerm postrm config; do
     install -m 0755 "${SCRIPT_DIR}/DEBIAN/${f}" "${PKG}/DEBIAN/${f}"
 done
+install -m 0644 "${SCRIPT_DIR}/DEBIAN/templates" "${PKG}/DEBIAN/templates"
 
 mkdir -p dist
 DEB="dist/note-keeper_${VERSION}_amd64.deb"

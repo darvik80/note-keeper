@@ -1,6 +1,7 @@
 package dev.cogitor.note.keeper.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,12 @@ public class SecurityConfig {
     @Autowired(required = false)
     private OAuth2SuccessHandler oAuth2SuccessHandler;
 
+    @Value("${GOOGLE_CLIENT_ID:${app.oauth.google.client-id:}}")
+    private String googleClientId;
+
+    @Value("${YANDEX_CLIENT_ID:${app.oauth.yandex.client-id:}}")
+    private String yandexClientId;
+
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
@@ -38,7 +45,9 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         configureCommon(http);
 
-        if (oAuth2SuccessHandler != null) {
+        boolean oauthEnabled = oAuth2SuccessHandler != null
+                && (OAuthClients.enabled(googleClientId) || OAuthClients.enabled(yandexClientId));
+        if (oauthEnabled) {
             http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2SuccessHandler));
         } else {

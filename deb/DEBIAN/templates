@@ -1,0 +1,86 @@
+Template: note-keeper/public_url
+Type: string
+Default:
+Description: Public base URL:
+ Public origin of this NoteKeeper instance, no trailing slash.
+ Used for reverse proxies and OAuth redirects.
+ .
+ Example: https://note.example.com
+ Leave empty to infer from the request (localhost / X-Forwarded-*).
+
+Template: note-keeper/port
+Type: string
+Default: 8080
+Description: HTTP listen port:
+ TCP port for the web UI and API. Default is 8080.
+
+Template: note-keeper/db_type
+Type: select
+Choices: sqlite, postgresql
+Default: sqlite
+Description: Database:
+ sqlite — file under /opt/note-keeper/var (no extra packages).
+ postgresql — host, database, user, and password are asked next.
+
+Template: note-keeper/db_host
+Type: string
+Default: localhost
+Description: PostgreSQL host:
+
+Template: note-keeper/db_port
+Type: string
+Default: 5432
+Description: PostgreSQL port:
+
+Template: note-keeper/db_name
+Type: string
+Default: notekeeper
+Description: PostgreSQL database name:
+
+Template: note-keeper/db_user
+Type: string
+Default: postgres
+Description: PostgreSQL user:
+
+Template: note-keeper/db_password
+Type: password
+Default:
+Description: PostgreSQL password:
+
+Template: note-keeper/google_client_id
+Type: string
+Default:
+Description: Google OAuth client ID (optional):
+ Leave empty to disable Google sign-in.
+
+Template: note-keeper/google_client_secret
+Type: password
+Default:
+Description: Google OAuth client secret (optional):
+ Leave empty if Google sign-in is disabled.
+
+Template: note-keeper/google_callback
+Type: string
+Default:
+Description: Google OAuth callback URL (optional):
+ Leave empty to use ${example}
+ Register this exact URI as an authorized redirect in Google Cloud.
+
+Template: note-keeper/yandex_client_id
+Type: string
+Default:
+Description: Yandex OAuth client ID (optional):
+ Leave empty to disable Yandex sign-in.
+
+Template: note-keeper/yandex_client_secret
+Type: password
+Default:
+Description: Yandex OAuth client secret (optional):
+ Leave empty if Yandex sign-in is disabled.
+
+Template: note-keeper/yandex_callback
+Type: string
+Default:
+Description: Yandex OAuth callback URL (optional):
+ Leave empty to use ${example}
+ Register this exact URI in Yandex OAuth.

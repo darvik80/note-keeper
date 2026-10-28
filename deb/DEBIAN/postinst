@@ -1,24 +1,168 @@
 #!/bin/sh
 set -e
 
+ENV_FILE=/opt/note-keeper/etc/.env
+YAML_DST=/opt/note-keeper/etc/application.yaml
+
+. /usr/share/debconf/confmodule
+
 chown -R note-keeper:note-keeper /opt/note-keeper
 chown -R note-keeper:note-keeper /var/log/note-keeper
 
-if [ ! -f /opt/note-keeper/etc/application.yaml ]; then
-    install -m 0644 -o note-keeper -g note-keeper \
-        /opt/note-keeper/share/application.yaml \
-        /opt/note-keeper/etc/application.yaml
+trim() {
+    printf '%s' "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+}
+
+yaml_q() {
+    printf '"%s"' "$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+}
+
+# Last quoted scalar for a YAML key at any indent (jwt.secret, app.encryption.key).
+yaml_scalar() {
+    file="$1"
+    key="$2"
+    [ -f "$file" ] || return 0
+    awk -v key="$key" '
+        $1 == key ":" {
+            sub(/^[^:]+:[[:space:]]*/, "")
+            gsub(/^"/, "")
+            gsub(/"$/, "")
+            val = $0
+        }
+        END { if (val != "") print val }
+    ' "$file"
+}
+
+env_get() {
+    key="$1"
+    [ -f "$ENV_FILE" ] || return 0
+    sed -n "s/^${key}=//p" "$ENV_FILE" | tail -n 1 | sed 's/^"//; s/"$//; s/\\"/"/g; s/\\\\/\\/g'
+}
+
+usable() {
+    [ -n "$1" ] || return 1
+    case "$1" in
+        *'${'*) return 1 ;;
+    esac
+    return 0
+}
+
+db_get note-keeper/public_url
+PUBLIC=$(trim "$RET" | sed 's|/*$||')
+db_get note-keeper/port
+PORT=$(trim "$RET")
+[ -n "$PORT" ] || PORT=8080
+db_get note-keeper/db_type
+DB_TYPE=$(trim "$RET")
+[ -n "$DB_TYPE" ] || DB_TYPE=sqlite
+
+db_get note-keeper/db_host
+DB_HOST=$(trim "$RET")
+db_get note-keeper/db_port
+DB_PORT=$(trim "$RET")
+db_get note-keeper/db_name
+DB_NAME=$(trim "$RET")
+db_get note-keeper/db_user
+DB_USER=$(trim "$RET")
+db_get note-keeper/db_password
+DB_PASSWORD="$RET"
+
+db_get note-keeper/google_client_id
+GOOGLE_CLIENT_ID=$(trim "$RET")
+db_get note-keeper/google_client_secret
+GOOGLE_CLIENT_SECRET="$RET"
+db_get note-keeper/google_callback
+GOOGLE_REDIRECT_URI=$(trim "$RET")
+
+db_get note-keeper/yandex_client_id
+YANDEX_CLIENT_ID=$(trim "$RET")
+db_get note-keeper/yandex_client_secret
+YANDEX_CLIENT_SECRET="$RET"
+db_get note-keeper/yandex_callback
+YANDEX_REDIRECT_URI=$(trim "$RET")
+
+JWT_SECRET=$(yaml_scalar "$YAML_DST" secret)
+if ! usable "$JWT_SECRET"; then
+    JWT_SECRET=$(env_get JWT_SECRET)
+fi
+if ! usable "$JWT_SECRET"; then
+    JWT_SECRET="$(openssl rand -base64 48 2>/dev/null || head -c 48 /dev/urandom | base64)"
 fi
 
-if [ ! -f /opt/note-keeper/etc/.env ]; then
-    JWT_SECRET="$(openssl rand -base64 48 2>/dev/null || head -c 48 /dev/urandom | base64)"
-    cat > /opt/note-keeper/etc/.env <<CONF
-JWT_SECRET=${JWT_SECRET}
-APP_ENCRYPTION_KEY=
-APP_PUBLIC_BASE_URL=
-CONF
-    chmod 0640 /opt/note-keeper/etc/.env
-    chown note-keeper:note-keeper /opt/note-keeper/etc/.env
+APP_ENCRYPTION_KEY=$(yaml_scalar "$YAML_DST" key)
+if ! usable "$APP_ENCRYPTION_KEY"; then
+    APP_ENCRYPTION_KEY=$(env_get APP_ENCRYPTION_KEY)
+fi
+if ! usable "$APP_ENCRYPTION_KEY"; then
+    APP_ENCRYPTION_KEY="$(openssl rand -base64 32 2>/dev/null || head -c 32 /dev/urandom | base64)"
+fi
+
+TMP=$(mktemp)
+{
+    cat <<EOF
+server:
+  port: ${PORT}
+  forward-headers-strategy: native
+
+spring:
+  profiles:
+    active: ${DB_TYPE}
+EOF
+    if [ "$DB_TYPE" = "postgresql" ]; then
+        cat <<EOF
+  datasource:
+    url: $(yaml_q "jdbc:postgresql://${DB_HOST:-localhost}:${DB_PORT:-5432}/${DB_NAME:-notekeeper}")
+    username: $(yaml_q "${DB_USER:-postgres}")
+    password: $(yaml_q "$DB_PASSWORD")
+    driver-class-name: org.postgresql.Driver
+EOF
+    fi
+    cat <<EOF
+
+app:
+  storage:
+    base-dir: /opt/note-keeper/var
+  encryption:
+    key: $(yaml_q "$APP_ENCRYPTION_KEY")
+  public-base-url: $(yaml_q "$PUBLIC")
+  telegram:
+    webhook-base-url: $(yaml_q "$PUBLIC")
+EOF
+
+    if [ -n "$GOOGLE_CLIENT_ID" ] || [ -n "$YANDEX_CLIENT_ID" ]; then
+        echo "  oauth:"
+        if [ -n "$GOOGLE_CLIENT_ID" ]; then
+            echo "    google:"
+            echo "      client-id: $(yaml_q "$GOOGLE_CLIENT_ID")"
+            echo "      client-secret: $(yaml_q "$GOOGLE_CLIENT_SECRET")"
+            if [ -n "$GOOGLE_REDIRECT_URI" ]; then
+                echo "      redirect-uri: $(yaml_q "$GOOGLE_REDIRECT_URI")"
+            fi
+        fi
+        if [ -n "$YANDEX_CLIENT_ID" ]; then
+            echo "    yandex:"
+            echo "      client-id: $(yaml_q "$YANDEX_CLIENT_ID")"
+            echo "      client-secret: $(yaml_q "$YANDEX_CLIENT_SECRET")"
+            if [ -n "$YANDEX_REDIRECT_URI" ]; then
+                echo "      redirect-uri: $(yaml_q "$YANDEX_REDIRECT_URI")"
+            fi
+        fi
+    fi
+
+    cat <<EOF
+
+jwt:
+  secret: $(yaml_q "$JWT_SECRET")
+  expiration: 86400000
+EOF
+} > "$TMP"
+
+install -m 0640 -o note-keeper -g note-keeper "$TMP" "$YAML_DST"
+rm -f "$TMP"
+
+# Old installs used EnvironmentFile=.env; secrets now live in application.yaml.
+if [ -f "$ENV_FILE" ]; then
+    rm -f "$ENV_FILE"
 fi
 
 if [ -d /run/systemd/system ]; then
@@ -31,6 +175,11 @@ fi
 
 HOSTNAME=$(hostname -I 2>/dev/null | awk '{print $1}')
 HOSTNAME=${HOSTNAME:-localhost}
+if [ -n "$PUBLIC" ]; then
+    UI="$PUBLIC"
+else
+    UI="http://${HOSTNAME}:${PORT}"
+fi
 
 cat <<EOF
 
@@ -38,13 +187,13 @@ cat <<EOF
   NoteKeeper — installed (native)
 ==========================================================
 
-  UI : http://${HOSTNAME}:8080
+  UI : ${UI}
 
   Config : /opt/note-keeper/etc/application.yaml
-  Secrets: /opt/note-keeper/etc/.env
   Data   : /opt/note-keeper/var
   Logs   : /var/log/note-keeper/note-keeper.log
 
+  sudo dpkg-reconfigure note-keeper
   sudo systemctl status  note-keeper
   sudo systemctl restart note-keeper
 

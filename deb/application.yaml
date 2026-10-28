@@ -1,3 +1,5 @@
+# Template only. The .deb installer writes /opt/note-keeper/etc/application.yaml
+# with concrete values from debconf (dpkg-reconfigure note-keeper).
 server:
   port: 8080
   forward-headers-strategy: native
@@ -10,9 +12,11 @@ app:
   storage:
     base-dir: /opt/note-keeper/var
   encryption:
-    key: ${APP_ENCRYPTION_KEY:}
-  public-base-url: ${APP_PUBLIC_BASE_URL:}
+    key: ""
+  public-base-url: ""
+  telegram:
+    webhook-base-url: ""
 
 jwt:
-  secret: ${JWT_SECRET:}
-  expiration: ${JWT_EXPIRY_MS:86400000}
+  secret: ""
+  expiration: 86400000

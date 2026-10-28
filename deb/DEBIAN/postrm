@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+if [ "$1" = "purge" ] && [ -f /usr/share/debconf/confmodule ]; then
+    . /usr/share/debconf/confmodule
+    db_purge
+fi
+
 if [ "$1" = "purge" ]; then
     rm -f /lib/systemd/system/note-keeper.service
     rm -f /etc/logrotate.d/note-keeper

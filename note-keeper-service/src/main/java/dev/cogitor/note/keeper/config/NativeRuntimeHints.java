@@ -50,6 +50,7 @@ public class NativeRuntimeHints implements RuntimeHintsRegistrar {
                 DingTalkClient.DingTalkResponse.class,
                 DefaultOAuth2User.class, DefaultOidcUser.class,
                 OAuth2AuthenticationToken.class, ClientRegistration.class,
+                OptionalOAuth2ClientConfiguration.EmptyClientRegistrationRepository.class,
                 LocalDateTimeTypeHandler.class, StringListTypeHandler.class, IntegerListTypeHandler.class
         }) {
             hints.reflection().registerType(type, members);

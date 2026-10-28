@@ -1,0 +1,44 @@
+#!/bin/sh
+set -e
+
+# Debconf questions. Runs before unpack and on dpkg-reconfigure.
+. /usr/share/debconf/confmodule
+db_version 2.0
+
+db_input high note-keeper/public_url || true
+db_input high note-keeper/port || true
+db_input high note-keeper/db_type || true
+db_go || true
+
+db_get note-keeper/db_type
+if [ "$RET" = "postgresql" ]; then
+    db_input high note-keeper/db_host || true
+    db_input high note-keeper/db_port || true
+    db_input high note-keeper/db_name || true
+    db_input high note-keeper/db_user || true
+    db_input high note-keeper/db_password || true
+    db_go || true
+fi
+
+db_get note-keeper/public_url
+PUBLIC=$(printf '%s' "$RET" | sed 's|/*$||')
+db_get note-keeper/port
+PORT="$RET"
+[ -n "$PORT" ] || PORT=8080
+if [ -n "$PUBLIC" ]; then
+    GCB="${PUBLIC}/login/oauth2/code/google"
+    YCB="${PUBLIC}/login/oauth2/code/yandex"
+else
+    GCB="http://localhost:${PORT}/login/oauth2/code/google"
+    YCB="http://localhost:${PORT}/login/oauth2/code/yandex"
+fi
+db_subst note-keeper/google_callback example "$GCB" || true
+db_subst note-keeper/yandex_callback example "$YCB" || true
+
+db_input high note-keeper/google_client_id || true
+db_input high note-keeper/google_client_secret || true
+db_input high note-keeper/google_callback || true
+db_input high note-keeper/yandex_client_id || true
+db_input high note-keeper/yandex_client_secret || true
+db_input high note-keeper/yandex_callback || true
+db_go || true
