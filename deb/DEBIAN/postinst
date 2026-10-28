@@ -35,7 +35,7 @@ HOSTNAME=${HOSTNAME:-localhost}
 cat <<EOF
 
 ==========================================================
-  NoteKeeper — installed
+  NoteKeeper — installed (native)
 ==========================================================
 
   UI : http://${HOSTNAME}:8080
@@ -44,9 +44,6 @@ cat <<EOF
   Secrets: /opt/note-keeper/etc/.env
   Data   : /opt/note-keeper/var
   Logs   : /var/log/note-keeper/note-keeper.log
-
-  Needs Java 25+ (Temurin). Set JAVA_HOME in .env if java
-  is not on PATH.
 
   sudo systemctl status  note-keeper
   sudo systemctl restart note-keeper

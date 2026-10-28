@@ -1,6 +1,6 @@
 name: Build & Publish .deb
 
-# Builds the .deb, then:
+# Native Graal binary inside the .deb (Dockerfile.native, x86-64-v2).
 #   publish — uploads to cogitor-products package registry
 #   release — Gitea Release on version tags
 #
@@ -14,21 +14,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    name: Build .deb
+    runs-on: devops.local
+    timeout-minutes: 120
+    name: Build native .deb
     outputs:
       version: ${{ steps.version.outputs.version }}
       deb: ${{ steps.version.outputs.deb }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up JDK 26
-        uses: actions/setup-java@v4
-        with:
-          java-version: "26"
-          distribution: "temurin"
-          cache: maven
 
       - name: Read version
         id: version
@@ -95,7 +89,7 @@ jobs:
           tag: ${{ github.ref_name }}
           title: "v${{ needs.build.outputs.version }}"
           body: |
-            NoteKeeper v${{ needs.build.outputs.version }}
+            NoteKeeper v${{ needs.build.outputs.version }} (GraalVM native)
 
             **Install:**
             ```
@@ -103,5 +97,5 @@ jobs:
             sudo apt-get install -f
             ```
 
-            Needs Java 25+. UI at `http://<host>:8080`.
+            No JVM. UI at `http://<host>:8080`.
           api_key: ${{ secrets.GITEA_TOKEN }}

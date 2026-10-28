@@ -3,12 +3,12 @@ Version: 0.0.0
 Section: web
 Priority: optional
 Architecture: amd64
-Depends: systemd
+Depends: systemd, ca-certificates
 Maintainer: Cogitor <admin@cogitor.local>
 Homepage: https://cogitor.dev
 Description: NoteKeeper (notes, todos, vault)
  Self-hosted notes, todos, and password vault with a bundled web UI.
- Requires Java 25+ (Eclipse Temurin) on PATH or JAVA_HOME.
+ GraalVM native image — no JVM at runtime. amd64, x86-64-v2.
  .
  After install: http://<host>:8080
  Data: /opt/note-keeper/var
