@@ -43,3 +43,8 @@ application-local.yml
 .env
 
 var/notekeeper.db
+/notekeeper.db
+/note-keeper-native*.csv
+hs_err_pid*.log
+replay_pid*.log
+android/config.json
