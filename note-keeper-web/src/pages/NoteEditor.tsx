@@ -14,6 +14,7 @@ import {MarkdownEditor, useHydrateAttachmentImages} from '../components/Markdown
 import {ShareModal} from '../components/ShareModal';
 import {TagInput} from '../components/TagInput';
 import {useAutosave} from '../hooks/useAutosave';
+import {SaveButton} from '../components/SaveButton';
 import {Attachment, Note, NoteHistory, NoteInput} from '../types';
 
 /** Note editor page. Loads an existing note by route param `id`, supports Markdown preview, tag management, attachments, history restore, and sharing. */
@@ -293,17 +294,12 @@ export const NoteEditor: React.FC = () => {
             <option value="medium">Med</option>
             <option value="high">High</option>
           </select>
-          <span className="text-xs text-text-secondary shrink-0">
-            {autosaveStatus === 'saving' ? 'Saving…' : autosaveStatus === 'saved' && !dirty ? 'Saved' : dirty ? 'Unsaved' : ''}
-          </span>
-          <button
+          <SaveButton
+            dirty={dirty}
+            status={autosaveStatus}
+            failed={saveFailed}
             onClick={() => saveNote(false)}
-            className="p-2 sm:px-6 sm:py-2 bg-primary text-white rounded-lg hover:bg-primary/90 shrink-0"
-            title="Save"
-          >
-            <i className="fas fa-save sm:mr-2"></i>
-            <span className="hidden sm:inline">Save</span>
-          </button>
+          />
         </div>
       </div>
 

@@ -1,7 +1,9 @@
 package dev.cogitor.notekeeper.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -196,58 +198,57 @@ fun TodoListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(todos, key = { it.id }) { todo ->
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                positionalThreshold = { it * 0.4f }
-                            )
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                modifier = Modifier.clip(MaterialTheme.shapes.medium),
-                                enableDismissFromStartToEnd = filter == TodoListFilter.Active || filter == TodoListFilter.Done,
-                                onDismiss = { value ->
-                                    when {
-                                        filter == TodoListFilter.Archive || filter == TodoListFilter.Trash ->
-                                            viewModel.restoreTodo(todo)
-                                        value == SwipeToDismissBoxValue.EndToStart -> {
-                                            viewModel.archiveTodo(todo)
-                                            scope.launch {
-                                                val result = snackbarHostState.showSnackbar(
-                                                    message = "Archived",
-                                                    actionLabel = "Undo",
-                                                    duration = SnackbarDuration.Short
-                                                )
-                                                if (result == SnackbarResult.ActionPerformed) {
-                                                    viewModel.restoreTodo(todo)
+                            val dismissState = rememberSwipeToDismissBoxState()
+                            Box(Modifier.clickable { onTodoClick(todo.id) }) {
+                                SwipeToDismissBox(
+                                    state = dismissState,
+                                    modifier = Modifier.clip(MaterialTheme.shapes.medium),
+                                    enableDismissFromStartToEnd = filter == TodoListFilter.Active || filter == TodoListFilter.Done,
+                                    onDismiss = { value ->
+                                        when {
+                                            filter == TodoListFilter.Archive || filter == TodoListFilter.Trash ->
+                                                viewModel.restoreTodo(todo)
+                                            value == SwipeToDismissBoxValue.EndToStart -> {
+                                                viewModel.archiveTodo(todo)
+                                                scope.launch {
+                                                    val result = snackbarHostState.showSnackbar(
+                                                        message = "Archived",
+                                                        actionLabel = "Undo",
+                                                        duration = SnackbarDuration.Short
+                                                    )
+                                                    if (result == SnackbarResult.ActionPerformed) {
+                                                        viewModel.restoreTodo(todo)
+                                                    }
                                                 }
                                             }
+                                            value == SwipeToDismissBoxValue.StartToEnd ->
+                                                viewModel.toggleComplete(todo)
                                         }
-                                        value == SwipeToDismissBoxValue.StartToEnd ->
-                                            viewModel.toggleComplete(todo)
+                                    },
+                                    backgroundContent = {
+                                        if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                                            val restoring = filter == TodoListFilter.Archive || filter == TodoListFilter.Trash
+                                            val toStart =
+                                                dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
+                                            SwipeHint(
+                                                when {
+                                                    restoring -> "Restore"
+                                                    toStart -> "Archive"
+                                                    todo.completed -> "Open"
+                                                    else -> "Done"
+                                                },
+                                                end = toStart || restoring,
+                                                color = if (toStart || restoring) MaterialTheme.colorScheme.secondaryContainer
+                                                else MaterialTheme.colorScheme.tertiaryContainer
+                                            )
+                                        }
                                     }
-                                },
-                                backgroundContent = {
-                                    if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
-                                        val restoring = filter == TodoListFilter.Archive || filter == TodoListFilter.Trash
-                                        val toStart =
-                                            dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
-                                        SwipeHint(
-                                            when {
-                                                restoring -> "Restore"
-                                                toStart -> "Archive"
-                                                todo.completed -> "Open"
-                                                else -> "Done"
-                                            },
-                                            end = toStart || restoring,
-                                            color = if (toStart || restoring) MaterialTheme.colorScheme.secondaryContainer
-                                            else MaterialTheme.colorScheme.tertiaryContainer
-                                        )
-                                    }
+                                ) {
+                                    TodoRow(
+                                        todo = todo,
+                                        onToggle = { viewModel.toggleComplete(todo) }
+                                    )
                                 }
-                            ) {
-                                TodoRow(
-                                    todo = todo,
-                                    onClick = { onTodoClick(todo.id) },
-                                    onToggle = { viewModel.toggleComplete(todo) }
-                                )
                             }
                         }
                     }
@@ -258,7 +259,7 @@ fun TodoListScreen(
 }
 
 @Composable
-private fun TodoRow(todo: Todo, onClick: () -> Unit, onToggle: () -> Unit) {
+private fun TodoRow(todo: Todo, onToggle: () -> Unit) {
     val overdue = todo.dueDate?.let {
         try {
             LocalDate.parse(it.take(10)).isBefore(LocalDate.now()) && !todo.completed
@@ -267,7 +268,6 @@ private fun TodoRow(todo: Todo, onClick: () -> Unit, onToggle: () -> Unit) {
         }
     } ?: false
     NkCard(
-        onClick = onClick,
         color = if (overdue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
         else MaterialTheme.colorScheme.surface
     ) {

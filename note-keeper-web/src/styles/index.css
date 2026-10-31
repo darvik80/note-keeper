@@ -105,12 +105,18 @@ h1, h2, h3 {
     line-height: 1;
     border-radius: 9999px;
     padding: 0.55rem 1rem;
-    transition: background-color 180ms ease, opacity 180ms ease, color 180ms ease;
+    transition: background-color 180ms ease, opacity 180ms ease, color 180ms ease,
+      transform 120ms ease, filter 120ms ease;
   }
 
   .nk-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .nk-btn:active:not(:disabled) {
+    transform: scale(0.96);
+    filter: brightness(0.86);
   }
 
   .nk-btn-primary {
@@ -120,6 +126,16 @@ h1, h2, h3 {
 
   .nk-btn-primary:hover:not(:disabled) {
     opacity: 0.92;
+  }
+
+  .nk-btn-saved {
+    background-color: var(--color-secondary);
+    color: #0B0E11;
+  }
+
+  .nk-btn-danger {
+    background-color: var(--color-danger);
+    color: #0B0E11;
   }
 
   .nk-btn-ghost {

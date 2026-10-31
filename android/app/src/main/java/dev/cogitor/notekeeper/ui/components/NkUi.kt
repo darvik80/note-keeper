@@ -160,20 +160,31 @@ fun NkFab(onClick: () -> Unit, content: @Composable () -> Unit) {
 
 @Composable
 fun NkCard(
-    onClick: () -> Unit,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.surface,
+    onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.medium,
-        color = color,
-        shadowElevation = 0.dp,
-        tonalElevation = 0.dp,
-        modifier = modifier.fillMaxWidth(),
-        content = { content() }
-    )
+    if (onClick != null) {
+        Surface(
+            onClick = onClick,
+            shape = MaterialTheme.shapes.medium,
+            color = color,
+            shadowElevation = 0.dp,
+            tonalElevation = 0.dp,
+            modifier = modifier.fillMaxWidth(),
+            content = { content() }
+        )
+    } else {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = color,
+            shadowElevation = 0.dp,
+            tonalElevation = 0.dp,
+            modifier = modifier.fillMaxWidth(),
+            content = { content() }
+        )
+    }
 }
 
 fun syncGlyph(statusName: String): String = when (statusName) {

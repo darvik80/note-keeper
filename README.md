@@ -1,8 +1,12 @@
 # NoteKeeper
 
-Self-hosted notes, todos, and a password vault. Web UI ships inside the backend JAR (or GraalVM native binary). Android app in `android/`.
+**English** · [Русский](README.ru.md)
 
-Current version: **2.0.2**. See [CHANGELOG.md](CHANGELOG.md). How to use it: [docs/user-guide.md](docs/user-guide.md).
+Self-hosted notes, todos, and a password vault. The web UI is bundled with the server (JVM JAR or a GraalVM native binary). An Android client lives in `android/` and talks to the same API.
+
+Current version: **2.0.2**. Release notes: [CHANGELOG.md](CHANGELOG.md). How to use the app: [docs/user-guide.md](docs/user-guide.md) · [на русском](docs/user-guide.ru.md).
+
+**Try it:** a public test instance runs at [https://note.cogitor.dev](https://note.cogitor.dev). Use it to look around. Do not put real secrets there — the data is not yours to keep.
 
 ![Home](docs/screenshots/home.png)
 
@@ -12,23 +16,21 @@ Current version: **2.0.2**. See [CHANGELOG.md](CHANGELOG.md). How to use it: [do
   <img src="docs/screenshots/vault.png" width="32%" alt="Vault" />
 </p>
 
-## What it does
+## What you get
 
-**Notes** — Markdown (GFM, Mermaid, images), folders, tags, priority, favorites, AES-256-GCM encryption, version history, templates, import from files, share with other users.
+Notes are Markdown with GitHub-flavored extras: tables, task lists, fenced code, Mermaid diagrams, and images. You can file them in folders, tag them, mark favorites, encrypt a note with AES-256-GCM, keep version history, start from a template, import `.txt` / `.md`, and share with other users on the same server.
 
-**Todos** — Markdown descriptions, tags, priority, due dates, reminders, recurrence (`daily` / `weekly` / `monthly` / `weekdays` / `custom`), completion log. Reminders go to Telegram and/or DingTalk. Recurring `completed` is for the current period only.
+Todos also take Markdown. They have tags, priority, due dates, and reminders. Recurrence can be daily, weekly, monthly, weekdays, or a custom set of weekdays. Completing a recurring todo means “done for this period”; the next period it is open again. Reminders and an optional daily digest go out through Telegram and/or DingTalk.
 
-**Vault** — Folders and secret items (web + Android). Sync over `/api/v1/vault`.
+The vault stores folders of secrets (passwords, SSH keys, API tokens, secure notes) on the server. Web and Android both sync over `/api/v1/vault`.
 
-**Search & views** — Full-text search with saved queries, calendar, analytics, archive, trash, favorites.
+Around that: full-text search with saved queries, a calendar, analytics, archive, trash, and favorites. Thirteen themes ship with the UI (default **cogitor**), with a responsive sidebar that becomes a drawer on a phone, a command palette, and toast feedback.
 
-**Auth** — Email + password, Google, Yandex. Providers can be linked to one account. JWT (24h) or personal API tokens (`nk_…`, scopes `notes`, `todos`, `vault`, `mcp`).
+Sign-in is email and password. Google and Yandex are optional: leave the client id empty and those buttons stay hidden. You can link either provider to an existing account. Sessions use JWT (24 hours). Personal API tokens (`nk_…`) can be scoped to `notes`, `todos`, `vault`, or `mcp`.
 
-**Clients** — Bundled web UI, Android (`android/`, minSdk 31), REST `/api/v1`. MCP at `/mcp` (token scope `mcp`). FAR Manager plugins live in a separate repo; pointer in `far-vault/README.md`.
+Clients: the bundled web app, Android (`android/`, minSdk 31), REST at `/api/v1`, and MCP at `/mcp` (token scope `mcp`). FAR Manager plugins live in a separate repository; see `far-vault/README.md`.
 
-**Ops** — SQLite by default or PostgreSQL. Manual + scheduled backups. GraalVM native image. Docker (JVM and native). Telegram / DingTalk daily reports.
-
-**UI** — 13 themes (default `cogitor`). Responsive sidebar / mobile drawer. Command palette. Toast feedback.
+Operations: SQLite by default, PostgreSQL if you need it, manual and scheduled backups, Docker (JVM and native), and a Debian package that ships the native binary.
 
 ## Tech stack
 
@@ -40,8 +42,8 @@ Current version: **2.0.2**. See [CHANGELOG.md](CHANGELOG.md). How to use it: [do
 
 ## Prerequisites
 
-- Java 25+ (GraalVM CE 25 for native)
-- Node.js 18+ (frontend dev only)
+- Java 25+ (GraalVM CE 25 if you want a native image)
+- Node.js 18+ (only for frontend development)
 - Maven 3.9+
 
 ## Quick start
@@ -74,14 +76,14 @@ npm run dev
 
 ### GraalVM native image
 
-Needs GraalVM 25+ with `native-image` on PATH. Windows: x64 Native Tools Command Prompt.
+Needs GraalVM 25+ with `native-image` on `PATH`. On Windows, use an x64 Native Tools Command Prompt.
 
 ```bash
 mvn -Pnative native:compile
 ./note-keeper-service/target/note-keeper -Djavax.xml.accessExternalDTD=all
 ```
 
-One binary = React UI + API. No JVM at runtime.
+One binary contains the React UI and the API. There is no JVM at runtime.
 
 ### Docker
 
@@ -95,32 +97,32 @@ docker run -d -p 8080:8080 -v ./var:/app/.data note-keeper-native
 
 ### Debian package
 
-GraalVM native binary (no JVM). CI builds via `Dockerfile.native` (`-march=x86-64-v2`). Needs Docker + `dpkg-deb` (or Docker for both).
+The `.deb` wraps the GraalVM native binary, so you do not need a JVM on the host. CI builds it with `Dockerfile.native` (`-march=x86-64-v2`). You need Docker, and either `dpkg-deb` or Docker again to pack the archive.
 
 ```bash
 bash deb/build.sh          # dist/note-keeper_<version>_amd64.deb
 sudo dpkg -i dist/note-keeper_*.deb
 ```
 
-Installer (debconf) asks: public URL, listen port (default 8080), database (`sqlite` or `postgresql`), optional Google/Yandex client id/secret/callback. Empty OAuth fields disable that provider. Reconfigure later:
+The installer asks for the public URL (include `https://`), listen port (default 8080), database (`sqlite` or `postgresql`), and optional Google / Yandex client id, secret, and callback. Leave OAuth fields empty to disable that provider. To change answers later:
 
 ```bash
 sudo dpkg-reconfigure note-keeper
 ```
 
-Noninteractive (`DEBIAN_FRONTEND=noninteractive`) keeps defaults: sqlite, port 8080, no OAuth. Answers live in `/opt/note-keeper/etc/application.yaml` (mode 0640).
+Noninteractive installs (`DEBIAN_FRONTEND=noninteractive`) keep the defaults: SQLite, port 8080, no OAuth. Values are written to `/opt/note-keeper/etc/application.yaml` (mode 0640).
 
-Gitea Actions (`.gitea/workflows/build-deb.yml`, runner `devops.local`) publishes to `Cogitor/packages` generic `cogitor-products`.
+Gitea Actions (`.gitea/workflows/build-deb.yml`, runner `devops.local`) publishes the package to `Cogitor/packages` as generic `cogitor-products`.
 
 ## Configuration
 
-`note-keeper-service/src/main/resources/application.yml`. Override with env vars or Spring profiles.
+The baseline is `note-keeper-service/src/main/resources/application.yml`. Override it with environment variables, Spring profiles, or the overlay YAML the Debian package writes.
 
 ### Database
 
-**SQLite (default):** auto-created at `.data/notekeeper.db`.
+SQLite is the default. The file is created at `.data/notekeeper.db` (or under `/opt/note-keeper/var` in the Debian layout).
 
-**PostgreSQL:**
+PostgreSQL:
 
 ```bash
 SPRING_PROFILES_ACTIVE=postgresql \
@@ -129,7 +131,7 @@ DB_USER=postgres DB_PASSWORD=secret \
 java -jar note-keeper-service.jar
 ```
 
-Schema migrates on startup.
+Schema is applied on startup.
 
 ### Encryption
 
@@ -144,7 +146,7 @@ app:
     key: "your-base64-key"   # or APP_ENCRYPTION_KEY
 ```
 
-Without a fixed key, a random one is generated each start — encrypted notes become unreadable after restart.
+If you do not set a key, a random one is generated at every start, and encrypted notes become unreadable after a restart.
 
 ### Authentication
 
@@ -154,17 +156,17 @@ Without a fixed key, a random one is generated each start — encrypted notes be
 | Google | optional `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
 | Yandex | optional `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_REDIRECT_URI` |
 | JWT | `JWT_SECRET` (generated if empty) |
-| Public URL | `APP_PUBLIC_BASE_URL` — OAuth redirects and links in reports |
+| Public URL | `APP_PUBLIC_BASE_URL` — must include `https://` or `http://`. Used for OAuth redirects and links in reports |
 
-OAuth buttons show when `/api/v1/config` reports the provider as enabled. Settings → Account can link/unlink Google and Yandex on an existing user.
+OAuth buttons appear when `/api/v1/config` reports that provider as enabled. After you are signed in, **Settings → Account** can link or unlink Google and Yandex.
 
 ### Integrations
 
-Per-user in Settings: Telegram (bot token + chat ID, optional webhook) and DingTalk (webhook URL + optional HMAC secret). Daily report: time, channels, templates.
+Each user configures Telegram (bot token + chat ID, optional webhook) and DingTalk (webhook URL + optional HMAC secret) in Settings. The daily report has a time, channels, and templates.
 
 ### Backup
 
-Settings or API: cron schedule (default 02:00), retention, manual export/import, list/download/delete.
+From Settings or the API: a cron schedule (default 02:00), retention, manual export/import, and list/download/delete of backup files.
 
 ### Storage
 
@@ -179,9 +181,9 @@ app:
 
 ## API
 
-Base: `/api/v1`. Except `/auth/**` and public `/config`, send `Authorization: Bearer <jwt or nk_ token>`.
+Base path: `/api/v1`. Everything except `/auth/**` and the public `/config` endpoint expects `Authorization: Bearer <jwt or nk_ token>`.
 
-Interactive docs: Swagger at `/swagger-ui.html`. Written reference: [API_DOCUMENTATION.md](API_DOCUMENTATION.md) (partial; Swagger is complete).
+Interactive docs: Swagger at `/swagger-ui.html`. A written (partial) reference is [API_DOCUMENTATION.md](API_DOCUMENTATION.md); Swagger is the complete one.
 
 | Domain | |
 |--------|--|
@@ -198,16 +200,17 @@ Interactive docs: Swagger at `/swagger-ui.html`. Written reference: [API_DOCUMEN
 | Analytics | `GET /analytics?timeRange=week\|month\|year` |
 | Settings / tags / users | as in Swagger |
 | MCP | `POST /mcp` |
+| Metrics | public `GET /actuator/health`, `GET /actuator/prometheus` (Prometheus scrape). JVM/HTTP plus `notekeeper_users`, `notekeeper_notes`, `notekeeper_todos`, `notekeeper_vault_items` |
 
-Filters — notes: `folder`, `tag`, `priority`, `isFavorite`, `isEncrypted`, `isArchived`, `isDeleted`. Todos: `completed`, `tag`, `priority`, `isFavorite`, `isArchived`, `isDeleted`. Soft delete: `DELETE /notes/{id}` → trash; `?permanent=true` → hard delete.
+Note filters: `folder`, `tag`, `priority`, `isFavorite`, `isEncrypted`, `isArchived`, `isDeleted`. Todo filters: `completed`, `tag`, `priority`, `isFavorite`, `isArchived`, `isDeleted`. Soft delete (`DELETE /notes/{id}`) moves the item to trash; `?permanent=true` deletes it for good.
 
 ## Android
 
-Open `android/` in Android Studio. `applicationId`: `dev.cogitor.notekeeper.v2`.
+Open `android/` in Android Studio. `applicationId` is `dev.cogitor.notekeeper.v2`.
 
-Notes, todos, vault, search. Email/password plus Google and Yandex (`notekeeper://oauth`). Swipe: note → archive; todo → done / archive.
+The app covers notes, todos, vault, and search. Sign-in is email/password plus optional Google and Yandex (`notekeeper://oauth`). Swipe a note to archive; swipe a todo to mark it done or archive it.
 
-Details: [android/README.md](android/README.md).
+Point the client at your own server, or at the test instance [https://note.cogitor.dev](https://note.cogitor.dev). Details: [android/README.md](android/README.md).
 
 ## Deployment
 
@@ -220,7 +223,17 @@ Details: [android/README.md](android/README.md).
 
 Registry: `devops.local:5000` (HTTP, insecure). Secrets: `REGISTRY_USER`, `REGISTRY_PASSWORD`.
 
-Reverse proxy: `nginx.conf`. Needs `Host`, `X-Forwarded-*`, WebSocket `Upgrade` / `Connection`. Set `APP_PUBLIC_BASE_URL` in production.
+Put a reverse proxy in front (`nginx.conf`). It must pass `Host`, `X-Forwarded-*`, and WebSocket `Upgrade` / `Connection`. Set `APP_PUBLIC_BASE_URL` to the public origin **with scheme**, for example `https://note.cogitor.dev`.
+
+Prometheus scrape (no auth):
+
+```yaml
+scrape_configs:
+  - job_name: note-keeper
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["localhost:8080"]
+```
 
 ## Layout
 
@@ -239,22 +252,21 @@ note-keeper/
 
 ## Conventions
 
-- Controllers → services → MyBatis XML. No mapper calls from controllers.
-- Lombok `@Data` on models; DTOs are plain classes.
-- `GlobalExceptionHandler` → `ErrorResponse` JSON.
-- Web: pages in `src/pages/`, no global store (props + context). Tailwind + CSS variables for themes.
+Controllers call services; services call MyBatis XML mappers. Controllers never talk to mappers directly. Models use Lombok `@Data`; DTOs are plain classes. `GlobalExceptionHandler` returns `ErrorResponse` JSON.
+
+On the web, pages live in `src/pages/`. There is no global store — props and React context only. Themes use Tailwind plus CSS variables.
 
 ## Troubleshooting
 
-| Problem | |
-|---------|--|
-| Encrypted notes unreadable after restart | Set `app.encryption.key` / `APP_ENCRYPTION_KEY` |
-| DB / attachments / backups fail | `.data/` (and subdirs) must exist and be writable |
-| SQLite under concurrent writers | Single-connection pool; use PostgreSQL for multi-instance |
-| Native XML/SQLite errors | `-Djavax.xml.accessExternalDTD=all`; `SqliteJdbcFeature` in native args |
-| Native `CPU ISA level is lower than required` | Image `25-ol9`, `-march=x86-64-v2` (Synology is v2) |
-| Native Telegram/DingTalk Jackson errors | Public nested response DTOs + `NativeRuntimeHints` |
-| OAuth redirect wrong | Set `APP_PUBLIC_BASE_URL` |
+| Problem | What to do |
+|---------|------------|
+| Encrypted notes unreadable after restart | Set a stable `app.encryption.key` / `APP_ENCRYPTION_KEY` |
+| DB / attachments / backups fail | `.data/` (and its subdirs) must exist and be writable |
+| SQLite under concurrent writers | The pool is a single connection; use PostgreSQL for more than one instance |
+| Native XML/SQLite errors | Run with `-Djavax.xml.accessExternalDTD=all`; native args include `SqliteJdbcFeature` |
+| Native `CPU ISA level is lower than required` | Build with image `25-ol9` and `-march=x86-64-v2` (Synology is v2) |
+| Native Telegram/DingTalk Jackson errors | Keep nested response DTOs public and listed in `NativeRuntimeHints` |
+| OAuth redirect goes to a relative path | Set `APP_PUBLIC_BASE_URL` including `https://` |
 
 ## License
 

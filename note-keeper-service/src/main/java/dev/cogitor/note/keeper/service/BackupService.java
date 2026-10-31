@@ -7,7 +7,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
-import dev.cogitor.note.keeper.exception.AccessDeniedException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -123,7 +122,10 @@ public class BackupService {
 
         Object backupOwner = backup.get("ownerId");
         if (backupOwner != null && !userId.equals(String.valueOf(backupOwner))) {
-            throw new AccessDeniedException("Backup belongs to another user");
+            // Restore attaches rows to the signed-in user (owner_id is rewritten below).
+            // Rejecting a mismatch broke re-register, new Google login, and moving
+            // a file from self-hosted onto the test stand.
+            log.info("Import remapping backup owner {} → {}", backupOwner, userId);
         }
 
         log.info("Importing user-scoped data from backup exported at: {}", backup.get("exportedAt"));

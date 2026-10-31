@@ -3,8 +3,10 @@ package dev.cogitor.notekeeper.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -239,41 +241,48 @@ fun NoteListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(notes, key = { it.id }) { note ->
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                positionalThreshold = { it * 0.4f }
-                            )
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                modifier = Modifier.clip(MaterialTheme.shapes.medium),
-                                enableDismissFromStartToEnd = false,
-                                onDismiss = {
-                                    if (filter == NoteListFilter.Active) {
-                                        viewModel.archiveNote(note)
-                                        scope.launch {
-                                            val result = snackbarHostState.showSnackbar(
-                                                message = "Archived",
-                                                actionLabel = "Undo",
-                                                duration = SnackbarDuration.Short
-                                            )
-                                            if (result == SnackbarResult.ActionPerformed) {
+                            val dismissState = rememberSwipeToDismissBoxState()
+                            // Click on the parent, not the card: Surface(onClick) steals the
+                            // horizontal drag and SwipeToDismissBox never settles.
+                            Box(Modifier.clickable { onNoteClick(note.id) }) {
+                                SwipeToDismissBox(
+                                    state = dismissState,
+                                    modifier = Modifier.clip(MaterialTheme.shapes.medium),
+                                    enableDismissFromStartToEnd = false,
+                                    onDismiss = { direction ->
+                                        val towardsStart =
+                                            direction == SwipeToDismissBoxValue.EndToStart ||
+                                                dismissState.settledValue == SwipeToDismissBoxValue.EndToStart
+                                        if (towardsStart) {
+                                            if (filter == NoteListFilter.Active) {
+                                                viewModel.archiveNote(note)
+                                                scope.launch {
+                                                    val result = snackbarHostState.showSnackbar(
+                                                        message = "Archived",
+                                                        actionLabel = "Undo",
+                                                        duration = SnackbarDuration.Short
+                                                    )
+                                                    if (result == SnackbarResult.ActionPerformed) {
+                                                        viewModel.restoreNote(note)
+                                                    }
+                                                }
+                                            } else {
                                                 viewModel.restoreNote(note)
                                             }
                                         }
-                                    } else {
-                                        viewModel.restoreNote(note)
+                                    },
+                                    backgroundContent = {
+                                        if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                                            SwipeHint(
+                                                if (filter == NoteListFilter.Active) "Archive" else "Restore",
+                                                end = true,
+                                                color = MaterialTheme.colorScheme.secondaryContainer
+                                            )
+                                        }
                                     }
-                                },
-                                backgroundContent = {
-                                    if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
-                                        SwipeHint(
-                                            if (filter == NoteListFilter.Active) "Archive" else "Restore",
-                                            end = true,
-                                            color = MaterialTheme.colorScheme.secondaryContainer
-                                        )
-                                    }
+                                ) {
+                                    NoteRow(note = note)
                                 }
-                            ) {
-                                NoteRow(note = note, onClick = { onNoteClick(note.id) })
                             }
                         }
                     }
@@ -284,8 +293,8 @@ fun NoteListScreen(
 }
 
 @Composable
-private fun NoteRow(note: Note, onClick: () -> Unit) {
-    NkCard(onClick = onClick) {
+private fun NoteRow(note: Note) {
+    NkCard {
         Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
