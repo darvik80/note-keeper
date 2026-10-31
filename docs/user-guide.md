@@ -2,7 +2,7 @@
 
 **English** · [Русский](user-guide.ru.md)
 
-Version **2.0.2**. Notes, todos, and a password vault that you host yourself. The web UI ships inside the server; the Android app talks to the same `/api/v1`.
+Version **2.0.3**. Notes, todos, and a password vault that you host yourself. The web UI ships inside the server; the Android app talks to the same `/api/v1`.
 
 A public test instance is at [https://note.cogitor.dev](https://note.cogitor.dev). It is there so you can click through the product. Do not store real passwords or private notes on it.
 

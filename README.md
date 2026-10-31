@@ -4,7 +4,7 @@
 
 Self-hosted notes, todos, and a password vault. The web UI is bundled with the server (JVM JAR or a GraalVM native binary). An Android client lives in `android/` and talks to the same API.
 
-Current version: **2.0.2**. Release notes: [CHANGELOG.md](CHANGELOG.md). How to use the app: [docs/user-guide.md](docs/user-guide.md) · [на русском](docs/user-guide.ru.md).
+Current version: **2.0.3**. Release notes: [CHANGELOG.md](CHANGELOG.md). How to use the app: [docs/user-guide.md](docs/user-guide.md) · [на русском](docs/user-guide.ru.md).
 
 **Try it:** a public test instance runs at [https://note.cogitor.dev](https://note.cogitor.dev). Use it to look around. Do not put real secrets there — the data is not yours to keep.
 

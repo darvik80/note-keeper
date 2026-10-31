@@ -1,7 +1,7 @@
 # NoteKeeper — Product Requirements Document (PRD)
 
-**Version:** 2.0.2  
-**Last Updated:** 2026-10-27  
+**Version:** 2.0.3  
+**Last Updated:** 2026-10-31  
 **Status:** Active  
 **Author:** NoteKeeper Team
 
@@ -518,7 +518,7 @@ graph TB
 ## 6. Release Plan
 
 ### v2.0 — Current
-See [CHANGELOG.md](../CHANGELOG.md) and [user-guide.md](user-guide.md). Features marked "Complete" in the table above. Latest patch: **2.0.2**.
+See [CHANGELOG.md](../CHANGELOG.md) and [user-guide.md](user-guide.md). Features marked "Complete" in the table above. Latest patch: **2.0.3**.
 
 ### Near-term
 - Play Store release for Android

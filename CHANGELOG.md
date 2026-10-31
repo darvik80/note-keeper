@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.3 — 2026-10-31
+
+- Monitoring: public `GET /actuator/prometheus` with JVM, HTTP, Tomcat and Hikari metrics
+- Business metrics: notes added/archived, logins and auth rejections, Telegram webhook errors, reminders sent, backup results and duration, `notekeeper_records_*` gauges
+- HTTP latency histograms and SLO buckets for `http_server_requests_seconds`
+- .deb now carries the GraalVM native binary (no JVM) and writes its config on install
+- .deb upgrade keeps the existing `application.yaml` and restarts the service
+- OAuth redirects use the HTTPS public URL; native builds bundle every JS chunk
+- Web: save button feedback, note history preview, drag notes and secrets onto folders, vault card layout
+- Android: folders, archive survives sync, note history preview, tag suggestions
+- Docs: Prometheus scrape guide, Russian user guide
+
 ## 2.0.2 — 2026-10-27
 
 - User guide and screenshots (`docs/user-guide.md`)

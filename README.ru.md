@@ -4,7 +4,7 @@
 
 Заметки, задачи и сейф паролей, которые вы поднимаете у себя. Веб-интерфейс упакован вместе с сервером (JAR на JVM или native-бинарник GraalVM). Android-клиент лежит в `android/` и ходит в тот же API.
 
-Текущая версия: **2.0.2**. Что менялось: [CHANGELOG.md](CHANGELOG.md). Как пользоваться: [docs/user-guide.ru.md](docs/user-guide.ru.md) · [in English](docs/user-guide.md).
+Текущая версия: **2.0.3**. Что менялось: [CHANGELOG.md](CHANGELOG.md). Как пользоваться: [docs/user-guide.ru.md](docs/user-guide.ru.md) · [in English](docs/user-guide.md).
 
 **Попробовать:** публичный тестовый стенд — [https://note.cogitor.dev](https://note.cogitor.dev). Там можно кликать по интерфейсу. Настоящие пароли и личные заметки туда лучше не класть: это чужая площадка, данные с неё не ваши.
 

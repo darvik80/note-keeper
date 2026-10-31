@@ -1,6 +1,6 @@
 # NoteKeeper Android
 
-Compose client, version **2.0.2**. Open this folder in Android Studio.
+Compose client, version **2.0.3**. Open this folder in Android Studio.
 
 You can point the app at your own server or at the public test instance [https://note.cogitor.dev](https://note.cogitor.dev). The stand is for trying the product, not for real secrets.
 
