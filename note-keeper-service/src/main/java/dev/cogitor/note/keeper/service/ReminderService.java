@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import dev.cogitor.note.keeper.client.DingTalkClient;
 import dev.cogitor.note.keeper.client.TelegramClient;
 import dev.cogitor.note.keeper.client.TelegramMarkdownUtil;
+import dev.cogitor.note.keeper.config.PrometheusMetrics;
 import dev.cogitor.note.keeper.mapper.TodoMapper;
 import dev.cogitor.note.keeper.model.Todo;
 import dev.cogitor.note.keeper.model.UserSettings;
@@ -34,6 +35,7 @@ public class ReminderService {
     private final TelegramClient telegramClient;
     private final DingTalkClient dingTalkClient;
     private final UserSettingsService userSettingsService;
+    private final PrometheusMetrics metrics;
 
     @Value("${app.telegram.webhook-base-url:}")
     private String webhookBaseUrl;
@@ -101,6 +103,7 @@ public class ReminderService {
         String userId = todo.getOwnerId() != null ? todo.getOwnerId() : "default";
         UserSettings settings = userSettingsService.getSettings(userId);
         if (settings == null || settings.getTelegramBotToken() == null || settings.getTelegramChatId() == null) {
+            metrics.reminderSent("telegram", "skipped");
             log.warn("Telegram credentials not configured. Skipping notification for todo: {}", todo.getId());
             return;
         }
@@ -140,8 +143,10 @@ public class ReminderService {
         }
 
         if (success) {
+            metrics.reminderSent("telegram", "success");
             log.info("Telegram notification sent successfully for todo: {}", todo.getId());
         } else {
+            metrics.reminderSent("telegram", "failure");
             log.error("Failed to send Telegram notification for todo: {}", todo.getId());
         }
     }
@@ -183,6 +188,7 @@ public class ReminderService {
         String userId = todo.getOwnerId() != null ? todo.getOwnerId() : "default";
         UserSettings settings = userSettingsService.getSettings(userId);
         if (settings == null || settings.getDingtalkWebhook() == null || settings.getDingtalkSecret() == null) {
+            metrics.reminderSent("dingtalk", "skipped");
             log.warn("DingTalk credentials not configured. Skipping notification for todo: {}", todo.getId());
             return;
         }
@@ -195,8 +201,10 @@ public class ReminderService {
         );
 
         if (success) {
+            metrics.reminderSent("dingtalk", "success");
             log.info("DingTalk notification sent successfully for todo: {}", todo.getId());
         } else {
+            metrics.reminderSent("dingtalk", "failure");
             log.error("Failed to send DingTalk notification for todo: {}", todo.getId());
         }
     }

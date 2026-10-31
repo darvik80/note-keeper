@@ -200,7 +200,7 @@ Interactive docs: Swagger at `/swagger-ui.html`. A written (partial) reference i
 | Analytics | `GET /analytics?timeRange=week\|month\|year` |
 | Settings / tags / users | as in Swagger |
 | MCP | `POST /mcp` |
-| Metrics | public `GET /actuator/health`, `GET /actuator/prometheus` (Prometheus scrape). JVM/HTTP plus `notekeeper_users`, `notekeeper_notes`, `notekeeper_todos`, `notekeeper_vault_items` |
+| Metrics | public `GET /actuator/health`, `GET /actuator/prometheus` (Prometheus scrape). JVM/HTTP/Tomcat/Hikari plus business counters (`notekeeper_notes_added_total`, `notekeeper_notes_archived_total`, `notekeeper_auth_logins_total`, `notekeeper_auth_rejections_total`, `notekeeper_telegram_webhook_errors_total`, `notekeeper_reminders_sent_total`, `notekeeper_backups_total`, `notekeeper_backup_duration_seconds`) and row gauges `notekeeper_records_*` |
 
 Note filters: `folder`, `tag`, `priority`, `isFavorite`, `isEncrypted`, `isArchived`, `isDeleted`. Todo filters: `completed`, `tag`, `priority`, `isFavorite`, `isArchived`, `isDeleted`. Soft delete (`DELETE /notes/{id}`) moves the item to trash; `?permanent=true` deletes it for good.
 

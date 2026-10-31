@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import dev.cogitor.note.keeper.client.TelegramClient;
 import dev.cogitor.note.keeper.client.TelegramMarkdownUtil;
+import dev.cogitor.note.keeper.config.PrometheusMetrics;
 import dev.cogitor.note.keeper.mapper.TodoMapper;
 import dev.cogitor.note.keeper.model.Todo;
 import dev.cogitor.note.keeper.model.UserSettings;
@@ -22,12 +23,13 @@ class TelegramWebhookServiceTest {
     @Mock private TelegramClient telegramClient;
     @Mock private UserSettingsService userSettingsService;
     @Mock private TodoService todoService;
+    @Mock private PrometheusMetrics metrics;
 
     private TelegramWebhookService webhookService;
 
     @BeforeEach
     void setUp() {
-        webhookService = new TelegramWebhookService(todoMapper, telegramClient, userSettingsService, todoService);
+        webhookService = new TelegramWebhookService(todoMapper, telegramClient, userSettingsService, todoService, metrics);
     }
 
     private UserSettings mockSettings(String userId) {

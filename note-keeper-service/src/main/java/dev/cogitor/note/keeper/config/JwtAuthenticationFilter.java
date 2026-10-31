@@ -35,10 +35,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final ApiTokenService apiTokenService;
+    private final PrometheusMetrics metrics;
 
-    public JwtAuthenticationFilter(JwtService jwtService, ApiTokenService apiTokenService) {
+    public JwtAuthenticationFilter(JwtService jwtService, ApiTokenService apiTokenService,
+                                   PrometheusMetrics metrics) {
         this.jwtService = jwtService;
         this.apiTokenService = apiTokenService;
+        this.metrics = metrics;
     }
 
     @Override
@@ -65,6 +68,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private void authenticateJwt(HttpServletRequest request, String token) {
         String userId = jwtService.validateToken(token);
         if (userId == null) {
+            metrics.authRejected("jwt_invalid");
             return;
         }
         setAuthentication(request, userId, false, null, SESSION_SCOPES);
@@ -74,6 +78,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private void authenticatePat(HttpServletRequest request, String token) {
         ApiToken apiToken = apiTokenService.authenticate(token);
         if (apiToken == null) {
+            metrics.authRejected("pat_invalid");
             return;
         }
         List<String> scopes = apiToken.getScopes() == null ? List.of() : apiToken.getScopes();

@@ -11,6 +11,7 @@ import dev.cogitor.note.keeper.service.BackupService;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
@@ -30,6 +31,9 @@ public class BackupScheduler {
 
     @Autowired
     private TaskScheduler taskScheduler;
+
+    @Autowired
+    private PrometheusMetrics metrics;
 
     private ScheduledFuture<?> scheduledTask;
     private boolean initialized = false;
@@ -109,17 +113,27 @@ public class BackupScheduler {
      */
     private void executeBackup() {
         log.info("Starting scheduled automatic backup...");
+        List<String> userIds;
         try {
-            List<String> userIds = jdbcTemplate.queryForList(
+            userIds = jdbcTemplate.queryForList(
                 "SELECT id FROM user_settings WHERE backup_auto_enabled = 1",
                 String.class
             );
-            for (String userId : userIds) {
-                Path backupFile = backupService.exportData(userId);
-                log.info("Scheduled backup completed for user {}: {}", userId, backupFile.getFileName());
-            }
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Scheduled backup failed: {}", e.getMessage(), e);
+            return;
+        }
+
+        for (String userId : userIds) {
+            long start = System.nanoTime();
+            try {
+                Path backupFile = backupService.exportData(userId);
+                metrics.backupFinished(true, Duration.ofNanos(System.nanoTime() - start));
+                log.info("Scheduled backup completed for user {}: {}", userId, backupFile.getFileName());
+            } catch (IOException e) {
+                metrics.backupFinished(false, Duration.ofNanos(System.nanoTime() - start));
+                log.error("Scheduled backup failed for user {}: {}", userId, e.getMessage(), e);
+            }
         }
     }
 

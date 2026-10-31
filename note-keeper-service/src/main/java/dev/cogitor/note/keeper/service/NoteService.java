@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import dev.cogitor.note.keeper.config.PrometheusMetrics;
 import dev.cogitor.note.keeper.dto.NoteInput;
 import dev.cogitor.note.keeper.exception.ResourceNotFoundException;
 import dev.cogitor.note.keeper.mapper.AttachmentMapper;
@@ -32,6 +33,7 @@ public class NoteService {
     private final NotificationService notificationService;
     private final TagSyncService tagSyncService;
     private final ResourceAccessService resourceAccess;
+    private final PrometheusMetrics metrics;
 
     public List<Note> findAll(String folder, String tag, String priority,
                               Boolean isFavorite, Boolean isEncrypted,
@@ -162,6 +164,7 @@ public class NoteService {
 
         tagSyncService.addTags(ownerId, note.getTags());
         notificationService.notifyNoteCreated(note.getId(), ownerId);
+        metrics.noteCreated();
         return findById(note.getId(), ownerId);
     }
 
@@ -252,6 +255,7 @@ public class NoteService {
         Note note = loadNote(id);
         resourceAccess.requireNoteOwner(note, userId);
         noteMapper.archive(id);
+        metrics.noteArchived();
         return findById(id, userId);
     }
 

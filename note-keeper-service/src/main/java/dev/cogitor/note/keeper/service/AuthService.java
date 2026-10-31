@@ -3,6 +3,7 @@ package dev.cogitor.note.keeper.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import dev.cogitor.note.keeper.config.PrometheusMetrics;
 import dev.cogitor.note.keeper.dto.AuthRequest;
 import dev.cogitor.note.keeper.dto.AuthResponse;
 import dev.cogitor.note.keeper.mapper.UserCredentialsMapper;
@@ -26,6 +27,7 @@ public class AuthService {
     private final UserCredentialsMapper credentialsMapper;
     private final JwtService jwtService;
     private final PasswordService passwordService;
+    private final PrometheusMetrics metrics;
 
     /**
      * Register user with email and password.
@@ -75,21 +77,25 @@ public class AuthService {
     public AuthResponse loginWithEmail(AuthRequest request) {
         User user = userMapper.findByEmail(request.getEmail());
         if (user == null) {
+            metrics.login("email", false);
             throw new RuntimeException("Invalid email or password");
         }
 
         UserCredentials credentials = credentialsMapper.findByUserId(user.getId());
         if (credentials == null) {
+            metrics.login("email", false);
             throw new RuntimeException("Invalid email or password");
         }
 
         if (!passwordService.matches(request.getPassword(), credentials)) {
+            metrics.login("email", false);
             throw new RuntimeException("Invalid email or password");
         }
 
         upgradeLegacyPasswordIfNeeded(request.getPassword(), credentials);
 
         String token = jwtService.generateToken(user.getId(), user.getEmail());
+        metrics.login("email", true);
         return new AuthResponse(token, user);
     }
 
@@ -103,12 +109,15 @@ public class AuthService {
 
     public AuthResponse loginWithOAuth(String provider, String providerUserId, String email, String name, String avatarUrl) {
         if (!"google".equals(provider) && !"yandex".equals(provider)) {
+            metrics.login("unknown", false);
             throw new RuntimeException("Unsupported OAuth provider: " + provider);
         }
         if (providerUserId == null || providerUserId.isBlank()) {
+            metrics.login(provider, false);
             throw new RuntimeException("OAuth provider id is missing");
         }
         if (email == null || email.isBlank()) {
+            metrics.login(provider, false);
             throw new RuntimeException("OAuth account has no email");
         }
 
@@ -158,6 +167,7 @@ public class AuthService {
         }
 
         String token = jwtService.generateToken(user.getId(), user.getEmail());
+        metrics.login(provider, true);
         return new AuthResponse(token, user);
     }
 

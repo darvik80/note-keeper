@@ -200,7 +200,7 @@ app:
 | Аналитика | `GET /analytics?timeRange=week\|month\|year` |
 | Настройки / теги / пользователи | как в Swagger |
 | MCP | `POST /mcp` |
-| Метрики | публичные `GET /actuator/health`, `GET /actuator/prometheus` (скрап Prometheus). JVM/HTTP плюс `notekeeper_users`, `notekeeper_notes`, `notekeeper_todos`, `notekeeper_vault_items` |
+| Метрики | публичные `GET /actuator/health`, `GET /actuator/prometheus` (скрап Prometheus). JVM/HTTP/Tomcat/Hikari плюс бизнес-счётчики (`notekeeper_notes_added_total`, `notekeeper_notes_archived_total`, `notekeeper_auth_logins_total`, `notekeeper_auth_rejections_total`, `notekeeper_telegram_webhook_errors_total`, `notekeeper_reminders_sent_total`, `notekeeper_backups_total`, `notekeeper_backup_duration_seconds`) и gauge `notekeeper_records_*` |
 
 Фильтры заметок: `folder`, `tag`, `priority`, `isFavorite`, `isEncrypted`, `isArchived`, `isDeleted`. Фильтры задач: `completed`, `tag`, `priority`, `isFavorite`, `isArchived`, `isDeleted`. Мягкое удаление (`DELETE /notes/{id}`) отправляет в корзину; `?permanent=true` удаляет насовсем.
 

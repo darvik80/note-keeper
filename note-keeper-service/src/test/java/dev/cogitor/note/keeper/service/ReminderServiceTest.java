@@ -8,6 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import dev.cogitor.note.keeper.client.DingTalkClient;
 import dev.cogitor.note.keeper.client.TelegramClient;
 import dev.cogitor.note.keeper.client.TelegramMarkdownUtil;
+import dev.cogitor.note.keeper.config.PrometheusMetrics;
 import dev.cogitor.note.keeper.mapper.TodoMapper;
 import dev.cogitor.note.keeper.mapper.UserSettingsMapper;
 import dev.cogitor.note.keeper.model.Todo;
@@ -31,12 +32,13 @@ class ReminderServiceTest {
     @Mock private DingTalkClient dingTalkClient;
     @Mock private UserSettingsService userSettingsService;
     @Mock private UserSettingsMapper userSettingsMapper;
+    @Mock private PrometheusMetrics metrics;
 
     private ReminderService reminderService;
 
     @BeforeEach
     void setUp() {
-        reminderService = new ReminderService(todoMapper, telegramClient, dingTalkClient, userSettingsService);
+        reminderService = new ReminderService(todoMapper, telegramClient, dingTalkClient, userSettingsService, metrics);
     }
 
     private Todo dailyTodo(String id, LocalDateTime reminder, LocalDateTime notifiedAt) {

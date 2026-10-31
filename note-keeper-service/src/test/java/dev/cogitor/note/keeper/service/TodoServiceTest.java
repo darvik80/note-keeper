@@ -196,7 +196,8 @@ class TodoServiceTest {
 
         TodoInput input = new TodoInput();
         input.setTitle("Updated Todo");
-        input.setReminder("2026-07-25T15:30:00");
+        // Z-anchored to match parseDate: naive strings are converted from the system zone to UTC
+        input.setReminder("2026-07-25T15:30:00Z");
 
         todoService.update("todo-1", input, "owner-1");
 

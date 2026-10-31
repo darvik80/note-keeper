@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import dev.cogitor.note.keeper.config.PrometheusMetrics;
 import dev.cogitor.note.keeper.dto.AuthRequest;
 import dev.cogitor.note.keeper.dto.AuthResponse;
 import dev.cogitor.note.keeper.mapper.UserCredentialsMapper;
@@ -22,13 +23,14 @@ class AuthServiceTest {
     @Mock private UserMapper userMapper;
     @Mock private UserCredentialsMapper credentialsMapper;
     @Mock private JwtService jwtService;
+    @Mock private PrometheusMetrics metrics;
 
     private final PasswordService passwordService = new PasswordService();
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userMapper, credentialsMapper, jwtService, passwordService);
+        authService = new AuthService(userMapper, credentialsMapper, jwtService, passwordService, metrics);
     }
 
     @Test

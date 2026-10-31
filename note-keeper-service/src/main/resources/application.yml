@@ -1,6 +1,10 @@
 server:
   port: ${SERVER_PORT:8080}
   forward-headers-strategy: native
+  tomcat:
+    mbeanregistry:
+      # Exposes tomcat_* metrics (threads, connections, sessions) to Micrometer
+      enabled: true
 
 spring:
   application:
@@ -50,6 +54,13 @@ management:
   info:
     env:
       enabled: false
+  metrics:
+    distribution:
+      # Buckets needed for histogram_quantile() on http_server_requests_seconds
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 50ms,100ms,250ms,500ms,1s,2s,5s
 
 # springdoc-openapi (Swagger UI)
 springdoc:

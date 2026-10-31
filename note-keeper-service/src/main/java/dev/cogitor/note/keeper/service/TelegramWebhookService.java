@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import dev.cogitor.note.keeper.client.TelegramClient;
 import dev.cogitor.note.keeper.client.TelegramMarkdownUtil;
+import dev.cogitor.note.keeper.config.PrometheusMetrics;
 import dev.cogitor.note.keeper.mapper.TodoMapper;
 import dev.cogitor.note.keeper.model.Todo;
 import dev.cogitor.note.keeper.model.UserSettings;
@@ -25,6 +26,7 @@ public class TelegramWebhookService {
     private final TelegramClient telegramClient;
     private final UserSettingsService userSettingsService;
     private final TodoService todoService;
+    private final PrometheusMetrics metrics;
 
     /**
      * Process a callback query from Telegram inline keyboard.
@@ -39,6 +41,7 @@ public class TelegramWebhookService {
     public boolean processCallbackQuery(String webhookSecret, String callbackQueryId,
                                         String callbackData, String chatId, Long messageId) {
         if (callbackData == null || callbackData.isEmpty()) {
+            metrics.telegramWebhookError("empty_callback");
             log.warn("Empty callback data received");
             return false;
         }
@@ -46,6 +49,7 @@ public class TelegramWebhookService {
         // Look up user by webhook secret
         UserSettings settings = userSettingsService.findByTelegramWebhookSecret(webhookSecret);
         if (settings == null) {
+            metrics.telegramWebhookError("unknown_secret");
             log.warn("No user found for webhook secret");
             return false;
         }
@@ -56,6 +60,7 @@ public class TelegramWebhookService {
             return handleDoneCallback(botToken, callbackQueryId, callbackData, chatId, messageId, settings.getId());
         }
 
+        metrics.telegramWebhookError("unknown_action");
         log.warn("Unknown callback data: {}", callbackData);
         telegramClient.answerCallbackQuery(botToken, callbackQueryId, "Unknown action");
         return false;
@@ -69,6 +74,7 @@ public class TelegramWebhookService {
 
         Todo todo = todoMapper.findById(todoId);
         if (todo == null) {
+            metrics.telegramWebhookError("todo_missing");
             log.warn("Todo not found: {}", todoId);
             telegramClient.answerCallbackQuery(botToken, callbackQueryId, "Todo not found");
             return false;
@@ -76,6 +82,7 @@ public class TelegramWebhookService {
 
         // Verify ownership
         if (!userId.equals(todo.getOwnerId())) {
+            metrics.telegramWebhookError("not_owner");
             log.warn("User {} is not the owner of todo {}", userId, todoId);
             telegramClient.answerCallbackQuery(botToken, callbackQueryId, "Not your todo");
             return false;

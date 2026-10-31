@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import dev.cogitor.note.keeper.config.PrometheusMetrics;
 import dev.cogitor.note.keeper.dto.NoteInput;
 import dev.cogitor.note.keeper.exception.AccessDeniedException;
 import dev.cogitor.note.keeper.exception.ResourceNotFoundException;
@@ -32,6 +33,7 @@ class NoteServiceTest {
     @Mock private EncryptionService encryptionService;
     @Mock private NotificationService notificationService;
     @Mock private TagSyncService tagSyncService;
+    @Mock private PrometheusMetrics metrics;
 
     private NoteService noteService;
     private final ResourceAccessService resourceAccess = new ResourceAccessService();
@@ -39,7 +41,7 @@ class NoteServiceTest {
     @BeforeEach
     void setUp() {
         noteService = new NoteService(noteMapper, historyMapper, attachmentMapper,
-                encryptionService, notificationService, tagSyncService, resourceAccess);
+                encryptionService, notificationService, tagSyncService, resourceAccess, metrics);
     }
 
     private Note buildNote(String id, String ownerId) {
