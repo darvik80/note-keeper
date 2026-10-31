@@ -11,7 +11,7 @@ Full-stack note-taking application. Multi-module Maven project:
 - **note-keeper-web** — React 18 + TypeScript frontend (Tailwind CSS, Webpack)
 - **android** — Android client (Compose, minSdk 31)
 
-Frontend is bundled into the backend JAR as static resources. Product docs: `README.md`, `CHANGELOG.md`, `docs/user-guide.md`.
+Frontend is bundled into the backend JAR as static resources. Product docs: `README.md` / `README.ru.md`, `CHANGELOG.md`, `docs/user-guide.md` / `docs/user-guide.ru.md`. Test stand: https://note.cogitor.dev.
 
 ---
 
@@ -122,6 +122,7 @@ All endpoints except `/api/v1/auth/**` require `Authorization: Bearer <token>`.
 | Integrations   | POST /integrations/telegram, /integrations/dingtalk                                         |
 | Analytics      | GET /analytics?timeRange=week\|month\|year                                                  |
 | MCP            | POST /mcp                                                                                   |
+| Metrics        | GET /actuator/health, /actuator/prometheus (permitAll; Prometheus scrape)                   |
 
 ### Filter params
 - Notes: `folder`, `tag`, `priority`, `isFavorite`, `isEncrypted`, `isArchived`, `isDeleted`
@@ -280,4 +281,4 @@ Auth: HMAC-SHA256 signature (timestamp + `\n` + secret), appended as query param
 | Theme definitions | `note-keeper-web/src/utils/themes.ts` |
 | Router + mobile layout | `note-keeper-web/src/App.tsx` |
 | Android app | `android/` |
-| User guide | `docs/user-guide.md` |
+| User guide | `docs/user-guide.md`, `docs/user-guide.ru.md` |
