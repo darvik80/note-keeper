@@ -1,8 +1,10 @@
 package dev.cogitor.note.keeper.config;
 
+import org.springframework.aot.hint.ExecutableMode;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
+import org.springframework.aot.hint.TypeReference;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -15,6 +17,8 @@ import dev.cogitor.note.keeper.mapper.typehandler.IntegerListTypeHandler;
 import dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler;
 import dev.cogitor.note.keeper.mapper.typehandler.StringListTypeHandler;
 import dev.cogitor.note.keeper.model.*;
+
+import java.util.List;
 
 /**
  * GraalVM / Spring AOT hints: MyBatis XML, SQL init scripts, static UI, entity reflection.
@@ -36,6 +40,12 @@ public class NativeRuntimeHints implements RuntimeHintsRegistrar {
         hints.resources().registerPattern("static/*.svg");
         hints.resources().registerPattern("application.yml");
         hints.resources().registerPattern("application-*.yml");
+
+        // TomcatWebServer.disableBindOnInit → Connector.setProperty → AbstractProtocol.setProperty
+        hints.reflection().registerTypeIfPresent(classLoader, "org.apache.coyote.AbstractProtocol",
+                hint -> hint.withMethod("setProperty",
+                        List.of(TypeReference.of(String.class), TypeReference.of(String.class)),
+                        ExecutableMode.INVOKE));
 
         MemberCategory[] members = MemberCategory.values();
         for (Class<?> type : new Class<?>[] {
