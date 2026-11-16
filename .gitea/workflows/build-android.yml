@@ -111,7 +111,8 @@ jobs:
         run: |
           chmod +x gradlew
           # Platform/build-tools already on disk — skip Gradle's flaky auto-download.
-          echo "android.builder.sdkDownload=false" >> gradle.properties
+          # Leading newline: gradle.properties may omit trailing EOL (would glue into android.newDsl).
+          printf '\nandroid.builder.sdkDownload=false\n' >> gradle.properties
           ./gradlew --no-daemon :app:assembleRelease
 
       - name: Stage APK
