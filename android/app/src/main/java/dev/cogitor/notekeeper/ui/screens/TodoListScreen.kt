@@ -198,47 +198,51 @@ fun TodoListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(todos, key = { it.id }) { todo ->
-                            val dismissState = rememberSwipeToDismissBoxState()
+                            val restoring = filter == TodoListFilter.Archive || filter == TodoListFilter.Trash
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                positionalThreshold = { it * 0.45f }
+                            )
                             Box(Modifier.clickable { onTodoClick(todo.id) }) {
                                 SwipeToDismissBox(
                                     state = dismissState,
                                     modifier = Modifier.clip(MaterialTheme.shapes.medium),
-                                    enableDismissFromStartToEnd = filter == TodoListFilter.Active || filter == TodoListFilter.Done,
+                                    // Active/Done: swipe = Done/Open. Archive only from editor ⋮.
+                                    enableDismissFromStartToEnd = !restoring,
+                                    enableDismissFromEndToStart = true,
                                     onDismiss = { value ->
                                         when {
-                                            filter == TodoListFilter.Archive || filter == TodoListFilter.Trash ->
-                                                viewModel.restoreTodo(todo)
-                                            value == SwipeToDismissBoxValue.EndToStart -> {
-                                                viewModel.archiveTodo(todo)
-                                                scope.launch {
-                                                    val result = snackbarHostState.showSnackbar(
-                                                        message = "Archived",
-                                                        actionLabel = "Undo",
-                                                        duration = SnackbarDuration.Short
-                                                    )
-                                                    if (result == SnackbarResult.ActionPerformed) {
-                                                        viewModel.restoreTodo(todo)
+                                            restoring -> viewModel.restoreTodo(todo)
+                                            value == SwipeToDismissBoxValue.EndToStart ||
+                                                value == SwipeToDismissBoxValue.StartToEnd -> {
+                                                val wasOpen = !todo.completed
+                                                viewModel.toggleComplete(todo)
+                                                if (wasOpen) {
+                                                    scope.launch {
+                                                        val result = snackbarHostState.showSnackbar(
+                                                            message = "Done",
+                                                            actionLabel = "Undo",
+                                                            duration = SnackbarDuration.Short
+                                                        )
+                                                        if (result == SnackbarResult.ActionPerformed) {
+                                                            viewModel.toggleComplete(todo)
+                                                        }
                                                     }
                                                 }
                                             }
-                                            value == SwipeToDismissBoxValue.StartToEnd ->
-                                                viewModel.toggleComplete(todo)
                                         }
                                     },
                                     backgroundContent = {
                                         if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
-                                            val restoring = filter == TodoListFilter.Archive || filter == TodoListFilter.Trash
                                             val toStart =
                                                 dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
                                             SwipeHint(
                                                 when {
                                                     restoring -> "Restore"
-                                                    toStart -> "Archive"
                                                     todo.completed -> "Open"
                                                     else -> "Done"
                                                 },
                                                 end = toStart || restoring,
-                                                color = if (toStart || restoring) MaterialTheme.colorScheme.secondaryContainer
+                                                color = if (restoring) MaterialTheme.colorScheme.secondaryContainer
                                                 else MaterialTheme.colorScheme.tertiaryContainer
                                             )
                                         }

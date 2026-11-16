@@ -14,6 +14,9 @@ interface TodoDao {
     @Query("SELECT * FROM todos WHERE isDeleted = 0 AND isArchived = 0 ORDER BY updatedAt DESC, createdAt DESC")
     fun getAllActiveTodos(): Flow<List<TodoEntity>>
 
+    @Query("SELECT * FROM todos WHERE isDeleted = 0 ORDER BY createdAt DESC")
+    fun getTodosForAnalytics(): Flow<List<TodoEntity>>
+
     @Query("SELECT * FROM todos WHERE id = :id LIMIT 1")
     suspend fun getTodoById(id: String): TodoEntity?
 

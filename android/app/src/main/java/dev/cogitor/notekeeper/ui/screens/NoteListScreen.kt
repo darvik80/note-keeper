@@ -241,7 +241,10 @@ fun NoteListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(notes, key = { it.id }) { note ->
-                            val dismissState = rememberSwipeToDismissBoxState()
+                            // ~65% travel — short flicks no longer archive by accident.
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                positionalThreshold = { it * 0.65f }
+                            )
                             // Click on the parent, not the card: Surface(onClick) steals the
                             // horizontal drag and SwipeToDismissBox never settles.
                             Box(Modifier.clickable { onNoteClick(note.id) }) {

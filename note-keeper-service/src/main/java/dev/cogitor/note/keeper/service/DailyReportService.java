@@ -118,7 +118,11 @@ public class DailyReportService {
     }
 
     String buildReportText(UserSettings settings, String today) {
-        List<Todo> todos = todoMapper.findAll(false, null, null, null, false, false, settings.getId());
+        // Active incomplete only — never archived / trash / done (incl. recurring "done this period").
+        List<Todo> todos = todoMapper.findAll(false, null, null, null, false, false, settings.getId())
+                .stream()
+                .filter(t -> !t.isArchived() && !t.isDeleted() && !t.isCompleted())
+                .toList();
 
         String bodyTemplate = settings.getDailyReportTemplate();
         if (bodyTemplate == null || bodyTemplate.isBlank()) {

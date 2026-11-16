@@ -54,6 +54,7 @@ import dev.cogitor.notekeeper.data.repository.NoteRepository
 import dev.cogitor.notekeeper.data.sync.NetworkConnectivityObserver
 import dev.cogitor.notekeeper.data.sync.SyncWorker
 import dev.cogitor.notekeeper.ui.oauth.OAuthLauncher
+import dev.cogitor.notekeeper.ui.screens.AnalyticsScreen
 import dev.cogitor.notekeeper.ui.screens.LoginScreen
 import dev.cogitor.notekeeper.ui.screens.NoteDetailScreen
 import dev.cogitor.notekeeper.ui.screens.NoteListScreen
@@ -322,8 +323,12 @@ fun NoteKeeperNavHost(
                         navController.navigate("login") {
                             popUpTo("notes") { inclusive = true }
                         }
-                    }
+                    },
+                    onAnalyticsClick = { navController.navigate("analytics") }
                 )
+            }
+            composable("analytics") {
+                AnalyticsScreen(onBack = { navController.popBackStack() })
             }
             composable("todos") {
                 val viewModel: TodoListViewModel = viewModel(

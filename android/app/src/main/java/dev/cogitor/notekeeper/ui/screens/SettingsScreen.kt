@@ -20,7 +20,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -64,7 +66,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onAnalyticsClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val settingsDataStore = remember { SettingsDataStore(context) }
@@ -197,6 +200,43 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(16.dp))
             SettingsRemoteBlocks(snackbarHostState)
+
+            Spacer(Modifier.height(16.dp))
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface,
+                onClick = onAnalyticsClick
+            ) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Outlined.BarChart,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .padding(horizontal = 12.dp)
+                    ) {
+                        Text("Analytics", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Notes, todos, tags and priority — same as web",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        Icons.Outlined.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
             Spacer(Modifier.height(16.dp))
             Surface(

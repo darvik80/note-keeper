@@ -38,7 +38,10 @@
             <if test="priority != null">AND priority = #{priority}</if>
             <if test="isFavorite != null">AND is_favorite = #{isFavorite}</if>
             <if test="isEncrypted != null">AND is_encrypted = #{isEncrypted}</if>
-            <if test="isArchived != null">AND is_archived = #{isArchived}</if>
+            <choose>
+                <when test="isArchived != null and isArchived">AND is_archived = 1</when>
+                <when test="isArchived != null and !isArchived">AND is_archived = 0</when>
+            </choose>
             <choose>
                 <when test="isDeleted != null and isDeleted">AND is_deleted = 1</when>
                 <otherwise>AND is_deleted = 0</otherwise>

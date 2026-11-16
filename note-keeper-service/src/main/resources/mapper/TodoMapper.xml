@@ -36,11 +36,18 @@
     <select id="findAll" resultMap="todoResultMap">
         SELECT * FROM todo
         <where>
-            <if test="completed != null">AND completed = #{completed}</if>
+            <choose>
+                <when test="completed != null and completed">AND completed = 1</when>
+                <when test="completed != null and !completed">AND completed = 0</when>
+            </choose>
             <if test="tag != null">AND tags LIKE '%' || #{tag} || '%'</if>
             <if test="priority != null">AND priority = #{priority}</if>
             <if test="isFavorite != null">AND is_favorite = #{isFavorite}</if>
-            <if test="isArchived != null">AND is_archived = #{isArchived}</if>
+            <!-- Literal 0/1: Boolean false binding is flaky across SQLite INTEGER / PG BOOLEAN. -->
+            <choose>
+                <when test="isArchived != null and isArchived">AND is_archived = 1</when>
+                <when test="isArchived != null and !isArchived">AND is_archived = 0</when>
+            </choose>
             <choose>
                 <when test="isDeleted != null and isDeleted">AND is_deleted = 1</when>
                 <otherwise>AND is_deleted = 0</otherwise>
