@@ -2,6 +2,8 @@
 
 Compose client, version **2.0.3**. Open this folder in Android Studio.
 
+CI: Gitea workflow [`.gitea/workflows/build-android.yml`](../.gitea/workflows/build-android.yml) builds a release APK and publishes `note-keeper-android_<version>.apk` to `cogitor-products`.
+
 You can point the app at your own server or at the public test instance [https://note.cogitor.dev](https://note.cogitor.dev). The stand is for trying the product, not for real secrets.
 
 - `applicationId`: `dev.cogitor.notekeeper.v2`

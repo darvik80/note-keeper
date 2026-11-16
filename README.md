@@ -114,6 +114,8 @@ Noninteractive installs (`DEBIAN_FRONTEND=noninteractive`) keep the defaults: SQ
 
 Gitea Actions (`.gitea/workflows/build-deb.yml`, runner `devops.local`) publishes the package to `Cogitor/packages` as generic `cogitor-products`.
 
+Android release APK: `.gitea/workflows/build-android.yml` (push `master` / `v*` tags under `android/`, or manual dispatch). Artifact `note-keeper-android_<version>.apk` goes to the same `cogitor-products` package (`latest` and versioned on tags). Optional signing secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`; without them CI signs with the debug keystore.
+
 ## Configuration
 
 The baseline is `note-keeper-service/src/main/resources/application.yml`. Override it with environment variables, Spring profiles, or the overlay YAML the Debian package writes.

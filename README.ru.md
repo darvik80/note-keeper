@@ -114,6 +114,8 @@ sudo dpkg-reconfigure note-keeper
 
 Gitea Actions (`.gitea/workflows/build-deb.yml`, раннер `devops.local`) публикует пакет в `Cogitor/packages` как generic `cogitor-products`.
 
+Android release APK: `.gitea/workflows/build-android.yml` (push в `master` / теги `v*` при изменениях в `android/`, или ручной dispatch). Артефакт `note-keeper-android_<version>.apk` уходит в тот же пакет `cogitor-products` (`latest` и версия на тегах). Опциональные секреты подписи: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`; без них CI подписывает debug-keystore.
+
 ## Настройка
 
 Базовый файл — `note-keeper-service/src/main/resources/application.yml`. Его перекрывают переменные окружения, профили Spring или overlay YAML, который пишет Debian-пакет.

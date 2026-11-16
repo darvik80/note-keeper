@@ -101,6 +101,7 @@ CI image: `docker build -f Dockerfile.native -t note-keeper-native .`
 Gitea: HTTP registry `devops.local:5000` (`REGISTRY_IP` 192.168.1.103, insecure). Secrets: `REGISTRY_USER`, `REGISTRY_PASSWORD`.
 - JVM `.gitea/workflows/deploy.yml` — `darvik-minipc` build+push `note-keeper` → NAS pull+run **9081** (`master`)
 - Native `.gitea/workflows/deploy-native.yml` — minipc build+push `note-keeper-native` → NAS pull+run **9082** (`native` / dispatch). `deploy-only` = tag minipc image + push, no Graal.
+- Android `.gitea/workflows/build-android.yml` — release APK → `cogitor-products` (`note-keeper-android_<ver>.apk`). Optional `ANDROID_KEYSTORE_*` secrets; else debug-signed.
 
 ---
 
