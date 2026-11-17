@@ -221,7 +221,6 @@
         WHERE cl.completed_at &gt;= #{start, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
           AND cl.completed_at &lt;= #{end, typeHandler=dev.cogitor.note.keeper.mapper.typehandler.LocalDateTimeTypeHandler}
           AND t.owner_id = #{ownerId}
-          AND t.is_deleted = 0
         ORDER BY cl.completed_at DESC
     </select>
 

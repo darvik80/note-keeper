@@ -3,6 +3,7 @@
  * @category Pages
  * @description Calendar page — todos with due dates displayed in a monthly calendar grid.
  * Shows completion markers for recurring todos based on completion log.
+ * Archived and soft-deleted todos still contribute past completions (no future pending slots).
  */
 import React, {useCallback, useEffect, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
@@ -19,6 +20,10 @@ type CalendarItem = {
   title: string;
   type: 'todo' | 'note';
   completed?: boolean;
+  /** Soft-parked — keep past completions on the grid, no future pending slots. */
+  archived?: boolean;
+  /** Soft-deleted (trash) — same as archived for history. */
+  deleted?: boolean;
   priority: string;
   tags: string[];
   description?: string;
@@ -43,18 +48,24 @@ export const Calendar: React.FC = () => {
 
   const load = useCallback(async () => {
     try {
-      const [todos, notes] = await Promise.all([
-        api.todos.getAll({ isArchived: false, isDeleted: false }),
+      // Include archived + trash: completion history must survive park/delete.
+      // Default list is active-only (`isDeleted` omitted → non-trash); trash is a second call.
+      const [liveTodos, trashedTodos, notes] = await Promise.all([
+        api.todos.getAll({}),
+        api.todos.getAll({ isDeleted: true }),
         api.notes.getAll({ isArchived: false, isDeleted: false })
       ]);
+      const todos = [...liveTodos, ...trashedTodos];
 
       const todoItems: CalendarItem[] = todos
-        .filter(t => t.dueDate || t.reminder)
+        .filter(t => t.dueDate || t.reminder || t.lastCompletedAt || (t.schedule && t.schedule.repeat !== 'none'))
         .map(t => ({
           id: t.id,
           title: t.title,
           type: 'todo' as const,
           completed: t.completed,
+          archived: !!t.isArchived,
+          deleted: !!t.isDeleted,
           priority: t.priority,
           tags: t.tags,
           description: t.description,
@@ -79,7 +90,7 @@ export const Calendar: React.FC = () => {
 
       setItems([...todoItems, ...noteItems]);
 
-      // Load completion logs for recurring todos
+      // Completion logs for every recurring series (active, archived, trash)
       const recurringTodos = todos.filter(t => t.schedule && t.schedule.repeat && t.schedule.repeat !== 'none');
       const logsMap = new Map<string, Date[]>();
       await Promise.all(
@@ -156,6 +167,30 @@ export const Calendar: React.FC = () => {
     const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
     return items.filter(item => {
+      const parked = !!(item.archived || item.deleted);
+      const isRecurring = item.type === 'todo' && !!item.schedule && item.schedule.repeat !== 'none';
+
+      // Parked series: only days with a completion (or a concrete due/reminder hit).
+      // Do not expand future "pending" slots for archived/trash todos.
+      if (parked && isRecurring) {
+        if (wasCompletedOnDate(item.id, date)) return true;
+        if (item.dueDate) {
+          const dueDate = parseLocalDate(item.dueDate);
+          if (dueDate && isSameDay(dueDate, date)) return true;
+        }
+        if (item.reminder) {
+          const reminderDate = parseLocalDate(item.reminder);
+          if (reminderDate && isSameDay(reminderDate, date)) return true;
+        }
+        return false;
+      }
+
+      // One-shot parked: still show the day it was last completed.
+      if (parked && item.lastCompletedAt) {
+        const done = parseLocalDate(item.lastCompletedAt);
+        if (done && isSameDay(done, date)) return true;
+      }
+
       // Check dueDate match
       if (item.dueDate) {
         const dueDate = parseLocalDate(item.dueDate);
@@ -171,12 +206,12 @@ export const Calendar: React.FC = () => {
         }
       }
       // Recurring: expand from series start (createdAt), not rolled reminder
-      if (item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none' && (item.dueDate || item.reminder || item.createdAt)) {
+      if (isRecurring && (item.dueDate || item.reminder || item.createdAt)) {
         const rawStart = parseLocalDate(item.createdAt) || parseLocalDate(item.dueDate || item.reminder);
         if (!rawStart) return false;
         const startDate = new Date(rawStart.getFullYear(), rawStart.getMonth(), rawStart.getDate());
 
-        const endDateRaw = item.schedule.endDate;
+        const endDateRaw = item.schedule!.endDate;
         const endDate = endDateRaw
           ? (() => {
               // Parse date portion directly from ISO string to avoid UTC→local timezone day shift
@@ -195,7 +230,7 @@ export const Calendar: React.FC = () => {
         const diffMs = dateOnly.getTime() - startDate.getTime();
         const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-        switch (item.schedule.repeat) {
+        switch (item.schedule!.repeat) {
           case 'daily':
             return diffDays >= 0;
           case 'weekly':
@@ -208,7 +243,7 @@ export const Calendar: React.FC = () => {
             return diffDays >= 0 && dow >= 1 && dow <= 5;
           }
           case 'custom': {
-            const days = item.schedule.daysOfWeek || [];
+            const days = item.schedule!.daysOfWeek || [];
             return diffDays >= 0 && days.includes(dateOnly.getDay());
           }
           default:
@@ -315,15 +350,18 @@ export const Calendar: React.FC = () => {
                           // Check if this recurring todo was completed on this date
                           const isRecurring = item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none';
                           const completedOnThisDate = isRecurring && wasCompletedOnDate(item.id, date);
+                          const parked = !!(item.archived || item.deleted);
                           return (
                             <div
                               key={item.id}
                               className={`text-xs px-1 py-0.5 rounded truncate flex items-center gap-1 ${
                                 item.type === 'note' ? 'bg-blue-500/15 text-blue-400' :
-                                completedOnThisDate ? 'bg-green-500/15 text-green-400' :
+                                completedOnThisDate || (parked && item.completed) ? 'bg-green-500/15 text-green-400' :
+                                parked ? 'bg-hover text-text-secondary' :
                                 isRecurring ? 'bg-yellow-500/15 text-yellow-400' :
                                 item.completed ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'
                               }`}
+                              title={item.deleted ? 'In trash' : item.archived ? 'Archived' : undefined}
                             >
                               {item.type === 'note' && <i className="fas fa-note-sticky text-[10px] opacity-60"></i>}
                               {isRecurring && (
@@ -331,6 +369,12 @@ export const Calendar: React.FC = () => {
                               )}
                               {completedOnThisDate && (
                                 <i className="fas fa-check-circle text-[10px] text-green-400" title="Completed on this day"></i>
+                              )}
+                              {item.archived && !item.deleted && (
+                                <i className="fas fa-box-archive text-[10px] opacity-60" title="Archived"></i>
+                              )}
+                              {item.deleted && (
+                                <i className="fas fa-trash text-[10px] opacity-60" title="In trash"></i>
                               )}
                               <span className="truncate">{item.title}</span>
                             </div>
@@ -360,6 +404,17 @@ export const Calendar: React.FC = () => {
                   // Check if this recurring todo was completed on the selected date
                   const isRecurring = item.type === 'todo' && item.schedule && item.schedule.repeat !== 'none';
                   const completedOnSelectedDate = isRecurring && selectedDate && wasCompletedOnDate(item.id, selectedDate);
+                  const statusLabel = item.deleted
+                    ? (completedOnSelectedDate || item.completed ? '✓ Completed · Trash' : 'Trash')
+                    : item.archived
+                      ? (completedOnSelectedDate || item.completed ? '✓ Completed · Archived' : 'Archived')
+                      : completedOnSelectedDate
+                        ? '✓ Completed'
+                        : isRecurring
+                          ? 'Pending'
+                          : item.completed
+                            ? 'Completed'
+                            : 'Pending';
                   return (
                     <div
                       key={item.id}
@@ -373,11 +428,12 @@ export const Calendar: React.FC = () => {
                         </div>
                         {item.type === 'todo' && (
                           <span className={`text-xs px-2 py-1 rounded ${
-                            completedOnSelectedDate ? 'bg-green-500/15 text-green-400' :
+                            completedOnSelectedDate || item.completed ? 'bg-green-500/15 text-green-400' :
+                            item.archived || item.deleted ? 'bg-hover text-text-secondary' :
                             isRecurring ? 'bg-yellow-500/15 text-yellow-400' :
-                            item.completed ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'
+                            'bg-yellow-500/15 text-yellow-400'
                           }`}>
-                            {completedOnSelectedDate ? '✓ Completed' : isRecurring ? 'Pending' : item.completed ? 'Completed' : 'Pending'}
+                            {statusLabel}
                           </span>
                         )}
                         {item.type === 'note' && (
