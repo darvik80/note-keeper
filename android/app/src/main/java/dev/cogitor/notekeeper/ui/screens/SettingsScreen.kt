@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import dev.cogitor.notekeeper.BuildConfig
 import dev.cogitor.notekeeper.data.local.SettingsDataStore
 import dev.cogitor.notekeeper.data.notification.NotificationHelper
 import dev.cogitor.notekeeper.ui.components.nkTopBarColors
@@ -246,7 +247,7 @@ fun SettingsScreen(
                 Column(Modifier.padding(16.dp)) {
                     Text("NoteKeeper", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Android 2.0.3",
+                        "Android ${BuildConfig.VERSION_NAME}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

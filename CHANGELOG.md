@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.4 — 2026-11-17
+
+- Daily report / reminders: archived todos no longer appear in notifications
+- Android: note swipe archive needs a longer drag; todo swipe marks Done (archive stays in editor)
+- Android: Analytics screen (Settings → Analytics), same stats as web
+- Android CI: Gitea workflow builds and publishes `note-keeper-android_<ver>.apk`
+- Settings shows app version on web and Android
+
 ## 2.0.3 — 2026-10-31
 
 - Monitoring: public `GET /actuator/prometheus` with JVM, HTTP, Tomcat and Hikari metrics

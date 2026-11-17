@@ -1,6 +1,6 @@
 # NoteKeeper Android
 
-Compose client, version **2.0.3**. Open this folder in Android Studio.
+Compose client, version **2.0.4**. Open this folder in Android Studio.
 
 CI: Gitea workflow [`.gitea/workflows/build-android.yml`](../.gitea/workflows/build-android.yml) builds a release APK and publishes `note-keeper-android_<version>.apk` to `cogitor-products`.
 

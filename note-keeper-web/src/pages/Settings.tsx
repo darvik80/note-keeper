@@ -15,6 +15,7 @@ import {useToast} from '../contexts/ToastContext';
 import {storage} from '../utils/storage';
 import {IntegrationRequest, IntegrationResponse, Settings as SettingsType} from '../types';
 import {api} from '../utils/api';
+import {APP_VERSION} from '../version';
 
 /** Convert local "HH:mm" to UTC "HH:mm" (same pattern as todo reminder times). */
 const localTimeToUtc = (localTime: string): string => {
@@ -622,7 +623,7 @@ export const Settings: React.FC = () => {
                 <p className="text-[15px] text-text-secondary">
                   Notes and todos. Cogitor skin by default.
                 </p>
-                <p className="text-[13px] text-text-secondary mt-3">Version 1.0.0</p>
+                <p className="text-[13px] text-text-secondary mt-3">Version {APP_VERSION}</p>
               </div>
             </div>
           )}
