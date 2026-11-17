@@ -3,7 +3,6 @@ package dev.cogitor.notekeeper.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,15 +32,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,7 +44,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.cogitor.notekeeper.data.model.Note
@@ -62,7 +55,6 @@ import dev.cogitor.notekeeper.ui.components.NkEmptyState
 import dev.cogitor.notekeeper.ui.components.NkFab
 import dev.cogitor.notekeeper.ui.components.NkScreenHeader
 import dev.cogitor.notekeeper.ui.components.PriorityDot
-import dev.cogitor.notekeeper.ui.components.SwipeHint
 import dev.cogitor.notekeeper.ui.viewmodel.NoteListFilter
 import dev.cogitor.notekeeper.ui.viewmodel.NoteListViewModel
 import kotlinx.coroutines.launch
@@ -241,52 +233,9 @@ fun NoteListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(notes, key = { it.id }) { note ->
-                            // ~65% travel — short flicks no longer archive by accident.
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                positionalThreshold = { it * 0.65f }
-                            )
-                            // Click on the parent, not the card: Surface(onClick) steals the
-                            // horizontal drag and SwipeToDismissBox never settles.
-                            Box(Modifier.clickable { onNoteClick(note.id) }) {
-                                SwipeToDismissBox(
-                                    state = dismissState,
-                                    modifier = Modifier.clip(MaterialTheme.shapes.medium),
-                                    enableDismissFromStartToEnd = false,
-                                    onDismiss = { direction ->
-                                        val towardsStart =
-                                            direction == SwipeToDismissBoxValue.EndToStart ||
-                                                dismissState.settledValue == SwipeToDismissBoxValue.EndToStart
-                                        if (towardsStart) {
-                                            if (filter == NoteListFilter.Active) {
-                                                viewModel.archiveNote(note)
-                                                scope.launch {
-                                                    val result = snackbarHostState.showSnackbar(
-                                                        message = "Archived",
-                                                        actionLabel = "Undo",
-                                                        duration = SnackbarDuration.Short
-                                                    )
-                                                    if (result == SnackbarResult.ActionPerformed) {
-                                                        viewModel.restoreNote(note)
-                                                    }
-                                                }
-                                            } else {
-                                                viewModel.restoreNote(note)
-                                            }
-                                        }
-                                    },
-                                    backgroundContent = {
-                                        if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
-                                            SwipeHint(
-                                                if (filter == NoteListFilter.Active) "Archive" else "Restore",
-                                                end = true,
-                                                color = MaterialTheme.colorScheme.secondaryContainer
-                                            )
-                                        }
-                                    }
-                                ) {
-                                    NoteRow(note = note)
-                                }
-                            }
+                            // No swipe-to-archive: accidental flicks were too easy and sync was flaky.
+                            // Archive / restore only from the note editor ⋮ menu.
+                            NoteRow(note = note, onClick = { onNoteClick(note.id) })
                         }
                     }
                 }
@@ -296,8 +245,8 @@ fun NoteListScreen(
 }
 
 @Composable
-private fun NoteRow(note: Note) {
-    NkCard {
+private fun NoteRow(note: Note, onClick: () -> Unit) {
+    NkCard(onClick = onClick) {
         Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

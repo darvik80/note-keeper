@@ -11,7 +11,7 @@ You can point the app at your own server or at the public test instance [https:/
 - Bottom nav: Notes | Todos | Vault | Search
 - Note editor: markdown toolbar, autosave after 800 ms; the IME resizes the editor
 - Todo editor: stays on screen after save
-- Lists: pull to sync; swipe a note to archive; swipe a todo to mark it done or archive it
+- Lists: pull to sync; swipe a todo to mark it done; archive notes/todos from the editor ⋮ menu
 - Vault: `/api/v1/vault` (JWT), copy password
 - Room + WorkManager sync for notes and todos
 - Not yet: Hilt, SQLCipher for the local vault cache

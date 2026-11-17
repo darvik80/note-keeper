@@ -210,7 +210,7 @@ Note filters: `folder`, `tag`, `priority`, `isFavorite`, `isEncrypted`, `isArchi
 
 Open `android/` in Android Studio. `applicationId` is `dev.cogitor.notekeeper.v2`.
 
-The app covers notes, todos, vault, and search. Sign-in is email/password plus optional Google and Yandex (`notekeeper://oauth`). Swipe a note to archive; swipe a todo to mark it done or archive it.
+The app covers notes, todos, vault, and search. Sign-in is email/password plus optional Google and Yandex (`notekeeper://oauth`). Swipe a todo to mark it done; archive notes and todos from the editor ⋮ menu.
 
 Point the client at your own server, or at the test instance [https://note.cogitor.dev](https://note.cogitor.dev). Details: [android/README.md](android/README.md).
 

@@ -210,7 +210,7 @@ app:
 
 Откройте `android/` в Android Studio. `applicationId` — `dev.cogitor.notekeeper.v2`.
 
-В приложении есть заметки, задачи, сейф и поиск. Вход — почта/пароль и по желанию Google и Yandex (`notekeeper://oauth`). Свайп заметки — в архив; свайп задачи — «готово» или архив.
+В приложении есть заметки, задачи, сейф и поиск. Вход — почта/пароль и по желанию Google и Yandex (`notekeeper://oauth`). Свайп задачи — «готово»; архив заметок и задач — из меню ⋮ в редакторе.
 
 Клиент можно направить на свой сервер или на тестовый стенд [https://note.cogitor.dev](https://note.cogitor.dev). Подробности: [android/README.md](android/README.md).
 

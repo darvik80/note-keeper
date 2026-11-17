@@ -81,6 +81,25 @@ class ReminderServiceTest {
     }
 
     @Test
+    void checkReminders_skipsArchivedAndDeletedEvenIfMapperReturnsThem() {
+        LocalDateTime reminder = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(5);
+        Todo archived = dailyTodo("arch", reminder, null);
+        archived.setArchived(true);
+        Todo deleted = dailyTodo("del", reminder, null);
+        deleted.setDeleted(true);
+
+        when(todoMapper.findRecurringActive(null)).thenReturn(List.of(archived, deleted));
+        when(todoMapper.findWithDueReminders(any())).thenReturn(List.of(archived, deleted));
+
+        reminderService.checkReminders();
+
+        verify(telegramClient, never()).sendMessage(anyString(), anyString(), anyString(), anyString(), any());
+        verify(telegramClient, never()).sendMessage(anyString(), anyString(), anyString());
+        verify(todoMapper, never()).markReminderNotified(anyString(), any());
+        verify(todoMapper, never()).update(any());
+    }
+
+    @Test
     void checkReminders_rolloverPersistsBeforeNotify() {
         Todo stuck = dailyTodo("stuck-1", LocalDateTime.of(2026, 8, 8, 15, 30), null);
         stuck.setCompleted(true);

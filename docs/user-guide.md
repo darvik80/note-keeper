@@ -139,7 +139,7 @@ Bottom navigation is **Notes | Todos | Vault | Search**. The gear on every tab o
 
 Pull down to sync. Notes and todos also sync in the background (Room + WorkManager).
 
-List chips: notes **All | Archive | Trash**, then folder chips from `folder`/`subfolder` (the same paths as the web). Todos **Active | Done | Archive | Trash**. Swipe a note left to archive (snackbar **Undo**). Swipe a todo right for done, left for archive. In Archive or Trash, swipe restores. The FAB is only on the Active list so it does not cover archived cards. A new note lands in the folder you have selected.
+List chips: notes **All | Archive | Trash**, then folder chips from `folder`/`subfolder` (the same paths as the web). Todos **Active | Done | Archive | Trash**. Notes have no swipe — archive or restore from the editor ⋮ menu. Swipe a todo to mark it done (or open again); archive stays in the editor ⋮ menu. In Archive or Trash for todos, swipe restores. The FAB is only on the Active list so it does not cover archived cards. A new note lands in the folder you have selected.
 
 Vault chips are **All** plus server folders (`GET /vault/folders`). Type a name and tap plus to create one. A new secret inherits the selected folder; the editor can move it later.
 
