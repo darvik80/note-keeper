@@ -18,8 +18,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    runs-on: devops.local
     name: Build release APK
     outputs:
       version: ${{ steps.version.outputs.version }}
