@@ -58,7 +58,7 @@ jobs:
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           test -n "$GITEA_TOKEN" || { echo "missing secret DEB_GITEA_TOKEN"; exit 1; }
-          BASE="https://gitea.darvik.synology.me:8443/api/packages/Cogitor/generic/cogitor-products"
+          BASE=""http://gitea:3000/api/packages/Cogitor/generic/cogitor-products"
           AUTH="Authorization: token ${GITEA_TOKEN}"
 
           curl -k -sSf -X DELETE -H "$AUTH" "${BASE}/latest/$(basename "$DEB")" || true
